@@ -3,6 +3,7 @@ import pandas as pd
 from src.portfolio import Portfolio
 from src.market_data import get_current_price, get_historical_data
 from src.analyzer import analyze_stock
+from src.bibliography import Bibliography
 
 # Page Config
 st.set_page_config(page_title="Agente Financiero", layout="wide")
@@ -40,7 +41,8 @@ except Exception as e:
     st.stop()
 
 # Tabs
-tab1, tab2, tab3, tab4 = st.tabs(["📊 Portafolio", "💸 Operaciones", "🚀 Oportunidades", "📝 Wishlist"])
+# Tabs
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Portafolio", "💸 Operaciones", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía"])
 
 with tab1:
     st.header("Mi Portafolio")
@@ -165,7 +167,7 @@ from src.wishlist import Wishlist
 
 # ... (inside tab3)
 
-with tab3:
+with tab4:
     st.header("Wishlist")
     st.info("Gestiona tus acciones favoritas para monitorear.")
     
@@ -203,6 +205,52 @@ with tab3:
                     st.rerun()
     else:
         st.write("Tu wishlist está vacía.")
+
+with tab5:
+    st.header("📚 Bibliografía")
+    st.info("Biblioteca de conocimientos del mercado de capitales.")
+    
+    biblio = Bibliography()
+    
+    # Add new item
+    with st.expander("Agregar Nuevo Recurso"):
+        with st.form("new_biblio_item"):
+            b_title = st.text_input("Título")
+            b_author = st.text_input("Autor")
+            b_year = st.number_input("Año", min_value=1900, max_value=2100, step=1, value=2024)
+            b_category = st.selectbox("Categoría", ["Libros", "Artículos", "Papers", "Videos", "Otros"])
+            b_link = st.text_input("Enlace (Opcional)")
+            b_desc = st.text_area("Descripción (Opcional)")
+            
+            submitted = st.form_submit_button("Guardar Recurso")
+            if submitted:
+                if b_title and b_author:
+                    biblio.add_item(b_title, b_author, b_year, b_category, b_link, b_desc)
+                    st.success(f"Agregado: {b_title}")
+                    st.rerun()
+                else:
+                    st.error("Título y Autor son obligatorios.")
+
+    # List items
+    items = biblio.get_items()
+    if items:
+        for item in items:
+            with st.container():
+                c1, c2 = st.columns([4, 1])
+                with c1:
+                    st.subheader(f"{item['title']} ({item['year']})")
+                    st.markdown(f"**Autor:** {item['author']} | **Categoría:** {item['category']}")
+                    if item['description']:
+                        st.write(item['description'])
+                    if item['link']:
+                        st.markdown(f"[🔗 Ver Recurso]({item['link']})")
+                with c2:
+                    if st.button("🗑️ Eliminar", key=f"del_bib_{item['id']}"):
+                        biblio.delete_item(item['id'])
+                        st.rerun()
+                st.markdown("---")
+    else:
+        st.info("No hay recursos en la bibliografía aún.")
 
 # Footer
 st.markdown("---")

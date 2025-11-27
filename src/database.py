@@ -29,6 +29,15 @@ class Transaction(BaseModel):
     broker = CharField()
     category = CharField()
 
+class BibliographyItem(BaseModel):
+    title = CharField()
+    author = CharField()
+    year = IntegerField(null=True)
+    category = CharField(default='General')
+    link = CharField(null=True)
+    description = TextField(null=True)
+    added_at = DateTimeField(default=datetime.datetime.now)
+
 def init_db():
     db.connect()
-    db.create_tables([PortfolioItem, WishlistItem, Transaction])
+    db.create_tables([PortfolioItem, WishlistItem, Transaction, BibliographyItem])
