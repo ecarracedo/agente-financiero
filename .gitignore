@@ -1,0 +1,9 @@
+# Venv
+venv/
+
+# Database
+finance.db
+finance.db-journal
+
+__pycache__/
+*.pyc   
