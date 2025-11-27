@@ -36,6 +36,28 @@ class Portfolio:
         except Exception as e:
             print(f"Error loading portfolio from DB: {e}")
 
+    def get_portfolio_summary(self) -> Dict[str, float]:
+        """
+        Returns a summary of the portfolio (Total Invested per Category).
+        Devuelve un resumen del portafolio (Total Invertido por Categoría).
+        """
+        summary = {}
+        try:
+            # We need to query the DB to get avg_price, as self.holdings only has quantities
+            items = PortfolioItem.select()
+            for item in items:
+                if item.category not in summary:
+                    summary[item.category] = 0.0
+                
+                # Calculate estimated invested amount
+                invested = item.quantity * item.avg_price
+                summary[item.category] += invested
+            
+            return summary
+        except Exception as e:
+            print(f"Error calculating summary: {e}")
+            return {}
+
     def get_all_tickers(self) -> List[str]:
         """
         Returns a list of all unique tickers across all categories.

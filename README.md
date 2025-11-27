@@ -11,10 +11,12 @@
 This project is a Financial Agent designed to help you manage your stock portfolio. It analyzes your current holdings from an Excel file, identifies buy/sell opportunities based on market data, and manages a wishlist of stocks.
 
 ### Features
-- **Portfolio Management**: Loads your transactions from an Excel file.
+- **Portfolio Management**: Loads your transactions from an Excel file and stores them in a local SQLite database.
+- **Transaction Management**: Record Buy/Sell operations directly in the app.
 - **Market Analysis**: Fetches real-time data using `yfinance` to determine if stocks are cheap or expensive.
 - **Wishlist**: Tracks potential investment opportunities.
-- **Interactive UI**: A Streamlit-based web interface for easy interaction.
+- **Bibliography**: Manage your library of financial books and resources.
+- **Interactive UI**: A Streamlit-based web interface with tabs for Portfolio, Operations, Opportunities, Wishlist, and Bibliography.
 
 ### Setup
 1.  Install dependencies:
@@ -32,14 +34,17 @@ This project is a Financial Agent designed to help you manage your stock portfol
 ## Español
 
 ### Descripción General
-Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu portafolio de acciones. Analiza tus tenencias actuales desde un archivo Excel, identifica oportunidades de compra/venta basadas en datos de mercado y gestiona una lista de deseos (wishlist).
+Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu portafolio de acciones. Analiza tus tenencias actuales, permite registrar operaciones de compra/venta, identifica oportunidades basadas en datos de mercado y gestiona una lista de deseos y bibliografía.
 
 ### Características
-- **Gestión de Portafolio**: Carga datos desde un archivo Excel (En desarrollo: detectando estructura de hojas).
-- **Análisis de Mercado**: Obtiene datos en tiempo real usando `yfinance` para determinar si las acciones están baratas o caras.
-    - *Funcionalidad*: Cálculo de máximos/mínimos de 52 semanas y medias móviles (50/200 días).
-- **Lista de Deseos**: Rastrea oportunidades de inversión potenciales.
-- **Interfaz Interactiva**: Una interfaz web basada en Streamlit (En proceso).
+- **Gestión de Portafolio**: Carga datos iniciales desde Excel y mantiene un registro persistente en base de datos SQLite.
+- **Gestión de Transacciones**: Registra operaciones de Compra y Venta directamente desde la interfaz.
+    - *Cálculo Automático*: Actualiza el precio promedio ponderado de compra (PPP).
+- **Historial**: Visualiza un registro completo de todas tus transacciones.
+- **Análisis de Mercado**: Obtiene datos en tiempo real usando `yfinance` para detectar oportunidades (Máximos/Mínimos, Medias Móviles).
+- **Lista de Deseos (Wishlist)**: Rastrea acciones que te interesan.
+- **Bibliografía**: Gestiona tu biblioteca de conocimientos (Libros, Artículos, Videos).
+- **Interfaz Interactiva**: Interfaz web basada en Streamlit con pestañas organizadas.
 
 ### Configuración
 1.  **Requisitos**: Python 3.13 recomendado.

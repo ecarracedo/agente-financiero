@@ -9,11 +9,27 @@ from src.bibliography import Bibliography
 st.set_page_config(page_title="Agente Financiero", layout="wide")
 
 # Title
-st.title("💰 Agente Financiero Personal")
+st.title("💰 Agente Financiero Personal (v1.1)")
 
 # Sidebar
 st.sidebar.header("Configuración")
 excel_path = "/home/emi/Documentos/Proyectos/agente-financiero/Inversiones 2025.xlsx"
+
+# Load Portfolio
+# @st.cache_data(ttl=60) # Cache removed to prevent stale object issues during dev
+def load_portfolio():
+    return Portfolio()
+
+try:
+    portfolio = load_portfolio()
+    st.sidebar.success("Portafolio cargado (DB)")
+    # DEBUG
+    # print("Portfolio attributes:", dir(portfolio)) 
+    # if not hasattr(portfolio, 'delete_ticker'):
+    #    st.error("CRITICAL: delete_ticker method missing from Portfolio object!")
+except Exception as e:
+    st.sidebar.error(f"Error cargando portafolio: {e}")
+    st.stop()
 
 # Delete Ticker Section
 with st.sidebar.expander("🗑️ Zona de Peligro"):
@@ -27,18 +43,6 @@ with st.sidebar.expander("🗑️ Zona de Peligro"):
                 st.rerun()
             else:
                 st.error(f"No se encontraron registros de {del_ticker} o hubo un error.")
-
-# Load Portfolio
-@st.cache_data(ttl=60) # Cache for 60 seconds or until reload
-def load_portfolio():
-    return Portfolio()
-
-try:
-    portfolio = load_portfolio()
-    st.sidebar.success("Portafolio cargado (DB)")
-except Exception as e:
-    st.sidebar.error(f"Error cargando portafolio: {e}")
-    st.stop()
 
 # Tabs
 # Tabs
