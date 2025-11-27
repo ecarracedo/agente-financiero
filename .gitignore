@@ -24,12 +24,7 @@ MANIFEST
 
 # Virtual Environment
 venv/
-env/
-ENV/
-.env
-.venv
-env.bak/
-venv.bak/
+
 
 # Database
 finance.db
