@@ -72,34 +72,103 @@ with tab2:
     col1, col2 = st.columns(2)
     
     with col1:
-        op_type = st.radio("Tipo de Operación", ["Compra", "Venta"], horizontal=True)
-        ticker_op = st.text_input("Ticker", placeholder="Ej: AAPL").upper()
-        broker_op = st.selectbox("Broker", ["Eco", "PPI", "Galicia", "Binance"])
+        op_type = st.radio("Tipo de Operación", ["Compra", "Venta"], horizontal=True, key="op_type")
+        # Ticker Input with Key for clearing
+        if "op_ticker" not in st.session_state: st.session_state.op_ticker = ""
+        ticker_input = st.text_input("Ticker", placeholder="Ej: AAPL", key="op_ticker").upper()
+        
+        # Market Selector (Default Argentina)
+        market_op = st.selectbox("Mercado", ["Argentina", "EE.UU."], key="op_market")
+        broker_op = st.selectbox("Broker", ["Eco", "PPI", "Galicia", "Binance"], key="op_broker")
+        
+        # Logic to handle ticker suffix
+        ticker_op = ticker_input.strip()
+        if market_op == "Argentina" and ticker_op and not ticker_op.endswith(".BA"):
+            ticker_op += ".BA"
         
     with col2:
-        quantity_op = st.number_input("Cantidad / Monto Nominal", min_value=0.0, step=1.0)
+        # Quantity (Integer)
+        if "op_qty" not in st.session_state: st.session_state.op_qty = 0
+        quantity_op = st.number_input("Cantidad / Monto Nominal", min_value=0, step=1, key="op_qty")
         
         # Auto-fetch price
         current_price = 0.0
         if ticker_op:
-            fetched_price = get_current_price(ticker_op)
-            if fetched_price:
-                current_price = fetched_price
+            # Pre-validation for US Market
+            if market_op == "EE.UU." and ticker_op.endswith(".BA"):
+                st.warning(f"⚠️ Si seleccionas EE.UU., el ticker no debería terminar en .BA. ¿Quisiste decir '{ticker_op.replace('.BA', '')}'?")
+            else:
+                fetched_price = get_current_price(ticker_op)
+                if fetched_price:
+                    current_price = fetched_price
         
-        price_op = st.number_input("Precio Unitario", min_value=0.0, value=current_price, step=0.01, format="%.2f")
-        category_op = st.selectbox("Categoría (solo para compras nuevas)", ["Acciones", "Bonos", "Cedear", "Cripto", "FCI", "Letras", "ON"])
-        date_op = st.date_input("Fecha de Operación")
+        # Price Input
+        if "op_price" not in st.session_state: st.session_state.op_price = 0.0
+        # If auto-fetched, update the widget value if it's 0 or if we want to force it? 
+        # Better to let user see it. But st.number_input value is fixed by key if present.
+        # We can use 'value' argument but it conflicts with key if we want to update it dynamically.
+        # For now, let's keep it simple. If we want to auto-fill, we might need to update session_state.
+        if current_price > 0 and st.session_state.op_price == 0.0:
+             st.session_state.op_price = current_price
+
+        price_op = st.number_input("Precio Unitario", min_value=0.0, step=0.01, format="%.2f", key="op_price")
         
-    if st.button("Confirmar Operación", type="primary"):
-        if ticker_op and quantity_op > 0 and price_op > 0:
-            qty_change = quantity_op if op_type == "Compra" else -quantity_op
+        category_op = st.selectbox("Categoría (solo para compras nuevas)", ["Acciones", "Bonos", "Cedear", "Cripto", "FCI", "Letras", "ON"], key="op_category")
+        date_op = st.date_input("Fecha de Operación", key="op_date")
+        
+    # Callback for submission
+    def submit_op():
+        # Get values from session state
+        raw_ticker = st.session_state.op_ticker.upper().strip()
+        market = st.session_state.op_market
+        qty = st.session_state.op_qty
+        price = st.session_state.op_price
+        op_type = st.session_state.op_type
+        broker = st.session_state.op_broker
+        category = st.session_state.op_category
+        date = st.session_state.op_date
+        
+        if raw_ticker and qty > 0 and price > 0:
+            # Handle Suffix
+            ticker = raw_ticker
+            if market == "Argentina" and not ticker.endswith(".BA"):
+                ticker += ".BA"
             
-            with st.spinner("Procesando..."):
-                portfolio.update_position(ticker_op, qty_change, price_op, broker_op, date_op, category_op)
-                st.success(f"Operación registrada: {op_type} {quantity_op} de {ticker_op} en {broker_op} a ${price_op} el {date_op}")
-                st.rerun()
+            # Validate Market Consistency
+            if market == "EE.UU." and ticker.endswith(".BA"):
+                st.session_state.tx_msg = ("error", f"❌ Error: El ticker '{ticker}' tiene sufijo .BA pero el mercado es EE.UU.")
+                return
+
+            # Validate Existence
+            # Note: get_current_price might be slow for a callback, but acceptable here.
+            valid_price = get_current_price(ticker)
+            if valid_price is None:
+                st.session_state.tx_msg = ("error", f"❌ Error: El ticker '{ticker}' no parece existir en el mercado seleccionado.")
+                return
+            
+            # Execute
+            qty_change = qty if op_type == "Compra" else -qty
+            portfolio.update_position(ticker, qty_change, price, broker, date, category)
+            
+            # Success & Clear
+            st.session_state.tx_msg = ("success", f"✅ Operación registrada: {op_type} {qty} de {ticker} en {broker} a ${price}")
+            st.session_state.op_ticker = ""
+            st.session_state.op_qty = 0
+            st.session_state.op_price = 0.0
         else:
-            st.error("Por favor completa todos los campos (Ticker, Cantidad, Precio).")
+            st.session_state.tx_msg = ("error", "Por favor completa todos los campos (Ticker, Cantidad, Precio).")
+
+    st.button("Confirmar Operación", type="primary", on_click=submit_op)
+    
+    # Display Message if exists
+    if "tx_msg" in st.session_state:
+        m_type, m_text = st.session_state.tx_msg
+        if m_type == "success":
+            st.success(m_text)
+        else:
+            st.error(m_text)
+        # Clear message after display so it doesn't persist forever (optional, or keep until next action)
+        del st.session_state.tx_msg
 
     st.markdown("---")
     st.subheader("📜 Historial de Transacciones")
@@ -178,24 +247,42 @@ with tab4:
     wishlist = Wishlist()
     
     # Add new ticker
-    col1, col2 = st.columns([3, 1])
+    col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
-        new_ticker = st.text_input("Agregar Ticker:", placeholder="Ej: AAPL, GGAL.BA")
+        new_ticker = st.text_input("Agregar Ticker:", placeholder="Ej: AAPL, GGAL").upper()
     with col2:
-        if st.button("Agregar"):
+        market_wl = st.selectbox("Mercado", ["EE.UU.", "Argentina"], key="wl_market")
+    with col3:
+        if st.button("Agregar", key="btn_add_wl"):
             if new_ticker:
-                wishlist.add_ticker(new_ticker)
-                st.success(f"{new_ticker} agregado!")
-                st.rerun()
+                # Handle suffix
+                final_ticker = new_ticker.strip()
+                if market_wl == "Argentina" and not final_ticker.endswith(".BA"):
+                    final_ticker += ".BA"
+                
+                # Validate Market Consistency
+                if market_wl == "EE.UU." and final_ticker.endswith(".BA"):
+                    st.error(f"❌ Error: El ticker '{final_ticker}' tiene sufijo .BA pero el mercado es EE.UU. Cambia el mercado a Argentina o quita el sufijo.")
+                else:
+                    # Validate
+                    with st.spinner(f"Validando {final_ticker}..."):
+                        price = get_current_price(final_ticker)
+                        if price:
+                            wishlist.add_ticker(final_ticker)
+                            st.success(f"¡{final_ticker} agregado correctamente! (Precio actual: ${price})")
+                            st.rerun()
+                        else:
+                            st.error(f"No se encontró el ticker '{final_ticker}'. Verifica el símbolo y el mercado.")
 
     # Display wishlist
     items = wishlist.get_items()
     if items:
         st.subheader("Tus Acciones en Seguimiento")
         for ticker in items:
+            display_ticker = ticker.replace(".BA", "")
             col_a, col_b, col_c = st.columns([2, 2, 1])
             with col_a:
-                st.write(f"**{ticker}**")
+                st.write(f"**{display_ticker}**")
             with col_b:
                 # Show quick price
                 price = get_current_price(ticker)
