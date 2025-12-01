@@ -62,9 +62,40 @@ with tab1:
     
     # Detailed Holdings
     st.subheader("Detalle de Tenencias")
-    for cat, series in portfolio.holdings.items():
-        with st.expander(f"{cat} ({len(series)} activos)", expanded=True):
-            st.dataframe(series)
+    
+    df_holdings = portfolio.get_holdings_with_valuations()
+    
+    if not df_holdings.empty:
+        # Format columns for display
+        st.dataframe(
+            df_holdings,
+            column_config={
+                "Ticker": "Ticker",
+                "Category": "Categoría",
+                "Quantity": st.column_config.NumberColumn("Cantidad", format="%.2f"),
+                "Avg Price": st.column_config.NumberColumn("Precio Promedio", format="$ %.2f"),
+                "Current Price": st.column_config.NumberColumn("Precio Actual", format="$ %.2f"),
+                "Total Value": st.column_config.NumberColumn("Valor Total", format="$ %.2f"),
+                "Gain/Loss $": st.column_config.NumberColumn("G/P ($)", format="$ %.2f"),
+                "Gain/Loss %": st.column_config.NumberColumn("G/P (%)", format="%.2f %%")
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+    else:
+        st.info("No hay activos en el portafolio.")
+
+    st.markdown("---")
+    st.subheader("📊 Gráficos de Rendimiento")
+    
+    from src.charts import plot_portfolio_composition, plot_asset_allocation
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        plot_portfolio_composition(portfolio)
+    with c2:
+        plot_asset_allocation(portfolio)
+
 
 with tab2:
     st.header("Registrar Operación")

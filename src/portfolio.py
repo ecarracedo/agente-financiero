@@ -24,14 +24,16 @@ class Portfolio:
                     "ticker": item.ticker,
                     "quantity": item.quantity,
                     "category": item.category,
-                    "source_sheet": item.source_sheet
+                    "source_sheet": item.source_sheet,
+                    "avg_price": item.avg_price
                 })
             
             if data:
                 df = pd.DataFrame(data)
                 # Group by category to match previous structure
                 for category in df['category'].unique():
-                    self.holdings[category] = df[df['category'] == category].set_index('ticker')['quantity']
+                    # Include avg_price in the DataFrame
+                    self.holdings[category] = df[df['category'] == category].set_index('ticker')[['quantity', 'avg_price']]
             
         except Exception as e:
             print(f"Error loading portfolio from DB: {e}")
@@ -57,6 +59,46 @@ class Portfolio:
         except Exception as e:
             print(f"Error calculating summary: {e}")
             return {}
+
+    def get_holdings_with_valuations(self) -> pd.DataFrame:
+        """
+        Returns a DataFrame with all holdings including current price and valuations.
+        """
+        from src.market_data import get_current_price
+        
+        all_data = []
+        
+        for category, df_holdings in self.holdings.items():
+            for ticker, row in df_holdings.iterrows():
+                qty = row['quantity']
+                avg_price = row['avg_price']
+                
+                # Fetch current price
+                current_price = get_current_price(ticker)
+                if current_price is None:
+                    current_price = 0.0
+                
+                total_value = qty * current_price
+                invested_capital = qty * avg_price
+                
+                gain_loss_amount = total_value - invested_capital
+                gain_loss_pct = ((current_price - avg_price) / avg_price * 100) if avg_price > 0 else 0.0
+                
+                all_data.append({
+                    "Ticker": ticker,
+                    "Category": category,
+                    "Quantity": qty,
+                    "Avg Price": avg_price,
+                    "Current Price": current_price,
+                    "Total Value": total_value,
+                    "Gain/Loss $": gain_loss_amount,
+                    "Gain/Loss %": gain_loss_pct
+                })
+        
+        if not all_data:
+            return pd.DataFrame()
+            
+        return pd.DataFrame(all_data)
 
     def get_all_tickers(self) -> List[str]:
         """
@@ -98,10 +140,22 @@ class Portfolio:
             if item:
                 new_quantity = item.quantity + quantity_change
                 
-                if quantity_change > 0: # Buy - Update Avg Price
+                if quantity_change > 0: # Buy - Weighted Average
                     total_cost = (item.quantity * item.avg_price) + (quantity_change * price)
                     item.avg_price = total_cost / new_quantity
                 
+                else: # Sell - Net Investment Logic
+                    # Reduce total cost by the amount recovered (Transaction Value)
+                    # New Avg Price = (Old Total Cost - Recovered Amount) / Remaining Qty
+                    current_total_cost = item.quantity * item.avg_price
+                    recovered_amount = abs_quantity * price
+                    new_total_cost = current_total_cost - recovered_amount
+                    
+                    if new_quantity > 0:
+                        item.avg_price = new_total_cost / new_quantity
+                    else:
+                        item.avg_price = 0.0 # Should be deleted anyway
+
                 if new_quantity <= 0:
                     # If sold all, delete
                     item.delete_instance()
@@ -109,7 +163,7 @@ class Portfolio:
                 else:
                     item.quantity = new_quantity
                     item.save()
-                    print(f"Updated {ticker} ({broker}): {new_quantity}")
+                    print(f"Updated {ticker} ({broker}): {new_quantity} | New Avg Price: {item.avg_price:.2f}")
             else:
                 # If buying new
                 if quantity_change > 0:

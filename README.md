@@ -13,8 +13,11 @@ This project is a Financial Agent designed to help you manage your stock portfol
 ### Features
 - **Portfolio Management**: Loads your transactions from an Excel file and stores them in a local SQLite database.
 - **Transaction Management**: Record Buy/Sell operations directly in the app.
+    - *Net Investment Logic*: Automatically calculates weighted average purchase price using the "Net Investment" method.
+- **Portfolio Visualization**: Interactive charts showing composition by category and asset allocation.
+- **Performance Tracking**: Real-time display of current prices, total value, and gain/loss metrics ($ and %).
 - **Market Analysis**: Fetches real-time data using `yfinance` to determine if stocks are cheap or expensive.
-- **Wishlist**: Tracks potential investment opportunities.
+- **Wishlist**: Tracks potential investment opportunities with market validation.
 - **Bibliography**: Manage your library of financial books and resources.
 - **Interactive UI**: A Streamlit-based web interface with tabs for Portfolio, Operations, Opportunities, Wishlist, and Bibliography.
 
@@ -39,10 +42,12 @@ Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu por
 ### Características
 - **Gestión de Portafolio**: Carga datos iniciales desde Excel y mantiene un registro persistente en base de datos SQLite.
 - **Gestión de Transacciones**: Registra operaciones de Compra y Venta directamente desde la interfaz.
-    - *Cálculo Automático*: Actualiza el precio promedio ponderado de compra (PPP).
+    - *Lógica de Inversión Neta*: Calcula automáticamente el precio promedio usando el método de "Inversión Neta" (resta el monto recuperado en ventas del costo total).
+- **Visualización de Portafolio**: Gráficos interactivos de composición por categoría y distribución por activo.
+- **Seguimiento de Rendimiento**: Muestra en tiempo real precios actuales, valor total, y métricas de ganancia/pérdida ($ y %).
 - **Historial**: Visualiza un registro completo de todas tus transacciones.
 - **Análisis de Mercado**: Obtiene datos en tiempo real usando `yfinance` para detectar oportunidades (Máximos/Mínimos, Medias Móviles).
-- **Lista de Deseos (Wishlist)**: Rastrea acciones que te interesan.
+- **Lista de Deseos (Wishlist)**: Rastrea acciones que te interesan con validación de mercado.
 - **Bibliografía**: Gestiona tu biblioteca de conocimientos (Libros, Artículos, Videos).
 - **Interfaz Interactiva**: Interfaz web basada en Streamlit con pestañas organizadas.
 
