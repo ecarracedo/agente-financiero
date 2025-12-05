@@ -13,9 +13,11 @@ This project is a Financial Agent designed to help you manage your stock portfol
 ### Features
 - **Portfolio Management**: Loads your transactions from an Excel file and stores them in a local SQLite database.
 - **Transaction Management**: Record Buy/Sell operations directly in the app.
-    - *Net Investment Logic*: Automatically calculates weighted average purchase price using the "Net Investment" method.
+    - *Weighted Average Logic*: Automatically calculates weighted average purchase price. Selling shares does not affect the average price of remaining shares.
 - **Portfolio Visualization**: Interactive charts showing composition by category and asset allocation.
 - **Performance Tracking**: Real-time display of current prices, total value, and gain/loss metrics ($ and %).
+    - *Auto-Refresh*: Automatic price updates with configurable intervals and manual refresh button.
+- **History**: View and manage your transaction history, including the ability to delete individual transactions.
 - **Market Analysis**: Fetches real-time data using `yfinance` to determine if stocks are cheap or expensive.
 - **Wishlist**: Tracks potential investment opportunities with market validation.
 - **Bibliography**: Manage your library of financial books and resources.
@@ -26,7 +28,11 @@ This project is a Financial Agent designed to help you manage your stock portfol
     ```bash
     pip install -r requirements.txt
     ```
-2.  Run the application:
+2.  Create an empty database for the initial configuration:
+    ```bash
+    python src/create_empty_db.py
+    ```
+3.  Run the application:
     ```bash
     streamlit run main.py
     ```
@@ -42,10 +48,12 @@ Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu por
 ### Características
 - **Gestión de Portafolio**: Carga datos iniciales desde Excel y mantiene un registro persistente en base de datos SQLite.
 - **Gestión de Transacciones**: Registra operaciones de Compra y Venta directamente desde la interfaz.
-    - *Lógica de Inversión Neta*: Calcula automáticamente el precio promedio usando el método de "Inversión Neta" (resta el monto recuperado en ventas del costo total).
+    - *Lógica de Promedio Ponderado*: Calcula automáticamente el precio promedio ponderado. Las ventas no afectan el precio promedio de las acciones restantes.
+    - *Soporte Multi-Activo*: Soporta Acciones, Cedears, Bonos, ONs, Cripto, FCI y Letras.
 - **Visualización de Portafolio**: Gráficos interactivos de composición por categoría y distribución por activo.
 - **Seguimiento de Rendimiento**: Muestra en tiempo real precios actuales, valor total, y métricas de ganancia/pérdida ($ y %).
-- **Historial**: Visualiza un registro completo de todas tus transacciones.
+    - *Auto-Actualización*: Actualización automática de precios con intervalos configurables y botón de actualización manual.
+- **Historial**: Visualiza un registro completo de todas tus transacciones con opción de eliminar registros individuales.
 - **Análisis de Mercado**: Obtiene datos en tiempo real usando `yfinance` para detectar oportunidades (Máximos/Mínimos, Medias Móviles).
 - **Lista de Deseos (Wishlist)**: Rastrea acciones que te interesan con validación de mercado.
 - **Bibliografía**: Gestiona tu biblioteca de conocimientos (Libros, Artículos, Videos).

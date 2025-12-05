@@ -144,19 +144,14 @@ class Portfolio:
                     total_cost = (item.quantity * item.avg_price) + (quantity_change * price)
                     item.avg_price = total_cost / new_quantity
                 
-                else: # Sell - Net Investment Logic
-                    # Reduce total cost by the amount recovered (Transaction Value)
-                    # New Avg Price = (Old Total Cost - Recovered Amount) / Remaining Qty
-                    current_total_cost = item.quantity * item.avg_price
-                    recovered_amount = abs_quantity * price
-                    new_total_cost = current_total_cost - recovered_amount
-                    
-                    if new_quantity > 0:
-                        item.avg_price = new_total_cost / new_quantity
-                    else:
-                        item.avg_price = 0.0 # Should be deleted anyway
+                else: # Sell
+                    # Selling shares does NOT change the average price of the remaining shares.
+                    # It only reduces the quantity.
+                    # El precio promedio se mantiene igual al vender, solo cambia la cantidad.
+                    pass
 
-                if new_quantity <= 0:
+                # Use tolerance for float comparison
+                if new_quantity <= 1e-9:
                     # If sold all, delete
                     item.delete_instance()
                     print(f"Sold all {ticker} ({broker}). Removed from DB.")
@@ -177,7 +172,8 @@ class Portfolio:
                     )
                     print(f"Created new position {ticker} ({broker}): {quantity_change}")
                 else:
-                    print(f"Cannot sell {ticker}: Not in portfolio.")
+                    # print(f"Cannot sell {ticker}: Not in portfolio.")
+                    raise ValueError(f"No puedes vender {ticker} en {broker} porque no lo tienes en cartera.")
             
             # Reload data to reflect changes
             self.load_data()
@@ -216,3 +212,86 @@ class Portfolio:
         except Exception as e:
             print(f"Error deleting ticker {ticker}: {e}")
             return 0
+
+    def delete_transaction(self, transaction_id: int):
+        """
+        Deletes a specific transaction by ID and recalculates portfolio positions.
+        Elimina una transacción específica por ID y recalcula las posiciones del portafolio.
+        
+        Args:
+            transaction_id (int): The ID of the transaction to delete
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            from src.database import Transaction
+            
+            # Get the transaction before deleting
+            transaction = Transaction.get_or_none(Transaction.id == transaction_id)
+            if not transaction:
+                print(f"Transaction {transaction_id} not found.")
+                return False
+            
+            # Store transaction details
+            ticker = transaction.ticker
+            quantity = transaction.quantity
+            price = transaction.price
+            operation_type = transaction.operation_type
+            broker = transaction.broker
+            
+            # Delete the transaction
+            transaction.delete_instance()
+            print(f"Deleted transaction {transaction_id}: {operation_type} {quantity} {ticker}")
+            
+            # Recalculate portfolio position for this ticker/broker
+            # Get all remaining transactions for this ticker/broker
+            remaining_txs = Transaction.select().where(
+                (Transaction.ticker == ticker) & 
+                (Transaction.broker == broker)
+            ).order_by(Transaction.date)
+            
+            # Recalculate from scratch
+            total_quantity = 0
+            total_cost = 0
+            
+            for tx in remaining_txs:
+                if tx.operation_type == "Compra":
+                    total_cost += tx.quantity * tx.price
+                    total_quantity += tx.quantity
+                else:  # Venta
+                    # Reduce cost proportionally
+                    if total_quantity > 0:
+                        avg_price = total_cost / total_quantity
+                        total_cost -= tx.quantity * avg_price
+                        total_quantity -= tx.quantity
+            
+            # Update or delete portfolio item
+            item = PortfolioItem.get_or_none(
+                (PortfolioItem.ticker == ticker) & 
+                (PortfolioItem.broker == broker)
+            )
+            
+            if total_quantity > 0:
+                avg_price = total_cost / total_quantity if total_quantity > 0 else 0
+                if item:
+                    item.quantity = total_quantity
+                    item.avg_price = avg_price
+                    item.save()
+                    print(f"Updated {ticker} ({broker}): {total_quantity} @ ${avg_price:.2f}")
+                else:
+                    # This shouldn't happen, but handle it
+                    print(f"Warning: Portfolio item not found for {ticker} ({broker})")
+            else:
+                # No more holdings, delete portfolio item
+                if item:
+                    item.delete_instance()
+                    print(f"Removed {ticker} ({broker}) from portfolio (no holdings left)")
+            
+            # Reload data
+            self.load_data()
+            return True
+            
+        except Exception as e:
+            print(f"Error deleting transaction {transaction_id}: {e}")
+            return False

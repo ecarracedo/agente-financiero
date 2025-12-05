@@ -1,9 +1,19 @@
 import streamlit as st
 import pandas as pd
+import time
 from src.portfolio import Portfolio
 from src.market_data import get_current_price, get_historical_data
 from src.analyzer import analyze_stock
 from src.bibliography import Bibliography
+from src.auto_refresh import (
+    initialize_refresh_state,
+    should_refresh,
+    mark_updated,
+    format_countdown,
+    format_last_update,
+    get_interval_options,
+    clear_price_cache
+)
 
 # Page Config
 st.set_page_config(page_title="Agente Financiero", layout="wide")
@@ -11,9 +21,56 @@ st.set_page_config(page_title="Agente Financiero", layout="wide")
 # Title
 st.title("💰 Agente Financiero Personal (v1.1)")
 
+# Initialize auto-refresh state
+initialize_refresh_state()
+
 # Sidebar
 st.sidebar.header("Configuración")
 excel_path = "/home/emi/Documentos/Proyectos/agente-financiero/Inversiones 2025.xlsx"
+
+# Auto-refresh controls
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔄 Auto-actualización")
+
+interval_options = get_interval_options()
+interval_labels = list(interval_options.keys())
+
+# Find current selection
+current_interval = st.session_state.refresh_interval
+current_label = [k for k, v in interval_options.items() if v == current_interval][0]
+current_index = interval_labels.index(current_label)
+
+selected_label = st.sidebar.selectbox(
+    "Intervalo de actualización:",
+    interval_labels,
+    index=current_index,
+    key="refresh_interval_selector"
+)
+
+# Update interval if changed
+st.session_state.refresh_interval = interval_options[selected_label]
+
+# Display last update with smaller text
+st.sidebar.markdown("""
+<style>
+    [data-testid="stMetricValue"] {
+        font-size: 18px !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 11px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.sidebar.metric("Última actualización", format_last_update())
+
+# Manual refresh button - use a unique key to avoid conflicts
+if st.sidebar.button("🔄 Actualizar Ahora", key="manual_refresh_btn", width="stretch"):
+    # Set flags to force refresh
+    st.session_state.last_price_update = None  # Reset to force refresh
+    st.session_state.force_refresh = True  # Flag to bypass cache completely
+    clear_price_cache()
+    st.rerun()
 
 # Load Portfolio
 # @st.cache_data(ttl=60) # Cache removed to prevent stale object issues during dev
@@ -44,7 +101,15 @@ with st.sidebar.expander("🗑️ Zona de Peligro"):
             else:
                 st.error(f"No se encontraron registros de {del_ticker} o hubo un error.")
 
-# Tabs
+# Auto-refresh logic (global - works in any tab)
+if should_refresh():
+    mark_updated()
+    clear_price_cache()
+    # Reset force_refresh flag after clearing cache
+    if 'force_refresh' in st.session_state:
+        st.session_state.force_refresh = False
+    st.rerun()
+
 # Tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Portafolio", "💸 Operaciones", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía"])
 
@@ -66,18 +131,34 @@ with tab1:
     df_holdings = portfolio.get_holdings_with_valuations()
     
     if not df_holdings.empty:
-        # Format columns for display
+        # Function to apply color formatting
+        def color_gain_loss(val):
+            """Apply color based on gain/loss value"""
+            if val > 0:
+                return 'color: green; font-weight: bold'
+            elif val < 0:
+                return 'color: red; font-weight: bold'
+            else:
+                return 'font-weight: bold'
+        
+        # Apply styling to G/P columns
+        styled_df = df_holdings.style.applymap(
+            color_gain_loss,
+            subset=['Gain/Loss $', 'Gain/Loss %']
+        ).format({
+            'Quantity': '{:.2f}',
+            'Avg Price': '$ {:.2f}',
+            'Current Price': '$ {:.2f}',
+            'Total Value': '$ {:.2f}',
+            'Gain/Loss $': '$ {:.2f}',
+            'Gain/Loss %': '{:.2f} %'
+        })
+        
         st.dataframe(
-            df_holdings,
+            styled_df,
             column_config={
                 "Ticker": "Ticker",
-                "Category": "Categoría",
-                "Quantity": st.column_config.NumberColumn("Cantidad", format="%.2f"),
-                "Avg Price": st.column_config.NumberColumn("Precio Promedio", format="$ %.2f"),
-                "Current Price": st.column_config.NumberColumn("Precio Actual", format="$ %.2f"),
-                "Total Value": st.column_config.NumberColumn("Valor Total", format="$ %.2f"),
-                "Gain/Loss $": st.column_config.NumberColumn("G/P ($)", format="$ %.2f"),
-                "Gain/Loss %": st.column_config.NumberColumn("G/P (%)", format="%.2f %%")
+                "Category": "Categoría"
             },
             hide_index=True,
             use_container_width=True
@@ -178,14 +259,22 @@ with tab2:
                 return
             
             # Execute
-            qty_change = qty if op_type == "Compra" else -qty
-            portfolio.update_position(ticker, qty_change, price, broker, date, category)
-            
-            # Success & Clear
-            st.session_state.tx_msg = ("success", f"✅ Operación registrada: {op_type} {qty} de {ticker} en {broker} a ${price}")
-            st.session_state.op_ticker = ""
-            st.session_state.op_qty = 0
-            st.session_state.op_price = 0.0
+            try:
+                qty_change = qty if op_type == "Compra" else -qty
+                portfolio.update_position(ticker, qty_change, price, broker, date, category)
+                
+                # Success & Clear
+                st.session_state.tx_msg = ("success", f"✅ Operación registrada: {op_type} {qty} de {ticker} en {broker} a ${price}")
+                st.session_state.op_ticker = ""
+                st.session_state.op_qty = 0
+                st.session_state.op_price = 0.0
+                # Reset date to today
+                from datetime import date
+                st.session_state.op_date = date.today()
+            except ValueError as e:
+                st.session_state.tx_msg = ("error", f"❌ Error: {str(e)}")
+            except Exception as e:
+                st.session_state.tx_msg = ("error", f"❌ Error inesperado: {str(e)}")
         else:
             st.session_state.tx_msg = ("error", "Por favor completa todos los campos (Ticker, Cantidad, Precio).")
 
@@ -211,12 +300,58 @@ with tab2:
         # Calculate Total
         df_trans['total'] = df_trans['quantity'] * df_trans['price']
         
-        # Reorder columns for better readability
-        cols = ['date', 'ticker', 'operation_type', 'quantity', 'price', 'total', 'broker', 'category']
-        # Ensure columns exist (in case of schema diffs, though unlikely now)
-        cols = [c for c in cols if c in df_trans.columns]
+        # Sort by date descending
+        df_trans = df_trans.sort_values(by='date', ascending=False)
         
-        st.dataframe(df_trans[cols].sort_values(by='date', ascending=False))
+        # Header row
+        col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1.2, 1, 1, 0.8, 0.8, 1, 1, 1, 0.6])
+        with col1:
+            st.markdown("**Fecha**")
+        with col2:
+            st.markdown("**Ticker**")
+        with col3:
+            st.markdown("**Operación**")
+        with col4:
+            st.markdown("**Cant.**")
+        with col5:
+            st.markdown("**Precio**")
+        with col6:
+            st.markdown("**Total**")
+        with col7:
+            st.markdown("**Broker**")
+        with col8:
+            st.markdown("**Categoría**")
+        with col9:
+            st.markdown("**Acción**")
+        st.markdown("---")
+
+        # Display each transaction with a delete button
+        for idx, row in df_trans.iterrows():
+            col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1.2, 1, 1, 0.8, 0.8, 1, 1, 1, 0.6])
+            
+            with col1:
+                st.text(row['date'])
+            with col2:
+                st.text(row['ticker'])
+            with col3:
+                st.text(row['operation_type'])
+            with col4:
+                st.text(f"{row['quantity']:.0f}")
+            with col5:
+                st.text(f"${row['price']:.2f}")
+            with col6:
+                st.text(f"${row['total']:.2f}")
+            with col7:
+                st.text(row['broker'])
+            with col8:
+                st.text(row['category'])
+            with col9:
+                if st.button("🗑️", key=f"del_tx_{row['id']}", help="Eliminar transacción"):
+                    if portfolio.delete_transaction(row['id']):
+                        st.rerun()
+                    else:
+                        st.error("Error al eliminar la transacción")
+        
     else:
         st.info("No hay transacciones registradas.")
 

@@ -12,12 +12,39 @@ def get_current_price(ticker: str) -> float:
     Returns:
         float: The current price or None if not found.
     """
+    # Check if force refresh is enabled (manual refresh button clicked)
+    force_refresh = False
+    try:
+        import streamlit as st
+        force_refresh = st.session_state.get('force_refresh', False)
+    except:
+        pass
+    
+    # Try to get from cache first (unless force refresh)
+    if not force_refresh:
+        try:
+            from src.auto_refresh import get_cached_price, cache_price
+            cached = get_cached_price(ticker)
+            if cached is not None:
+                return cached
+        except ImportError:
+            pass  # If auto_refresh not available, skip caching
+    
     try:
         ticker_obj = yf.Ticker(ticker)
         # Try to get 'currentPrice', fallback to 'regularMarketPrice' or last close
         # Intenta obtener 'currentPrice', si no, usa 'regularMarketPrice' o el cierre anterior
         info = ticker_obj.info
         price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
+        
+        # Cache the price if available
+        if price:
+            try:
+                from src.auto_refresh import cache_price
+                cache_price(ticker, price)
+            except ImportError:
+                pass
+        
         return price
     except Exception as e:
         print(f"Error fetching price for {ticker}: {e}")
