@@ -60,12 +60,16 @@ Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu por
 - **Interfaz Interactiva**: Interfaz web basada en Streamlit con pestañas organizadas.
 
 ### Configuración
-1.  **Requisitos**: Python 3.13 recomendado.
-2.  Instalar dependencias:
+1.  Instalar dependencias:
     ```bash
     pip install -r requirements.txt
+    ```
+2.  Crear una base de datos vacía para la configuración inicial:
+    ```bash
+    python src/create_empty_db.py
     ```
 3.  Ejecutar la aplicación:
     ```bash
     streamlit run main.py
     ```
+
