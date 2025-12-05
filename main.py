@@ -12,6 +12,7 @@ from src.auto_refresh import (
     format_countdown,
     format_last_update,
     get_interval_options,
+    get_time_since_last_update,
     clear_price_cache
 )
 
