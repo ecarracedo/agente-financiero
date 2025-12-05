@@ -50,6 +50,23 @@ selected_label = st.sidebar.selectbox(
 # Update interval if changed
 st.session_state.refresh_interval = interval_options[selected_label]
 
+# JavaScript auto-refresh injection
+if st.session_state.refresh_interval > 0:
+    refresh_ms = st.session_state.refresh_interval * 1000  # Convert to milliseconds
+    st.markdown(f"""
+    <script>
+        // Clear any existing auto-refresh timers
+        if (window.autoRefreshTimer) {{
+            clearTimeout(window.autoRefreshTimer);
+        }}
+        
+        // Set new auto-refresh timer
+        window.autoRefreshTimer = setTimeout(function() {{
+            window.location.reload();
+        }}, {refresh_ms});
+    </script>
+    """, unsafe_allow_html=True)
+
 # Display last update with smaller text
 st.sidebar.markdown("""
 <style>
@@ -71,6 +88,15 @@ if st.sidebar.button("🔄 Actualizar Ahora", key="manual_refresh_btn", width="s
     st.session_state.force_refresh = True  # Flag to bypass cache completely
     clear_price_cache()
     st.rerun()
+
+# Update timestamp on page load (for auto-refresh tracking)
+# This ensures the "Última actualización" shows when auto-refresh occurred
+if st.session_state.last_price_update is None or \
+   (st.session_state.refresh_interval > 0 and 
+    get_time_since_last_update() >= st.session_state.refresh_interval):
+    mark_updated()
+    clear_price_cache()
+
 
 # Load Portfolio
 # @st.cache_data(ttl=60) # Cache removed to prevent stale object issues during dev
@@ -100,15 +126,6 @@ with st.sidebar.expander("🗑️ Zona de Peligro"):
                 st.rerun()
             else:
                 st.error(f"No se encontraron registros de {del_ticker} o hubo un error.")
-
-# Auto-refresh logic (global - works in any tab)
-if should_refresh():
-    mark_updated()
-    clear_price_cache()
-    # Reset force_refresh flag after clearing cache
-    if 'force_refresh' in st.session_state:
-        st.session_state.force_refresh = False
-    st.rerun()
 
 # Tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Portafolio", "💸 Operaciones", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía"])
