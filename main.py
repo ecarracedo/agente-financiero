@@ -54,19 +54,24 @@ st.session_state.refresh_interval = interval_options[selected_label]
 # JavaScript auto-refresh injection
 if st.session_state.refresh_interval > 0:
     refresh_ms = st.session_state.refresh_interval * 1000  # Convert to milliseconds
-    st.markdown(f"""
+    
+    # Use st.components.v1.html to inject JavaScript (st.markdown doesn't execute scripts)
+    import streamlit.components.v1 as components
+    
+    components.html(f"""
     <script>
         // Clear any existing auto-refresh timers
-        if (window.autoRefreshTimer) {{
-            clearTimeout(window.autoRefreshTimer);
+        if (window.parent.autoRefreshTimer) {{
+            clearTimeout(window.parent.autoRefreshTimer);
         }}
         
         // Set new auto-refresh timer
-        window.autoRefreshTimer = setTimeout(function() {{
-            window.location.reload();
+        window.parent.autoRefreshTimer = setTimeout(function() {{
+            window.parent.location.reload();
         }}, {refresh_ms});
     </script>
-    """, unsafe_allow_html=True)
+    """, height=0)
+
 
 # Display last update with smaller text
 st.sidebar.markdown("""
