@@ -19,6 +19,13 @@ from src.auto_refresh import (
 # Page Config
 st.set_page_config(page_title="Agente Financiero", layout="wide")
 
+# Determine run_every for the fragment
+# We pass this to the fragment to control update frequency
+fragment_refresh_interval = st.session_state.get('refresh_interval', 60)
+# If 0, we can pass None or a very large number, or handle it inside. 
+# st.fragment run_every accepts int/float (seconds). None means no auto-rerun.
+run_every_val = fragment_refresh_interval if fragment_refresh_interval > 0 else None
+
 # Title
 st.title("💰 Agente Financiero Personal (v1.1)")
 
@@ -52,43 +59,14 @@ selected_label = st.sidebar.selectbox(
 st.session_state.refresh_interval = interval_options[selected_label]
 
 # JavaScript auto-refresh injection
-if st.session_state.refresh_interval > 0:
-    refresh_ms = st.session_state.refresh_interval * 1000  # Convert to milliseconds
-    
-    # Use st.components.v1.html to inject JavaScript (st.markdown doesn't execute scripts)
-    import streamlit.components.v1 as components
-    
-    components.html(f"""
-    <script>
-        // Clear any existing auto-refresh timers
-        if (window.parent.autoRefreshTimer) {{
-            clearTimeout(window.parent.autoRefreshTimer);
-        }}
-        
-        // Set new auto-refresh timer
-        window.parent.autoRefreshTimer = setTimeout(function() {{
-            window.parent.location.reload();
-        }}, {refresh_ms});
-    </script>
-    """, height=0)
+# JavaScript auto-refresh injection REMOVED in favor of st.fragment
 
 
-# Display last update with smaller text
-st.sidebar.markdown("""
-<style>
-    [data-testid="stMetricValue"] {
-        font-size: 18px !important;
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 11px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
 
-st.sidebar.metric("Última actualización", format_last_update())
+
 
 # Manual refresh button - use a unique key to avoid conflicts
-if st.sidebar.button("🔄 Actualizar Ahora", key="manual_refresh_btn", width="stretch"):
+if st.sidebar.button("🔄 Actualizar Ahora", key="manual_refresh_btn", use_container_width=True):
     # Set flags to force refresh
     st.session_state.last_price_update = None  # Reset to force refresh
     st.session_state.force_refresh = True  # Flag to bypass cache completely
@@ -149,45 +127,77 @@ with tab1:
         st.info("Portafolio vacío.")
     
     # Detailed Holdings
-    st.subheader("Detalle de Tenencias")
+
     
-    df_holdings = portfolio.get_holdings_with_valuations()
-    
-    if not df_holdings.empty:
-        # Function to apply color formatting
-        def color_gain_loss(val):
-            """Apply color based on gain/loss value"""
-            if val > 0:
-                return 'color: green; font-weight: bold'
-            elif val < 0:
-                return 'color: red; font-weight: bold'
-            else:
-                return 'font-weight: bold'
+    @st.fragment(run_every=run_every_val)
+    def render_holdings_table():
+        # If this runs via auto-refresh (implicit), we might want to clear cache to get fresh prices.
+        # However, st.fragment just re-runs the function. 
+        # We need to enforce price fetching if we want updates.
+        # We can check time or just force it if we assume this runs on interval.
+        # A simple strategy: always clear cache for the relevant tickers or rely on cache expiration (TTL).
+        # auto_refresh.py has get_cached_price with TTL=30.
+        # If we just call portfolio.get_holdings_with_valuations(), it calls get_current_price.
+        # We should ensure get_current_price fetches new data if enough time passed.
         
-        # Apply styling to G/P columns
-        styled_df = df_holdings.style.applymap(
-            color_gain_loss,
-            subset=['Gain/Loss $', 'Gain/Loss %']
-        ).format({
-            'Quantity': '{:.2f}',
-            'Avg Price': '$ {:.2f}',
-            'Current Price': '$ {:.2f}',
-            'Total Value': '$ {:.2f}',
-            'Gain/Loss $': '$ {:.2f}',
-            'Gain/Loss %': '{:.2f} %'
-        })
+        # Force clear cache if we want strictly fresh data on every partial run
+        # But this might be too aggressive if run_every is small.
+        # Let's rely on standard logic:
+        # If we are here, we want to show current state.
         
-        st.dataframe(
-            styled_df,
-            column_config={
-                "Ticker": "Ticker",
-                "Category": "Categoría"
-            },
-            hide_index=True,
-            use_container_width=True
-        )
-    else:
-        st.info("No hay activos en el portafolio.")
+        # Recalculate valuations (this fetches prices)
+        # We might need to ensure 'portfolio' object is fresh or methods are stateless regarding cache.
+        # The portfolio object interacts with 'src.market_data'.
+        
+        # Little trick: to see updates, we need 'get_current_price' to return fresh values.
+        # Its internal cache might hold old values. 
+        # Let's call clear_price_cache() here to be sure, OR rely on TTL.
+        # Given the user wants "Actualizar Ahora" experience but partial.
+        clear_price_cache() 
+        
+        df_holdings = portfolio.get_holdings_with_valuations()
+        
+        if not df_holdings.empty:
+            # Function to apply color formatting
+            def color_gain_loss(val):
+                """Apply color based on gain/loss value"""
+                if val > 0:
+                    return 'color: green; font-weight: bold'
+                elif val < 0:
+                    return 'color: red; font-weight: bold'
+                else:
+                    return 'font-weight: bold'
+            
+            # Apply styling to G/P columns
+            styled_df = df_holdings.style.applymap(
+                color_gain_loss,
+                subset=['Gain/Loss $', 'Gain/Loss %']
+            ).format({
+                'Quantity': '{:.2f}',
+                'Avg Price': '$ {:.2f}',
+                'Current Price': '$ {:.2f}',
+                'Total Value': '$ {:.2f}',
+                'Gain/Loss $': '$ {:.2f}',
+                'Gain/Loss %': '{:.2f} %'
+            })
+            
+            st.dataframe(
+                styled_df,
+                column_config={
+                    "Ticker": "Ticker",
+                    "Category": "Categoría"
+                },
+                hide_index=True,
+                use_container_width=True
+            )
+            
+            # Show last update time for this fragment
+            st.caption(f"Última actualización de precios: {time.strftime('%H:%M:%S')}")
+            
+        else:
+            st.info("No hay activos en el portafolio.")
+
+    render_holdings_table()
 
     st.markdown("---")
     st.subheader("📊 Gráficos de Rendimiento")
