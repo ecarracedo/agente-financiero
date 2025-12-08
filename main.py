@@ -131,6 +131,10 @@ with tab1:
     
     @st.fragment(run_every=run_every_val)
     def render_holdings_table():
+        """
+        Renders the holdings table with partial auto-refresh support.
+        Calculates and displays current portfolio valuations, gains/losses, and recent updates.
+        """
         # If this runs via auto-refresh (implicit), we might want to clear cache to get fresh prices.
         # However, st.fragment just re-runs the function. 
         # We need to enforce price fetching if we want updates.

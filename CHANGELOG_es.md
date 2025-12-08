@@ -5,6 +5,15 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-12-08
+
+### Cambiado
+- **Auto-Actualización**: Se reemplazó la recarga completa de página por actualizaciones parciales usando `st.fragment` en la tabla de tenencias.
+- **Interfaz (UI)**: Limpieza de métricas duplicadas en la barra lateral y corrección de títulos duplicados.
+
+### Corregido
+- **Error de Botón**: Corregido uso de parámetro obsoleto `width` en `st.button`.
+
 ## [1.0.0] - 2025-12-05
 
 ### Agregado
