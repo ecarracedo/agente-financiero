@@ -6,6 +6,7 @@ from src.wishlist import Wishlist
 from src.market_data import get_current_price, get_historical_data
 from src.analyzer import analyze_stock
 from src.bibliography import Bibliography
+from src.stock_charts import plot_stock_detail
 from src.auto_refresh import (
     initialize_refresh_state,
     should_refresh,
@@ -116,7 +117,7 @@ with st.sidebar.expander("🗑️ Zona de Peligro"):
                 st.error(f"No se encontraron registros de {del_ticker} o hubo un error.")
 
 # Tabs
-tab1, tab2, tab_alerts, tab3, tab4, tab5 = st.tabs(["📊 Portafolio", "💸 Operaciones", "🔔 Alertas", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía"])
+tab1, tab2, tab_charts, tab_alerts, tab3, tab4, tab5 = st.tabs(["📊 Portafolio", "💸 Operaciones", "📈 Gráficos", "🔔 Alertas", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía"])
 
 # ... (Previous tab1 and tab2 content remains)
 
@@ -560,6 +561,137 @@ with tab2:
         
     else:
         st.info("No hay transacciones registradas.")
+
+with tab_charts:
+    st.header("📈 Análisis Técnico")
+    
+    # Selection method
+    chart_mode = st.radio("Fuente del Ticker", ["Mis Activos / Wishlist", "Búsqueda Manual"], horizontal=True, key="chart_source_mode")
+    
+    ticker_to_plot = None
+    
+    if chart_mode == "Mis Activos / Wishlist":
+        # Combine tickers
+        p_tickers = portfolio.get_all_tickers()
+        w_items = wishlist.get_items()
+        w_tickers = [i['ticker'] for i in w_items]
+        
+        # Unique and sorted
+        all_tickers = sorted(list(set(p_tickers + w_tickers)))
+        
+        if all_tickers:
+            ticker_to_plot = st.selectbox("Seleccionar Activo", all_tickers, key="chart_select_asset")
+        else:
+            st.info("No tienes activos en portafolio ni en wishlist.")
+    else:
+        c1, c2 = st.columns([2, 1])
+        with c1:
+            man_ticker = st.text_input("Ingresar Ticker", placeholder="Ej: AAPL, YPFD", key="chart_manual_input").upper()
+        with c2:
+            market_chart = st.selectbox("Mercado", ["EE.UU.", "Argentina"], key="chart_market_select")
+            
+        if man_ticker:
+            clean_ticker = man_ticker.strip()
+            if market_chart == "Argentina" and not clean_ticker.endswith(".BA"):
+                clean_ticker += ".BA"
+            ticker_to_plot = clean_ticker
+            
+    st.markdown("---")
+    
+    if ticker_to_plot:
+        # Time Period Selection
+        st.subheader(f"Gráfico de {ticker_to_plot}")
+        
+        # Controls Row
+        c_period, c_type = st.columns([3, 1])
+        
+        ranges = {"1 Mes": "1mo", "3 Meses": "3mo", "6 Meses": "6mo", "1 Año": "1y", "2 Años": "2y", "5 Años": "5y"}
+        
+        with c_period:
+            selected_range_label = st.radio("Periodo", list(ranges.keys()), index=3, horizontal=True, key="chart_period")
+            selected_range = ranges[selected_range_label]
+            
+        with c_type:
+            # Default to "Línea/Área" (index 1)
+            chart_type = st.selectbox("Tipo de Gráfico", ["Velas", "Línea/Área"], index=1, key="chart_type_select")
+            # Map friendly name to internal arg
+            c_type_arg = "Velas" if chart_type == "Velas" else "Línea"
+        
+        with st.spinner(f"Cargando datos para {ticker_to_plot}..."):
+             # Header with Price
+             from src.market_data import get_stock_info
+             
+             # Fetch minimal data for header
+             current = get_current_price(ticker_to_plot)
+             
+             # Calculate change (approximate from history if real-time change not available)
+             # But let's try to get it from historical data last 2 days
+             hist_head = get_historical_data(ticker_to_plot, period="5d")
+             
+             delta = None
+             delta_color = "normal"
+             
+             if not hist_head.empty and len(hist_head) >= 2:
+                 last_close = hist_head['Close'].iloc[-1]
+                 prev_close = hist_head['Close'].iloc[-2]
+                 
+                 # if current is available and different from last_close (market open), use current vs prev_close
+                 # if market closed, last_close might be current.
+                 
+                 ref_price = current if current else last_close
+                 
+                 change = ref_price - prev_close
+                 pct_change = (change / prev_close) * 100
+                 
+                 delta = f"{change:+.2f} ({pct_change:+.2f}%)"
+                 delta_color = "normal" # st.metric handles color automatically based on sign
+             
+             st.metric(
+                 label=f"{ticker_to_plot}",
+                 value=f"${current:,.2f}" if current else "N/A",
+                 delta=delta
+             )
+
+             # Get Target Price from Portfolio OR Wishlist
+             tgt_price = 0.0
+             
+             # Check Portfolio first
+             # We can't easily query just one ticker without a helper in Portfolio class, 
+             # but we can grab the holdings DF and filter.
+             # Or iterate.
+             # Or we can just use the fact we have 'all_tickers' list logic.
+             # Let's use a quick helper to check both.
+             
+             # Check Wishlist
+             w_items = wishlist.get_items()
+             for w in w_items:
+                 if w['ticker'] == ticker_to_plot:
+                     if w.get('target_price'):
+                         tgt_price = w['target_price']
+                     break
+            
+             # Check Portfolio (override if exists, or prioritize? Usually Portfolio target is "Sell/Stop", Wishlist is "Buy")
+             # Let's say if it's in portfolio, show that target.
+             # We need a way to get target from portfolio easily.
+             # Portfolio.holdings structure: dict[Category] -> DataFrame
+             
+             # Actually, we can use the 'get_holdings_with_valuations' or iterate via 'get_all_tickers' logic roughly.
+             # But 'holdings' has 'target_price' column.
+             
+             found_in_port = False
+             for cat, df in portfolio.holdings.items():
+                 if ticker_to_plot in df.index:
+                     row = df.loc[ticker_to_plot]
+                     # row might be Series if unique, or DataFrame if dups (unlikely with set_index unless index not unique)
+                     # index is ticker, should be unique per category.
+                     # But ticker could be in multiple categories? (Unlikely)
+                     t_p = row.get('target_price')
+                     if t_p and t_p > 0:
+                         tgt_price = t_p
+                         found_in_port = True
+                     break
+             
+             plot_stock_detail(ticker_to_plot, period=selected_range, chart_type=c_type_arg, target_price=tgt_price)
 
 with tab3:
     st.header("Análisis de Oportunidades")
