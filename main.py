@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 from src.portfolio import Portfolio
+from src.wishlist import Wishlist
 from src.market_data import get_current_price, get_historical_data
 from src.analyzer import analyze_stock
 from src.bibliography import Bibliography
@@ -98,6 +99,9 @@ except Exception as e:
     st.sidebar.error(f"Error cargando portafolio: {e}")
     st.stop()
 
+# Initialize Wishlist
+wishlist = Wishlist()
+
 # Delete Ticker Section
 with st.sidebar.expander("🗑️ Zona de Peligro"):
     st.warning("Acciones irreversibles")
@@ -112,7 +116,168 @@ with st.sidebar.expander("🗑️ Zona de Peligro"):
                 st.error(f"No se encontraron registros de {del_ticker} o hubo un error.")
 
 # Tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Portafolio", "💸 Operaciones", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía"])
+tab1, tab2, tab_alerts, tab3, tab4, tab5 = st.tabs(["📊 Portafolio", "💸 Operaciones", "🔔 Alertas", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía"])
+
+# ... (Previous tab1 and tab2 content remains)
+
+with tab_alerts:
+    st.header("🔔 Centro de Alertas")
+    
+    # Section 1: My Assets
+    st.subheader("Mis Activos en Cartera")
+    st.info("Configura alertas de precio para los activos que ya posees.")
+    
+    # Get portfolio holdings (we need unique tickers and their targets)
+    # We can use get_holdings_with_valuations() which already fetches everything
+    df_holdings = portfolio.get_holdings_with_valuations()
+    
+    if not df_holdings.empty:
+        # Group by Ticker to avoid duplicates if multiple brokers
+        # We just need Ticker, Current Price, Target Price.
+        # Check if multiple rows (brokers) have different targets?
+        # logic in Portfolio.update_target updates ALL rows. So they should be consistent.
+        
+        # Unique tickers
+        unique_holdings = df_holdings[['Ticker', 'Current Price', 'Target Price']].drop_duplicates(subset=['Ticker'])
+        
+        # UI Header
+        h1, h2, h3, h4 = st.columns([1.5, 1.5, 2, 3])
+        h1.markdown("**Ticker**")
+        h2.markdown("**Precio Actual**")
+        h3.markdown("**Precio Objetivo**")
+        h4.markdown("**Estado**")
+        st.markdown("---")
+        
+        for idx, row in unique_holdings.iterrows():
+            ticker = row['Ticker']
+            current_price = row['Current Price']
+            target_price = row['Target Price']
+            
+            with st.container():
+                c1, c2, c3, c4 = st.columns([1.5, 1.5, 2, 3])
+                
+                with c1:
+                    st.write(f"**{ticker}**")
+                
+                with c2:
+                    st.write(f"${current_price:,.2f}")
+                
+                with c3:
+                    # Editable Target
+                    new_target = st.number_input(
+                        "Target",
+                        value=target_price if target_price else 0.0,
+                        step=0.1,
+                        key=f"alert_port_{ticker}",
+                        label_visibility="collapsed"
+                    )
+                    
+                    if new_target != (target_price if target_price else 0.0):
+                        if portfolio.update_target(ticker, new_target if new_target > 0 else None):
+                            # st.rerun() # Optional
+                            pass
+
+                with c4:
+                    if new_target > 0:
+                        diff = current_price - new_target
+                        pct_diff = (diff / current_price) * 100
+                        
+                        if diff == 0:
+                             st.success("🔔 **¡OBJETIVO ALCANZADO!**")
+                        elif new_target < current_price: 
+                            # Target below (Stop Loss? or Buy Dip?)
+                            # Usually for OWNED assets:
+                            # Target > Current = Take Profit (Sell Alert)
+                            # Target < Current = Stop Loss (Sell Alert) or Buy More (Buy Alert)
+                            # Context matters. Let's just show distance.
+                            if current_price <= new_target:
+                                st.error(f"🔔 **¡ALERTA!** Precio debajo del objetivo (${new_target})")
+                            else:
+                                st.info(f"Falta bajar {pct_diff:.2f}% hasta ${new_target}")
+                        else:
+                            # Target above
+                            if current_price >= new_target:
+                                st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${new_target})")
+                            else:
+                                pct_up = ((new_target - current_price) / current_price) * 100
+                                st.info(f"Falta subir {pct_up:.2f}% hasta ${new_target}")
+                    else:
+                        st.caption("Sin alerta configurada")
+            st.markdown("---")
+    else:
+        st.info("No tienes activos en el portafolio.")
+
+    # Section 2: Wishlist
+    st.subheader("Alertas de Wishlist")
+    st.markdown("Gestiona estas alertas en la pestaña **Wishlist**.")
+    
+    w_items = wishlist.get_items()
+    if w_items:
+         # Simplified view
+         
+         # Identify items with alerts first to check if we need headers
+         alert_items = [item for item in w_items if item.get('target_price') and item['target_price'] > 0]
+         
+         if alert_items:
+             
+             # Header
+             wh1, wh2, wh3, wh4 = st.columns([1.5, 1.5, 1.5, 3])
+             wh1.markdown("**Ticker**")
+             wh2.markdown("**Precio Objetivo**")
+             wh3.markdown("**Precio Actual**")
+             wh4.markdown("**Estado**")
+             st.markdown("---")
+             
+             for item in alert_items:
+                 ticker = item['ticker']
+                 tgt = item['target_price']
+                 price = get_current_price(ticker)
+                 
+                 with st.container():
+                     wc1, wc2, wc3, wc4 = st.columns([1.5, 1.5, 1.5, 3])
+                     
+                     with wc1:
+                         st.write(f"**{ticker}**")
+                     
+                     with wc2:
+                         st.write(f"${tgt:,.2f}")
+                     
+                     with wc3:
+                         if price:
+                             st.write(f"${price:,.2f}")
+                         else:
+                             st.write("N/A")
+                     
+                     with wc4:
+                         if price:
+                             diff = price - tgt
+                             pct_diff = (diff / price) * 100
+                             
+                             if diff == 0:
+                                  st.success("🔔 **¡OBJETIVO ALCANZADO!**")
+                             elif tgt < price: 
+                                 # Target below (Waiting for drop)
+                                 if price <= tgt:
+                                     st.success(f"🔔 **¡COMPRA!** (${tgt})")
+                                 else:
+                                     st.info(f"Falta bajar {pct_diff:.2f}%")
+                             else:
+                                 # Target above (Waiting for rise)
+                                 if price >= tgt:
+                                     st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${tgt})")
+                                 else:
+                                     # pct to go up
+                                     pct_up = ((tgt - price) / price) * 100
+                                     st.info(f"Falta subir {pct_up:.2f}%")
+                         else:
+                             st.caption("Esperando precio...")
+                 st.markdown("---")
+         else:
+             st.info("No tienes alertas activas en la Wishlist. Configura un 'Precio Objetivo' en la pestaña Wishlist.")
+    else:
+        st.write("Sin items en wishlist.")
+
+
 
 with tab1:
     st.header("Mi Portafolio")
@@ -180,6 +345,7 @@ with tab1:
                 'Quantity': '{:.2f}',
                 'Avg Price': '$ {:.2f}',
                 'Current Price': '$ {:.2f}',
+                'Target Price': '$ {:.2f}',
                 'Total Value': '$ {:.2f}',
                 'Gain/Loss $': '$ {:.2f}',
                 'Gain/Loss %': '{:.2f} %'
@@ -206,13 +372,16 @@ with tab1:
     st.markdown("---")
     st.subheader("📊 Gráficos de Rendimiento")
     
-    from src.charts import plot_portfolio_composition, plot_asset_allocation
+    from src.charts import plot_portfolio_composition, plot_asset_allocation, plot_gain_loss_by_stock
     
     c1, c2 = st.columns(2)
     with c1:
         plot_portfolio_composition(portfolio)
     with c2:
         plot_asset_allocation(portfolio)
+    
+    st.markdown("---")
+    plot_gain_loss_by_stock(portfolio)
 
 
 with tab2:
@@ -447,7 +616,7 @@ with tab4:
     st.header("Wishlist")
     st.info("Gestiona tus acciones favoritas para monitorear.")
     
-    wishlist = Wishlist()
+    # wishlist instantiated globally
     
     # Add new ticker
     col1, col2, col3 = st.columns([2, 1, 1])
@@ -481,22 +650,99 @@ with tab4:
     items = wishlist.get_items()
     if items:
         st.subheader("Tus Acciones en Seguimiento")
-        for ticker in items:
+        
+        # Header
+        h1, h2, h3, h4, h5 = st.columns([1.5, 1.5, 1.5, 2, 0.5])
+        h1.markdown("**Ticker**")
+        h2.markdown("**Precio Actual**")
+        h3.markdown("**Precio Objetivo**")
+        h4.markdown("**Distancia / Alerta**")
+        h5.markdown("") # Delete btn
+        
+        for item in items:
+            ticker = item['ticker']
+            target_price = item['target_price']
+            
             display_ticker = ticker.replace(".BA", "")
-            col_a, col_b, col_c = st.columns([2, 2, 1])
-            with col_a:
-                st.write(f"**{display_ticker}**")
-            with col_b:
-                # Show quick price
-                price = get_current_price(ticker)
-                if price:
-                    st.write(f"${price:,.2f}")
-                else:
-                    st.write("N/A")
-            with col_c:
-                if st.button("🗑️", key=f"del_{ticker}"):
-                    wishlist.remove_ticker(ticker)
-                    st.rerun()
+            
+            with st.container():
+                c1, c2, c3, c4, c5 = st.columns([1.5, 1.5, 1.5, 2, 0.5])
+                
+                # 1. Ticker
+                with c1:
+                    st.write(f"**{display_ticker}**")
+                
+                # 2. Current Price
+                current_price = get_current_price(ticker)
+                with c2:
+                    if current_price:
+                        st.write(f"${current_price:,.2f}")
+                    else:
+                        st.write("N/A")
+
+                # 3. Target Price Input (Editable)
+                with c3:
+                    # Use a key unique to the ticker
+                    new_target = st.number_input(
+                        "Target", 
+                        value=target_price if target_price else 0.0, 
+                        step=0.1, 
+                        key=f"target_{ticker}",
+                        label_visibility="collapsed"
+                    )
+                    
+                    # Check if changed and update DB
+                    # Note: This updates on every change (enter/blur). 
+                    # We compare with db value 'target_price'. 
+                    # Ideally we only update if different.
+                    if new_target != (target_price if target_price else 0.0):
+                         wishlist.update_target(ticker, new_target if new_target > 0 else None)
+                         # We might need to rerun to refresh the 'item' dict in next loop, 
+                         # but st.number_input keeps the state.
+                         # A rerun would reflect the change cleanly.
+                         # st.rerun() # Be careful with infinite reruns if values float precision differs.
+
+                # 4. Analysis / Alert
+                with c4:
+                    if current_price and new_target > 0:
+                        # Assuming 'Buy' logic: Target is usually below current price (waiting for dip)
+                        # But user might want 'Sell' alert (target above).
+                        # Let's interpret: 
+                        # If Target < Current: Buying the dip. Alert if Current <= Target.
+                        # If Target > Current: Breakout/Sell. Alert if Current >= Target.
+                        
+                        diff = current_price - new_target
+                        pct_diff = (diff / current_price) * 100
+                        
+                        if diff == 0:
+                             st.success("🔔 **¡OBJETIVO ALCANZADO!**")
+                        elif new_target < current_price:
+                            # Target is below (waiting for drop)
+                            if current_price <= new_target:
+                                st.success(f"🔔 **¡COMPRA!** Estás debajo del objetivo (${new_target})")
+                            else:
+                                st.info(f"Falta bajar {pct_diff:.2f}%")
+                        else:
+                            # Target is above (waiting to rise)
+                            if current_price >= new_target:
+                                st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${new_target})")
+                            else:
+                                # pct to go up
+                                # (Target - Current) / Current
+                                pct_up = ((new_target - current_price) / current_price) * 100
+                                st.info(f"Falta subir {pct_up:.2f}%")
+                    elif new_target > 0:
+                        st.warning("Sin precio actual")
+                    else:
+                        st.caption("Define un objetivo")
+
+                # 5. Delete
+                with c5:
+                    if st.button("🗑️", key=f"del_{ticker}"):
+                        wishlist.remove_ticker(ticker)
+                        st.rerun()
+                
+                st.markdown("---")
     else:
         st.write("Tu wishlist está vacía.")
 

@@ -25,15 +25,16 @@ class Portfolio:
                     "quantity": item.quantity,
                     "category": item.category,
                     "source_sheet": item.source_sheet,
-                    "avg_price": item.avg_price
+                    "avg_price": item.avg_price,
+                    "target_price": item.target_price
                 })
             
             if data:
                 df = pd.DataFrame(data)
                 # Group by category to match previous structure
                 for category in df['category'].unique():
-                    # Include avg_price in the DataFrame
-                    self.holdings[category] = df[df['category'] == category].set_index('ticker')[['quantity', 'avg_price']]
+                    # Include avg_price and target_price in the DataFrame
+                    self.holdings[category] = df[df['category'] == category].set_index('ticker')[['quantity', 'avg_price', 'target_price']]
             
         except Exception as e:
             print(f"Error loading portfolio from DB: {e}")
@@ -90,6 +91,7 @@ class Portfolio:
                     "Quantity": qty,
                     "Avg Price": avg_price,
                     "Current Price": current_price,
+                    "Target Price": row.get('target_price', 0.0), # Add Target
                     "Total Value": total_value,
                     "Gain/Loss $": gain_loss_amount,
                     "Gain/Loss %": gain_loss_pct
@@ -294,4 +296,21 @@ class Portfolio:
             
         except Exception as e:
             print(f"Error deleting transaction {transaction_id}: {e}")
+            return False
+
+    def update_target(self, ticker: str, target_price: float):
+        """
+        Updates the target price for all portfolio items with the given ticker.
+        Actualiza el precio objetivo para todos los items del portafolio con el ticker dado.
+        """
+        ticker = ticker.upper().strip()
+        try:
+            # Update all rows for this ticker (regardless of broker)
+            q = PortfolioItem.update(target_price=target_price).where(PortfolioItem.ticker == ticker)
+            count = q.execute()
+            print(f"Updated target for {ticker} to {target_price} ({count} items updated)")
+            self.load_data()
+            return count > 0
+        except Exception as e:
+            print(f"Error updating target for {ticker}: {e}")
             return False

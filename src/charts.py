@@ -42,3 +42,30 @@ def plot_asset_allocation(portfolio):
                  title='Distribución por Activo (Valor de Mercado)',
                  text_auto='.2s')
     st.plotly_chart(fig, use_container_width=True)
+
+def plot_gain_loss_by_stock(portfolio):
+    """
+    Plots a bar chart of the Gain/Loss percentage by Stock.
+    """
+    df = get_portfolio_df(portfolio)
+    if df.empty:
+        # No showing info here to avoid double message if called with others
+        return
+
+    # Filter out items with 0 gain/loss if desired, or keep all
+    # Let's keep all to show flat performance too.
+    
+    # Sort by Gain/Loss % descending
+    df = df.sort_values("Gain/Loss %", ascending=False)
+    
+    # Color condition
+    df['Color'] = df['Gain/Loss %'].apply(lambda x: 'Positive' if x >= 0 else 'Negative')
+    color_map = {'Positive': 'green', 'Negative': 'red'}
+    
+    fig = px.bar(df, x='Ticker', y='Gain/Loss %', color='Color',
+                 title='Rendimiento por Activo (%)',
+                 color_discrete_map=color_map,
+                 text_auto='.2f')
+                 
+    fig.update_layout(showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)

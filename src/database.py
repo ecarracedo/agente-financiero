@@ -14,10 +14,12 @@ class PortfolioItem(BaseModel):
     source_sheet = CharField()
     broker = CharField(default='Unknown')
     avg_price = FloatField(default=0.0)
+    target_price = FloatField(null=True)
     updated_at = DateTimeField(default=datetime.datetime.now)
 
 class WishlistItem(BaseModel):
     ticker = CharField(unique=True)
+    target_price = FloatField(null=True)
     added_at = DateTimeField(default=datetime.datetime.now)
 
 class Transaction(BaseModel):
