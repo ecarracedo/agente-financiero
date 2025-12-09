@@ -5,7 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - 2025-12-08
+## [1.1.0] - 2025-12-09
+
+### Added
+- **Interactive Stock Charts Tab**:
+  - Full-screen interactive charts powered by Plotly.
+  - Toggle between **Candlestick** (Velas) and **Area/Line** views.
+  - **Dynamic Axis Scaling**: Automatically adds 40% vertical headroom when price is near period highs for better trend visualization.
+  - **Price Alerts Integration**: Displays configured target prices (from Portfolio or Wishlist) as visible red dashed lines on the chart.
+  - Real-time price header with daily change metrics.
+
 
 ### Changed
 - **Auto-Refresh**: Replaced full page reload with partial updates using `st.fragment` for the holdings table.

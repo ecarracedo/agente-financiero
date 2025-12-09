@@ -18,6 +18,7 @@ This project is a Financial Agent designed to help you manage your stock portfol
 - **Performance Tracking**: Real-time display of current prices, total value, and gain/loss metrics ($ and %).
     - *Auto-Refresh*: Automatic price updates with configurable intervals and manual refresh button.
 - **History**: View and manage your transaction history, including the ability to delete individual transactions.
+- **Advanced Stock Charts**: Interactive Plotly charts with Candlestick/Area modes, smart axis scaling for highs, and visual price alerts.
 - **Market Analysis**: Fetches real-time data using `yfinance` to determine if stocks are cheap or expensive.
 - **Wishlist**: Tracks potential investment opportunities with market validation.
 - **Bibliography**: Manage your library of financial books and resources.
@@ -54,6 +55,7 @@ Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu por
 - **Seguimiento de Rendimiento**: Muestra en tiempo real precios actuales, valor total, y métricas de ganancia/pérdida ($ y %).
     - *Auto-Actualización*: Actualización automática de precios con intervalos configurables y botón de actualización manual.
 - **Historial**: Visualiza un registro completo de todas tus transacciones con opción de eliminar registros individuales.
+- **Gráficos Avanzados**: Gráficos interactivos (Velas/Área) con escalado inteligente y visualización de alertas de precio objetivo.
 - **Análisis de Mercado**: Obtiene datos en tiempo real usando `yfinance` para detectar oportunidades (Máximos/Mínimos, Medias Móviles).
 - **Lista de Deseos (Wishlist)**: Rastrea acciones que te interesan con validación de mercado.
 - **Bibliografía**: Gestiona tu biblioteca de conocimientos (Libros, Artículos, Videos).

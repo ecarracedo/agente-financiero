@@ -5,7 +5,16 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - 2025-12-08
+## [1.1.0] - 2025-12-09
+
+### Agregado
+- **Pestaña de Gráficos Interactivos**:
+  - Gráficos de pantalla completa impulsados por Plotly.
+  - Opción para alternar entre vistas de **Velas Japonesas** y **Área/Línea**.
+  - **Escala de Ejes Dinámica**: Agrega automáticamente un 40% de espacio vertical extra cuando el precio está cerca de máximos.
+  - **Integración de Alertas de Precio**: Muestra los precios objetivo configurados (en Portafolio o Lista de Deseos) como líneas punteadas rojas en el gráfico.
+  - Encabezado de precios en tiempo real con métricas de variación diaria.
+
 
 ### Cambiado
 - **Auto-Actualización**: Se reemplazó la recarga completa de página por actualizaciones parciales usando `st.fragment` en la tabla de tenencias.
