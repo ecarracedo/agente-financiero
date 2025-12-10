@@ -24,7 +24,7 @@ def plot_portfolio_composition(portfolio):
     fig = px.pie(df_cat, values='Total Value', names='Category', 
                  title='Composición por Categoría (Valor de Mercado)',
                  hole=0.4)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 def plot_asset_allocation(portfolio):
     """
@@ -41,7 +41,7 @@ def plot_asset_allocation(portfolio):
     fig = px.bar(df, x='Ticker', y='Total Value', color='Category',
                  title='Distribución por Activo (Valor de Mercado)',
                  text_auto='.2s')
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 def plot_gain_loss_by_stock(portfolio):
     """
@@ -68,4 +68,4 @@ def plot_gain_loss_by_stock(portfolio):
                  text_auto='.2f')
                  
     fig.update_layout(showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)

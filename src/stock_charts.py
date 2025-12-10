@@ -3,7 +3,7 @@ import pandas as pd
 from streamlit_lightweight_charts import renderLightweightCharts
 from src.market_data import get_historical_data
 
-def plot_stock_detail(ticker: str, period: str = "1y", chart_type: str = "Velas", target_price: float = None):
+def plot_stock_detail(ticker: str, period: str = "1y", chart_type: str = "Velas", target_price: float = None, avg_price: float = None, transactions: list = None):
     """
     Renders a stock chart using Lightweight Charts (TradingView style).
     Replaces the old Plotly implementation.
@@ -65,6 +65,7 @@ def plot_stock_detail(ticker: str, period: str = "1y", chart_type: str = "Velas"
     # Series Configuration
     series = []
     
+    # Main Chart Series
     if chart_type == "Velas":
         series.append({
             "type": 'Candlestick',
@@ -78,7 +79,6 @@ def plot_stock_detail(ticker: str, period: str = "1y", chart_type: str = "Velas"
             }
         })
     else:
-        # Area Chart
         area_data = [{"time": item["time"], "value": item["close"]} for item in candles_data]
         series.append({
             "type": 'Area',
@@ -90,6 +90,29 @@ def plot_stock_detail(ticker: str, period: str = "1y", chart_type: str = "Velas"
                 "lineWidth": 2,
             }
         })
+
+    # Add Transaction Lines if exist
+    if transactions:
+        for tx in transactions:
+            is_buy = tx['operation_type'] == "Compra"
+            color = '#26a69a' if is_buy else '#ef5350' # Green / Red
+            line_style = 2 # Dashed
+            
+            # Create a constant line for this transaction price
+            tx_data = [{"time": item["time"], "value": tx['price']} for item in candles_data]
+            
+            series.append({
+                "type": 'Line',
+                "data": tx_data,
+                "options": {
+                    "color": color,
+                    "lineWidth": 1,
+                    "lineStyle": line_style,
+                    "title": f"{'Compra' if is_buy else 'Venta'} {tx['quantity']:.0f} @ ${tx['price']:.2f}",
+                    "crosshairMarkerVisible": False,
+                    "priceLineVisible": False
+                }
+            })
 
     # Add Volume
     series.append({
@@ -118,6 +141,22 @@ def plot_stock_detail(ticker: str, period: str = "1y", chart_type: str = "Velas"
                 "lineWidth": 1,
                 "lineStyle": 2, # Dashed
                 "title": 'Objetivo',
+                "crosshairMarkerVisible": False,
+                "priceLineVisible": False
+            }
+        })
+    
+    # Add Average Purchase Price Line if exists
+    if avg_price and avg_price > 0:
+        avg_data = [{"time": item["time"], "value": avg_price} for item in candles_data]
+        series.append({
+            "type": 'Line',
+            "data": avg_data,
+            "options": {
+                "color": '#FFD600', # Yellow
+                "lineWidth": 2, # Thicker
+                "lineStyle": 0, # Solid
+                "title": 'Precio Promedio',
                 "crosshairMarkerVisible": False,
                 "priceLineVisible": False
             }
