@@ -68,7 +68,7 @@ st.session_state.refresh_interval = interval_options[selected_label]
 
 
 # Manual refresh button - use a unique key to avoid conflicts
-if st.sidebar.button("🔄 Actualizar Ahora", key="manual_refresh_btn", use_container_width=True):
+if st.sidebar.button("🔄 Actualizar Ahora", key="manual_refresh_btn"):
     # Set flags to force refresh
     st.session_state.last_price_update = None  # Reset to force refresh
     st.session_state.force_refresh = True  # Flag to bypass cache completely
@@ -192,16 +192,16 @@ with tab_alerts:
                             # Target < Current = Stop Loss (Sell Alert) or Buy More (Buy Alert)
                             # Context matters. Let's just show distance.
                             if current_price <= new_target:
-                                st.error(f"🔔 **¡ALERTA!** Precio debajo del objetivo (${new_target})")
+                                st.error(f"🔔 **¡ALERTA!** Precio debajo del objetivo (${new_target:.2f})")
                             else:
-                                st.info(f"Falta bajar {pct_diff:.2f}% hasta ${new_target}")
+                                st.info(f"Falta bajar {pct_diff:.2f}% hasta ${new_target:.2f}")
                         else:
                             # Target above
                             if current_price >= new_target:
-                                st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${new_target})")
+                                st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${new_target:.2f})")
                             else:
                                 pct_up = ((new_target - current_price) / current_price) * 100
-                                st.info(f"Falta subir {pct_up:.2f}% hasta ${new_target}")
+                                st.info(f"Falta subir {pct_up:.2f}% hasta ${new_target:.2f}")
                     else:
                         st.caption("Sin alerta configurada")
             st.markdown("---")
@@ -259,13 +259,13 @@ with tab_alerts:
                              elif tgt < price: 
                                  # Target below (Waiting for drop)
                                  if price <= tgt:
-                                     st.success(f"🔔 **¡COMPRA!** (${tgt})")
+                                     st.success(f"🔔 **¡COMPRA!** (${tgt:.2f})")
                                  else:
                                      st.info(f"Falta bajar {pct_diff:.2f}%")
                              else:
                                  # Target above (Waiting for rise)
                                  if price >= tgt:
-                                     st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${tgt})")
+                                     st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${tgt:.2f})")
                                  else:
                                      # pct to go up
                                      pct_up = ((tgt - price) / price) * 100
@@ -362,7 +362,9 @@ with tab1:
                     "Category": "Categoría"
                 },
                 hide_index=True,
-                use_container_width=True
+            # use_container_width=True --> Deprecated? Log suggests width='stretch'
+            # But standard st.dataframe width is int. If log is trustable:
+            width='stretch'
             )
             
             # Show last update time for this fragment
@@ -606,7 +608,7 @@ with tab_charts:
         st.subheader(f"Gráfico de {ticker_to_plot}")
         
         # Controls Row
-        c_period, c_type = st.columns([3, 1])
+        c_period, c_type, c_opts = st.columns([3, 1, 1.5])
         
         ranges = {"1 Mes": "1mo", "3 Meses": "3mo", "6 Meses": "6mo", "1 Año": "1y", "2 Años": "2y", "5 Años": "5y"}
         
@@ -619,6 +621,10 @@ with tab_charts:
             chart_type = st.selectbox("Tipo de Gráfico", ["Velas", "Línea/Área"], index=1, key="chart_type_select")
             # Map friendly name to internal arg
             c_type_arg = "Velas" if chart_type == "Velas" else "Línea"
+            
+        with c_opts:
+            show_avg = st.checkbox("Mostrar Precio Promedio", value=True, key="chart_show_avg")
+            show_tx = st.checkbox("Mostrar Transacciones", value=False, key="chart_show_tx")
         
         with st.spinner(f"Cargando datos para {ticker_to_plot}..."):
              # Header with Price
@@ -682,6 +688,8 @@ with tab_charts:
              # But 'holdings' has 'target_price' column.
              
              found_in_port = False
+             avg_price = 0.0
+             
              for cat, df in portfolio.holdings.items():
                  if ticker_to_plot in df.index:
                      row = df.loc[ticker_to_plot]
@@ -689,13 +697,45 @@ with tab_charts:
                      # index is ticker, should be unique per category.
                      # But ticker could be in multiple categories? (Unlikely)
                      t_p = row.get('target_price')
+                     a_p = row.get('avg_price')
+                     
                      if t_p and t_p > 0:
                          tgt_price = t_p
                          found_in_port = True
+                     
+                     if a_p and a_p > 0:
+                         avg_price = a_p
+                         
                      break
              
              
-             plot_stock_detail(ticker_to_plot, period=selected_range, chart_type=c_type_arg, target_price=tgt_price)
+             # Get Transactions if requested
+             tx_list = None
+             if show_tx:
+                 all_txs = portfolio.get_transactions()
+                 # Filter and format
+                 tx_list = []
+                 for tx in all_txs:
+                     if tx['ticker'] == ticker_to_plot:
+                         # Ensure date string
+                         d = tx['date']
+                         date_str = d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d)
+                         
+                         tx_list.append({
+                             'date': date_str,
+                             'operation_type': tx['operation_type'],
+                             'quantity': tx['quantity'],
+                             'price': tx['price']
+                         })
+             
+             plot_stock_detail(
+                 ticker_to_plot, 
+                 period=selected_range, 
+                 chart_type=c_type_arg, 
+                 target_price=tgt_price, 
+                 avg_price=avg_price if show_avg else None,
+                 transactions=tx_list
+             )
 
 with tab3:
     st.header("Análisis de Oportunidades")
@@ -855,13 +895,13 @@ with tab4:
                         elif new_target < current_price:
                             # Target is below (waiting for drop)
                             if current_price <= new_target:
-                                st.success(f"🔔 **¡COMPRA!** Estás debajo del objetivo (${new_target})")
+                                st.success(f"🔔 **¡COMPRA!** Estás debajo del objetivo (${new_target:.2f})")
                             else:
                                 st.info(f"Falta bajar {pct_diff:.2f}%")
                         else:
                             # Target is above (waiting to rise)
                             if current_price >= new_target:
-                                st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${new_target})")
+                                st.success(f"🔔 **¡OBJETIVO ALCANZADO!** (${new_target:.2f})")
                             else:
                                 # pct to go up
                                 # (Target - Current) / Current
