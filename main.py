@@ -694,6 +694,7 @@ with tab_charts:
                          found_in_port = True
                      break
              
+             
              plot_stock_detail(ticker_to_plot, period=selected_range, chart_type=c_type_arg, target_price=tgt_price)
 
 with tab3:
