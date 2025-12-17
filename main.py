@@ -328,6 +328,9 @@ with tab1:
         df_holdings = portfolio.get_holdings_with_valuations()
         
         if not df_holdings.empty:
+            # Fill NaN values to avoid "TypeError: unsupported format string passed to NoneType.__format__"
+            df_holdings = df_holdings.fillna(0.0)
+            
             # Function to apply color formatting
             def color_gain_loss(val):
                 """Apply color based on gain/loss value"""
@@ -339,7 +342,7 @@ with tab1:
                     return 'font-weight: bold'
             
             # Apply styling to G/P columns
-            styled_df = df_holdings.style.applymap(
+            styled_df = df_holdings.style.map(
                 color_gain_loss,
                 subset=['Gain/Loss $', 'Gain/Loss %']
             ).format({
