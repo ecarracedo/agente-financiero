@@ -6,7 +6,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.database import PortfolioItem, WishlistItem, Transaction, BibliographyItem
+from src.models.database import PortfolioItem, WishlistItem, Transaction, BibliographyItem
 
 def create_empty_db(db_path: str = "finance.db"):
     """Create an empty SQLite database (finance.db) with the required tables but no data.

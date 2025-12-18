@@ -1,4 +1,4 @@
-from src.database import BibliographyItem
+from src.models.database import BibliographyItem
 from typing import List, Dict
 
 class Bibliography:

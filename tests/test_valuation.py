@@ -7,7 +7,7 @@ from unittest.mock import patch
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.portfolio import Portfolio
+from src.services.portfolio import Portfolio
 
 class TestValuation(unittest.TestCase):
     def setUp(self):

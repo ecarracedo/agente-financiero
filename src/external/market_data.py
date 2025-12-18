@@ -23,7 +23,7 @@ def get_current_price(ticker: str) -> float:
     # Try to get from cache first (unless force refresh)
     if not force_refresh:
         try:
-            from src.auto_refresh import get_cached_price, cache_price
+            from src.ui.auto_refresh import get_cached_price, cache_price
             cached = get_cached_price(ticker)
             if cached is not None:
                 return cached
@@ -40,7 +40,7 @@ def get_current_price(ticker: str) -> float:
         # Cache the price if available
         if price:
             try:
-                from src.auto_refresh import cache_price
+                from src.ui.auto_refresh import cache_price
                 cache_price(ticker, price)
             except ImportError:
                 pass

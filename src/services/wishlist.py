@@ -1,5 +1,5 @@
 from typing import List
-from src.database import WishlistItem
+from src.models.database import WishlistItem
 
 class Wishlist:
     """

@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 import time
-from src.portfolio import Portfolio
-from src.wishlist import Wishlist
-from src.market_data import get_current_price, get_historical_data
-from src.analyzer import analyze_stock
-from src.bibliography import Bibliography
-from src.stock_charts import plot_stock_detail
-from src.auto_refresh import (
+from src.services.portfolio import Portfolio
+from src.services.wishlist import Wishlist
+from src.external.market_data import get_current_price, get_historical_data
+from src.services.analyzer import analyze_stock
+from src.services.bibliography import Bibliography
+from src.ui.stock_charts import plot_stock_detail
+from src.ui.auto_refresh import (
     initialize_refresh_state,
     should_refresh,
     mark_updated,
@@ -117,7 +117,7 @@ with st.sidebar.expander("🗑️ Zona de Peligro"):
                 st.error(f"No se encontraron registros de {del_ticker} o hubo un error.")
 
 # Tabs
-tab1, tab2, tab_charts, tab_alerts, tab3, tab4, tab5 = st.tabs(["📊 Portafolio", "💸 Operaciones", "📈 Gráficos", "🔔 Alertas", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía"])
+tab1, tab2, tab_charts, tab_alerts, tab3, tab4, tab5, tab_tools = st.tabs(["📊 Portafolio", "💸 Operaciones", "📈 Gráficos", "🔔 Alertas", "🚀 Oportunidades", "📝 Wishlist", "📚 Bibliografía", "🛠️ Herramientas"])
 
 # ... (Previous tab1 and tab2 content remains)
 
@@ -328,6 +328,9 @@ with tab1:
         df_holdings = portfolio.get_holdings_with_valuations()
         
         if not df_holdings.empty:
+            # Fill NaN values to avoid "TypeError: unsupported format string passed to NoneType.__format__"
+            df_holdings = df_holdings.fillna(0.0)
+            
             # Function to apply color formatting
             def color_gain_loss(val):
                 """Apply color based on gain/loss value"""
@@ -375,7 +378,7 @@ with tab1:
     st.markdown("---")
     st.subheader("📊 Gráficos de Rendimiento")
     
-    from src.charts import plot_portfolio_composition, plot_asset_allocation, plot_gain_loss_by_stock
+    from src.ui.charts import plot_portfolio_composition, plot_asset_allocation, plot_gain_loss_by_stock
     
     c1, c2 = st.columns(2)
     with c1:
@@ -625,7 +628,7 @@ with tab_charts:
         
         with st.spinner(f"Cargando datos para {ticker_to_plot}..."):
              # Header with Price
-             from src.market_data import get_stock_info
+             from src.external.market_data import get_stock_info
              
              # Fetch minimal data for header
              current = get_current_price(ticker_to_plot)
@@ -781,7 +784,7 @@ with tab3:
         else:
             st.warning("No se detectaron oportunidades claras con los criterios actuales.")
 
-from src.wishlist import Wishlist
+from src.services.wishlist import Wishlist
 
 # ... (inside tab3)
 
@@ -964,6 +967,40 @@ with tab5:
                 st.markdown("---")
     else:
         st.info("No hay recursos en la bibliografía aún.")
+
+with tab_tools:
+    st.header("🛠️ Herramientas")
+    
+    st.subheader("Split Calculator")
+    st.info("Calcula el impacto de un split o reverse split en tu posición.")
+    
+    sc1, sc2 = st.columns(2)
+    with sc1:
+        sc_qty = st.number_input("Cantidad Actual", min_value=0.0, step=1.0, value=100.0, key="sc_qty")
+        sc_price = st.number_input("Precio Promedio Actual", min_value=0.0, step=0.01, value=10.0, key="sc_price")
+    
+    with sc2:
+        split_new = st.number_input("Nuevas Acciones (Ratio)", min_value=1, step=1, value=2, key="sc_new")
+        split_old = st.number_input("Acciones Viejas (Ratio)", min_value=1, step=1, value=1, key="sc_old")
+    
+    if split_old > 0 and split_new > 0:
+        ratio = split_new / split_old
+        new_qty = sc_qty * ratio
+        new_price = sc_price / ratio
+        
+        st.markdown("---")
+        st.subheader("Resultado proyectado")
+        res1, res2, res3 = st.columns(3)
+        res1.metric("Nueva Cantidad", f"{new_qty:,.2f}")
+        res2.metric("Nuevo Precio Promedio", f"${new_price:,.2f}")
+        res3.metric("Ratio de Ajuste", f"{ratio:,.4f}x")
+        
+        if ratio > 1:
+            st.success(f"Esto es un **Forward Split** de {split_new}:{split_old}.")
+        elif ratio < 1:
+            st.warning(f"Esto es un **Reverse Split** de {split_new}:{split_old}.")
+        else:
+            st.info("No hay cambio en el ratio.")
 
 # Footer
 st.markdown("---")

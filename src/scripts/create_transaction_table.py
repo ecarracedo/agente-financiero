@@ -1,4 +1,4 @@
-from src.database import db, Transaction
+from src.models.database import db, Transaction
 
 try:
     db.connect()
