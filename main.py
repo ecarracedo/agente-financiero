@@ -362,9 +362,7 @@ with tab1:
                     "Category": "Categoría"
                 },
                 hide_index=True,
-            # use_container_width=True --> Deprecated? Log suggests width='stretch'
-            # But standard st.dataframe width is int. If log is trustable:
-            width='stretch'
+                use_container_width=True
             )
             
             # Show last update time for this fragment
