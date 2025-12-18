@@ -31,7 +31,7 @@ This project is a Financial Agent designed to help you manage your stock portfol
     ```
 2.  Create an empty database for the initial configuration:
     ```bash
-    python src/create_empty_db.py
+    python src/scripts/create_empty_db.py
     ```
 3.  Run the application:
     ```bash
@@ -68,7 +68,7 @@ Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu por
     ```
 2.  Crear una base de datos vacía para la configuración inicial:
     ```bash
-    python src/create_empty_db.py
+    python src/scripts/create_empty_db.py
     ```
 3.  Ejecutar la aplicación:
     ```bash
