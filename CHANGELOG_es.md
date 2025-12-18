@@ -16,6 +16,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
   - Estructura modular del proyecto: `models/`, `services/`, `ui/`, `external/`, y `scripts/`.
   - Organización de código y mantenibilidad mejoradas.
 
+### Corregido
+- **Tabla de Tenencias**: Resuelto el error `TypeError` causado por un argumento de ancho incorrecto en `st.dataframe`.
+
 ## [1.1.0] - 2025-12-09
 
 ### Agregado

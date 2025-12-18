@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Modular project structure: `models/`, `services/`, `ui/`, `external/`, and `scripts/`.
   - Improved code organization and maintainability.
 
+### Fixed
+- **Holdings Table**: Resolved `TypeError` caused by incorrect `st.dataframe` width argument.
+
 ## [1.1.0] - 2025-12-09
 
 ### Added
