@@ -5,6 +5,17 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-18
+
+### Agregado
+- **Calculadora de Split**:
+  - Nueva pestaña "🛠️ Herramientas" para utilidades.
+  - Calculadora interactiva para splits directos e inversos.
+  - Proyección instantánea de nueva cantidad y costo promedio ajustado.
+- **Mejoras Arquitectónicas**:
+  - Estructura modular del proyecto: `models/`, `services/`, `ui/`, `external/`, y `scripts/`.
+  - Organización de código y mantenibilidad mejoradas.
+
 ## [1.1.0] - 2025-12-09
 
 ### Agregado
