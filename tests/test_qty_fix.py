@@ -1,5 +1,5 @@
 
-from src.portfolio import Portfolio
+from src.services.portfolio import Portfolio
 from datetime import date
 
 def test_sell_quantity():
@@ -39,7 +39,7 @@ def test_sell_quantity():
 if __name__ == "__main__":
     # Mock get_portfolio_item for verification
     def get_portfolio_item(self, ticker, broker):
-        from src.database import PortfolioItem
+        from src.models.database import PortfolioItem
         return PortfolioItem.get_or_none((PortfolioItem.ticker == ticker) & (PortfolioItem.broker == broker))
     
     Portfolio.get_portfolio_item = get_portfolio_item

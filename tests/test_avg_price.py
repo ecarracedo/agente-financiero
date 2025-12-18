@@ -5,8 +5,8 @@ import os
 # Add project root to path to allow imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.portfolio import Portfolio
-from src.database import PortfolioItem
+from src.services.portfolio import Portfolio
+from src.models.database import PortfolioItem
 
 class TestAvgPrice(unittest.TestCase):
     def setUp(self):

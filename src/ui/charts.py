@@ -1,7 +1,7 @@
 import plotly.express as px
 import pandas as pd
 import streamlit as st
-from src.market_data import get_current_price
+from src.external.market_data import get_current_price
 
 def get_portfolio_df(portfolio):
     """

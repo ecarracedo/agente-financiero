@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 import time
-from src.portfolio import Portfolio
-from src.wishlist import Wishlist
-from src.market_data import get_current_price, get_historical_data
-from src.analyzer import analyze_stock
-from src.bibliography import Bibliography
-from src.stock_charts import plot_stock_detail
-from src.auto_refresh import (
+from src.services.portfolio import Portfolio
+from src.services.wishlist import Wishlist
+from src.external.market_data import get_current_price, get_historical_data
+from src.services.analyzer import analyze_stock
+from src.services.bibliography import Bibliography
+from src.ui.stock_charts import plot_stock_detail
+from src.ui.auto_refresh import (
     initialize_refresh_state,
     should_refresh,
     mark_updated,
@@ -376,7 +376,7 @@ with tab1:
     st.markdown("---")
     st.subheader("📊 Gráficos de Rendimiento")
     
-    from src.charts import plot_portfolio_composition, plot_asset_allocation, plot_gain_loss_by_stock
+    from src.ui.charts import plot_portfolio_composition, plot_asset_allocation, plot_gain_loss_by_stock
     
     c1, c2 = st.columns(2)
     with c1:
@@ -626,7 +626,7 @@ with tab_charts:
         
         with st.spinner(f"Cargando datos para {ticker_to_plot}..."):
              # Header with Price
-             from src.market_data import get_stock_info
+             from src.external.market_data import get_stock_info
              
              # Fetch minimal data for header
              current = get_current_price(ticker_to_plot)
@@ -782,7 +782,7 @@ with tab3:
         else:
             st.warning("No se detectaron oportunidades claras con los criterios actuales.")
 
-from src.wishlist import Wishlist
+from src.services.wishlist import Wishlist
 
 # ... (inside tab3)
 

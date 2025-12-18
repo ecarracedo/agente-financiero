@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 import os
-from src.database import db, PortfolioItem, WishlistItem, init_db
+from src.models.database import db, PortfolioItem, WishlistItem, init_db
 
 def migrate_portfolio(excel_path: str):
     print("Migrating Portfolio...")

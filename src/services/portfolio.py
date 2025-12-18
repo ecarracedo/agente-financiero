@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import List, Dict
-from src.database import PortfolioItem
+from src.models.database import PortfolioItem
 
 class Portfolio:
     """
@@ -65,7 +65,7 @@ class Portfolio:
         """
         Returns a DataFrame with all holdings including current price and valuations.
         """
-        from src.market_data import get_current_price
+        from src.external.market_data import get_current_price
         
         all_data = []
         
@@ -124,7 +124,7 @@ class Portfolio:
         
         try:
             # Log Transaction
-            from src.database import Transaction
+            from src.models.database import Transaction
             Transaction.create(
                 date=date,
                 ticker=ticker,
@@ -188,7 +188,7 @@ class Portfolio:
         Returns all transactions.
         Devuelve todas las transacciones.
         """
-        from src.database import Transaction
+        from src.models.database import Transaction
         return list(Transaction.select().dicts())
 
     def delete_ticker(self, ticker: str):
@@ -198,7 +198,7 @@ class Portfolio:
         """
         ticker = ticker.upper().strip()
         try:
-            from src.database import Transaction
+            from src.models.database import Transaction
             
             # Delete from Portfolio
             q1 = PortfolioItem.delete().where(PortfolioItem.ticker == ticker)
@@ -227,7 +227,7 @@ class Portfolio:
             bool: True if successful, False otherwise
         """
         try:
-            from src.database import Transaction
+            from src.models.database import Transaction
             
             # Get the transaction before deleting
             transaction = Transaction.get_or_none(Transaction.id == transaction_id)

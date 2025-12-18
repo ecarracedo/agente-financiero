@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from streamlit_lightweight_charts import renderLightweightCharts
-from src.market_data import get_historical_data
+from src.external.market_data import get_historical_data
 
 def plot_stock_detail(ticker: str, period: str = "1y", chart_type: str = "Velas", target_price: float = None, avg_price: float = None, transactions: list = None):
     """
