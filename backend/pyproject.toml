@@ -32,5 +32,6 @@ packages = [
     "backend.app.application",
     "backend.app.api",
     "backend.app.adapters",
+    "backend.app.adapters.migration",
     "backend.app.adapters.persistence",
 ]

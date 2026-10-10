@@ -15,6 +15,7 @@
 - [x] 3.2 Added Decimal valuation grouped by currency, technical analysis with explicit unknown states, yfinance adapter, and persistent configurable portfolio/wishlist alert intents with crossing suppression.
 - [x] 3.3 Added application use cases for wishlist CRUD, bibliography resources, and Decimal split projections.
 - [x] 3.4 Closed the `/api/v1` HTTP contract: canonical Decimal serialization (`format_money` → 2dp ROUND_HALF_UP; `format_quantity` → canonical unbounded) and dedicated Pydantic response schemas wired as `response_model` on every route; fixed the blocking gate debts (unit-of-work factory typed as `PortfolioUnitOfWorkPort`, setuptools packages `backend.app.application`/`backend.app.api`, ruff F401 in `test_api.py`). Storage `Numeric(30,10)` and domain arithmetic unchanged.
+- [x] 4.1 Added a read-only migration dry-run reader/validator in `backend/app/adapters/migration/` (`source.py` opens `file:<path>?mode=ro`; `validation.py` with explicit, never-inferred currency mapping; `report.py` with `ValidationReport.ready`). New `verify/verify_migration_dry_run.py` (gitignored scratch) reproduces counts without touching source/destination.
 
 ## TDD Cycle Evidence
 
@@ -68,7 +69,12 @@
 - The normal VS Code sandbox does not expose the Docker socket; verification used `/var/run/host/usr/bin/docker` through `flatpak-spawn --host`. `psycopg[binary]` is installed in the backend image.
 - Ruff on changed implementation/tests: passed; `git diff --check`: passed.
 - `finance.db` was not used or modified.
-- Task 3.4: RED `pytest backend/tests/test_api.py -q` → 3 failed / 2 passed; GREEN `pytest backend/tests -q` → 87 passed; `PYENV_VERSION=3.12.10 python -m mypy backend/app/main.py` → no issues; `python -m ruff check backend` → passed; `pytest backend/tests/test_project_manifest.py -q` → passed.
+- Task 3.4: RED `pytest backend/tests/test_api.py -q` → 3 failed / 2 passed; GREEN `pytest backend/tests -q` → 87 passed; `PYENV_VERSION=3.12.10 python -m mypy backend/app/main.py` → no issues; `python -m ruff check backend` → passed; `pytest backend/tests/test_project_manifest.py -q` → passed. Commit `593b6c6`.
+- Task 4.1: RED `pytest backend/tests/test_migration_dry_run.py -q` → ModuleNotFoundError; GREEN → 15 passed; `pytest backend/tests -q` → 102 passed; `mypy backend/app/adapters/migration` → no issues; `ruff check backend` → passed. `verify/verify_migration_dry_run.py` on a temp copy: portfolio 8 / transactions 9 / wishlist 0 / bibliography 0, ready=False with empty mapping (17 unresolved), ready=True with a full ticker→currency map; `finance.db` sha256 unchanged (`7897cb3c…33bc`).
+
+## Known environmental failures (pre-existing, out of scope)
+
+- `python -m ruff check verify` fails with 7 F401 in gitignored scratch scripts `verify/verify_avg_price.py` and `verify/verify_restructure.py`. These predate the change; a full-repo `ruff check backend verify` cannot pass without editing out-of-scope scratch files, so the task gate is `ruff check backend`.
 
 ## Files Changed
 
@@ -84,4 +90,4 @@
 
 ## Remaining Tasks
 
-Tasks 4.1-7.3 remain pending. Alert intents are neutral (cross either way), stop-loss/buy (downward), and sell (upward), with distinct messages and no repeated trigger. Legacy intents remain nullable until explicitly mapped during SQLite import.
+Tasks 4.2-7.3 remain pending. Alert intents are neutral (cross either way), stop-loss/buy (downward), and sell (upward), with distinct messages and no repeated trigger. Legacy intents remain nullable until explicitly mapped during SQLite import.

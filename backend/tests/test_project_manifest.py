@@ -16,4 +16,5 @@ def test_manifest_includes_nested_backend_packages():
     assert "backend.app.application" in packages
     assert "backend.app.api" in packages
     assert "backend.app.adapters" in packages
+    assert "backend.app.adapters.migration" in packages
     assert "backend.app.adapters.persistence" in packages
