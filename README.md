@@ -38,6 +38,12 @@ This project is a Financial Agent designed to help you manage your stock portfol
     streamlit run main.py
     ```
 
+### Data Migration
+Legacy SQLite data (`finance.db`) is migrated to the destination database using an explicit `ticker → currency` mapping that is never inferred. See the full procedure, commands, reconciliation expectations, and restore steps in [`docs/operations/migration.md`](docs/operations/migration.md). Rehearse the whole flow against a copy without touching the source:
+```bash
+python verify/verify_migration_rehearsal.py --source finance.db --currency-map /tmp/ars.json
+```
+
 ---
 
 <a name="español"></a>
@@ -74,4 +80,10 @@ Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu por
     ```bash
     streamlit run main.py
     ```
+
+### Migración de datos
+Los datos legados de SQLite (`finance.db`) se migran al destino con un mapeo explícito `ticker → moneda` que nunca se infiere. El procedimiento completo, los comandos, la expectativa de reconciliación y los pasos de restauración están en [`docs/operations/migration.md`](docs/operations/migration.md). Ensayar el flujo completo sobre una copia sin tocar la fuente:
+```bash
+python verify/verify_migration_rehearsal.py --source finance.db --currency-map /tmp/ars.json
+```
 
