@@ -3,7 +3,15 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -19,9 +27,11 @@ class PortfolioPositionRecord(Base):
         UniqueConstraint(
             "ticker", "broker", "category", name="uq_portfolio_position_identity"
         ),
+        Index("uq_portfolio_positions_source_id", "source_id", unique=True),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ticker: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     broker: Mapped[str] = mapped_column(String(120), nullable=False)
     category: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -37,8 +47,12 @@ class TransactionRecord(Base):
     """Persist a single buy or sell operation."""
 
     __tablename__ = "portfolio_transactions"
+    __table_args__ = (
+        Index("uq_portfolio_transactions_source_id", "source_id", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ticker: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     broker: Mapped[str] = mapped_column(String(120), nullable=False)
     category: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -53,8 +67,10 @@ class WishlistRecord(Base):
     """Persist one watched ticker and its optional target price."""
 
     __tablename__ = "wishlist_items"
+    __table_args__ = (Index("uq_wishlist_items_source_id", "source_id", unique=True),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ticker: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
     target_price: Mapped[Decimal | None] = mapped_column(Numeric(30, 10))
     alert_intent: Mapped[str | None] = mapped_column(String(16))
@@ -65,8 +81,10 @@ class BibliographyRecord(Base):
     """Persist a financial learning resource and optional metadata."""
 
     __tablename__ = "bibliography_items"
+    __table_args__ = (Index("uq_bibliography_items_source_id", "source_id", unique=True),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     author: Mapped[str] = mapped_column(String(200), nullable=False)
     year: Mapped[int | None] = mapped_column(Integer)

@@ -16,6 +16,7 @@
 - [x] 3.3 Added application use cases for wishlist CRUD, bibliography resources, and Decimal split projections.
 - [x] 3.4 Closed the `/api/v1` HTTP contract: canonical Decimal serialization (`format_money` → 2dp ROUND_HALF_UP; `format_quantity` → canonical unbounded) and dedicated Pydantic response schemas wired as `response_model` on every route; fixed the blocking gate debts (unit-of-work factory typed as `PortfolioUnitOfWorkPort`, setuptools packages `backend.app.application`/`backend.app.api`, ruff F401 in `test_api.py`). Storage `Numeric(30,10)` and domain arithmetic unchanged.
 - [x] 4.1 Added a read-only migration dry-run reader/validator in `backend/app/adapters/migration/` (`source.py` opens `file:<path>?mode=ro`; `validation.py` with explicit, never-inferred currency mapping; `report.py` with `ValidationReport.ready`). New `verify/verify_migration_dry_run.py` (gitignored scratch) reproduces counts without touching source/destination.
+- [x] 4.2 Implemented the transactional, idempotent import (`importer.py`, `runner.py`, `__main__.py`) keyed on a per-entity nullable unique `source_id`, with `Compra`/`Venta`→`BUY`/`SELL`, mandatory currency, and a single-session commit only when `ValidationReport.ready`; added `ImportResult`/`ReconciliationReport` and Alembic `a0003_migration_source_ids`. CLI: `python -m backend.app.adapters.migration` (`dry-run`|`import`|`reconcile`).
 
 ## TDD Cycle Evidence
 
@@ -71,6 +72,7 @@
 - `finance.db` was not used or modified.
 - Task 3.4: RED `pytest backend/tests/test_api.py -q` → 3 failed / 2 passed; GREEN `pytest backend/tests -q` → 87 passed; `PYENV_VERSION=3.12.10 python -m mypy backend/app/main.py` → no issues; `python -m ruff check backend` → passed; `pytest backend/tests/test_project_manifest.py -q` → passed. Commit `593b6c6`.
 - Task 4.1: RED `pytest backend/tests/test_migration_dry_run.py -q` → ModuleNotFoundError; GREEN → 15 passed; `pytest backend/tests -q` → 102 passed; `mypy backend/app/adapters/migration` → no issues; `ruff check backend` → passed. `verify/verify_migration_dry_run.py` on a temp copy: portfolio 8 / transactions 9 / wishlist 0 / bibliography 0, ready=False with empty mapping (17 unresolved), ready=True with a full ticker→currency map; `finance.db` sha256 unchanged (`7897cb3c…33bc`).
+- Task 4.2: RED `pytest backend/tests/test_migration_import.py -q` → ImportError; GREEN → 12 passed; `pytest backend/tests -q` → 114 passed; `mypy backend/app/adapters/migration backend/app/adapters/persistence/models.py` → no issues; `ruff check backend` → passed; `alembic upgrade head` → `a0003` head and `downgrade -1` → `a0002` proven on a temp SQLite URL; CLI dry-run/import/reconcile smoke OK; `finance.db` sha256 unchanged.
 
 ## Known environmental failures (pre-existing, out of scope)
 
@@ -90,4 +92,4 @@
 
 ## Remaining Tasks
 
-Tasks 4.2-7.3 remain pending. Alert intents are neutral (cross either way), stop-loss/buy (downward), and sell (upward), with distinct messages and no repeated trigger. Legacy intents remain nullable until explicitly mapped during SQLite import.
+Tasks 4.3, 5.1-7.3 remain pending. Alert intents are neutral (cross either way), stop-loss/buy (downward), and sell (upward), with distinct messages and no repeated trigger. Legacy intents remain nullable until explicitly mapped during SQLite import.

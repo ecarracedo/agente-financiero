@@ -22,7 +22,7 @@
 ## Phase 4: Migración de datos
 
 - [x] 4.1 Crear lector/validador dry-run para copia SQLite en `backend/app/adapters/migration/`; probar campos requeridos, tipos y reporte sin escribir.
-- [ ] 4.2 Implementar import transaccional e idempotente con IDs de origen y reconciliación; probar repetición, rollback y discrepancias.
+- [x] 4.2 Implementar import transaccional e idempotente con IDs de origen y reconciliación; probar repetición, rollback y discrepancias.
 - [ ] 4.3 Ensayar migración de una copia de `finance.db`, comparar conteos/saldos por entidad y documentar restauración; nunca modificar la fuente.
 
 ## Phase 5: Frontend React

@@ -22,6 +22,7 @@ class SourceNotFoundError(FileNotFoundError):
 class SourcePortfolioItem:
     """A single legacy ``portfolioitem`` row."""
 
+    source_id: int
     ticker: str
     quantity: float
     category: str
@@ -36,6 +37,7 @@ class SourcePortfolioItem:
 class SourceTransaction:
     """A single legacy ``transaction`` row (operation_type Compra/Venta)."""
 
+    source_id: int
     date: datetime | None
     ticker: str
     operation_type: str
@@ -50,6 +52,7 @@ class SourceTransaction:
 class SourceWishlistItem:
     """A single legacy ``wishlistitem`` row."""
 
+    source_id: int
     ticker: str
     target_price: float | None
     added_at: datetime | None
@@ -59,6 +62,7 @@ class SourceWishlistItem:
 class SourceBibliographyItem:
     """A single legacy ``bibliographyitem`` row."""
 
+    source_id: int
     title: str
     author: str
     year: int | None
@@ -131,6 +135,7 @@ def _read_portfolio_items(connection: sqlite3.Connection) -> tuple[SourcePortfol
         updated_at, _ = _parse_datetime(row["updated_at"])
         items.append(
             SourcePortfolioItem(
+                source_id=int(row["id"]),
                 ticker=row["ticker"] or "",
                 quantity=_as_float(row["quantity"]),
                 category=row["category"] or "",
@@ -152,6 +157,7 @@ def _read_transactions(connection: sqlite3.Connection) -> tuple[SourceTransactio
         date, date_error = _parse_datetime(row["date"])
         items.append(
             SourceTransaction(
+                source_id=int(row["id"]),
                 date=date,
                 ticker=row["ticker"] or "",
                 operation_type=row["operation_type"] or "",
@@ -173,6 +179,7 @@ def _read_wishlist_items(connection: sqlite3.Connection) -> tuple[SourceWishlist
         added_at, _ = _parse_datetime(row["added_at"])
         items.append(
             SourceWishlistItem(
+                source_id=int(row["id"]),
                 ticker=row["ticker"] or "",
                 target_price=None if row["target_price"] is None else float(row["target_price"]),
                 added_at=added_at,
@@ -189,6 +196,7 @@ def _read_bibliography_items(connection: sqlite3.Connection) -> tuple[SourceBibl
         added_at, _ = _parse_datetime(row["added_at"])
         items.append(
             SourceBibliographyItem(
+                source_id=int(row["id"]),
                 title=row["title"] or "",
                 author=row["author"] or "",
                 year=_parse_int(row["year"]),
