@@ -6,6 +6,7 @@ from src.services.wishlist import Wishlist
 from src.external.market_data import get_current_price, get_historical_data
 from src.services.analyzer import analyze_stock
 from src.services.bibliography import Bibliography
+from src.services.calculations import calculate_split_projection
 from src.ui.stock_charts import plot_stock_detail
 from src.ui.auto_refresh import (
     initialize_refresh_state,
@@ -982,9 +983,9 @@ with tab_tools:
         split_old = st.number_input("Acciones Viejas (Ratio)", min_value=1, step=1, value=1, key="sc_old")
     
     if split_old > 0 and split_new > 0:
-        ratio = split_new / split_old
-        new_qty = sc_qty * ratio
-        new_price = sc_price / ratio
+        new_qty, new_price, ratio = calculate_split_projection(
+            sc_qty, sc_price, split_new, split_old
+        )
         
         st.markdown("---")
         st.subheader("Resultado proyectado")

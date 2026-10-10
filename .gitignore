@@ -30,6 +30,7 @@ venv/
 finance.db
 finance.db-journal
 *.sqlite3
+.env
 
 # Excel / Data
 Inversiones 2025.xlsx
@@ -49,4 +50,5 @@ Thumbs.db
 .vscode/
 .idea/
 .agent/
+.atl/
 verify/

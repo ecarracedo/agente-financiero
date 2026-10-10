@@ -1,0 +1,48 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Python 3.13, Streamlit, Peewee, SQLite, pandas, yfinance, Plotly.
+  Architecture: Streamlit UI with src/services, src/models, src/external, and src/ui.
+  Testing: pytest in tests/; manual verification scripts in verify/.
+  Conventions: English docstrings; update database scripts and README for significant changes.
+  Quality tools: pytest/Ruff on Python 3.13; Black/mypy available through Python 3.12.10.
+
+strict_tdd: true
+
+testing:
+  strict_tdd: true
+  test_command: pytest
+  unit: true
+  integration: false
+  e2e: false
+  coverage: unavailable
+  quality_tools:
+    formatter: black
+    type_checker: mypy
+    linters:
+      - pylint
+      - ruff
+  tool_runtime_notes:
+    - black and mypy are installed under Python 3.12.10, not the active Python 3.13.3 environment
+
+rules:
+  proposal:
+    - Include a rollback plan for risky changes.
+    - Identify affected modules and measurable success criteria.
+  specs:
+    - Use Given/When/Then scenarios and RFC 2119 keywords.
+  design:
+    - Document decisions with rationale and include diagrams for complex flows.
+  tasks:
+    - Group tasks by phase and keep each task completable in one session.
+  apply:
+    guidance:
+      - Follow existing project structure and update database schema scripts when models change.
+    tdd: true
+    test_command: pytest
+  verify:
+    test_command: pytest
+    build_command: mypy .
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive changes.
