@@ -46,6 +46,13 @@ Inversiones 2025.xlsx
 ehthumbs.db
 Thumbs.db
 
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.env
+*.tsbuildinfo
+
 # IDEs
 .vscode/
 .idea/

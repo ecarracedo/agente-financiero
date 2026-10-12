@@ -27,7 +27,7 @@
 
 ## Phase 5: Frontend React
 
-- [ ] 5.1 Crear `frontend/` con Vite, React, TypeScript y cliente generado desde OpenAPI; probar configuración y estados del cliente.
+- [x] 5.1 Crear `frontend/` con Vite, React, TypeScript y cliente generado desde OpenAPI; probar configuración y estados del cliente.
 - [ ] 5.2 Implementar cartera, operaciones e historial en `frontend/src/`; probar flujos de compra/venta, errores y refresco de datos.
 - [ ] 5.3 Implementar gráficos, oportunidades y alertas; probar overlays, ticker/periodo, precio faltante y estados objetivo.
 - [ ] 5.4 Implementar wishlist, bibliografía y calculadora de split; probar CRUD y resultados de ratios.

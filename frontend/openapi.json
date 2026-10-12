@@ -1,0 +1,1681 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Financial Agent API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/portfolio": {
+      "get": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "List Portfolio",
+        "description": "Return current portfolio positions without presentation-layer coupling.",
+        "operationId": "list_portfolio_api_v1_portfolio_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PortfolioPositionResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Portfolio Api V1 Portfolio Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions": {
+      "post": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Record Transaction",
+        "description": "Record a purchase or sale and return the resulting position.",
+        "operationId": "record_transaction_api_v1_transactions_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PortfolioPositionResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Record Transaction Api V1 Transactions Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "List Transactions",
+        "description": "Return chronological transaction history for a ticker and broker.",
+        "operationId": "list_transactions_api_v1_transactions_get",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "title": "Ticker"
+            }
+          },
+          {
+            "name": "broker",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "title": "Broker"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionSummaryResponse"
+                  },
+                  "title": "Response List Transactions Api V1 Transactions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/{transaction_id}": {
+      "delete": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Delete Transaction",
+        "description": "Delete an operation and rebuild the affected position.",
+        "operationId": "delete_transaction_api_v1_transactions__transaction_id__delete",
+        "parameters": [
+          {
+            "name": "transaction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Transaction Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/valuations": {
+      "get": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Value Portfolio",
+        "description": "Return currency-grouped valuation totals.",
+        "operationId": "value_portfolio_api_v1_valuations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/CurrencyValuationResponse"
+                  },
+                  "type": "object",
+                  "title": "Response Value Portfolio Api V1 Valuations Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/{ticker}": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Analyze Ticker",
+        "description": "Return market signals and explicit unknown states for unavailable data.",
+        "operationId": "analyze_ticker_api_v1_analysis__ticker__get",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(1mo|3mo|6mo|1y|2y|5y)$",
+              "default": "1y",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portfolio/{ticker}/alert": {
+      "put": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Configure Portfolio Alert",
+        "description": "Configure a target intent on a portfolio holding.",
+        "operationId": "configure_portfolio_alert_api_v1_portfolio__ticker__alert_put",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortfolioAlertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguredResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portfolio/{ticker}/alert/check": {
+      "post": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Check Portfolio Alert",
+        "description": "Evaluate a stored portfolio alert against the current quote.",
+        "operationId": "check_portfolio_alert_api_v1_portfolio__ticker__alert_check_post",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PositionAlertCheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertCheckResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wishlist": {
+      "get": {
+        "tags": [
+          "wishlist"
+        ],
+        "summary": "List Wishlist",
+        "description": "Return current wishlist entries.",
+        "operationId": "list_wishlist_api_v1_wishlist_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WishlistItemResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Wishlist Api V1 Wishlist Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "wishlist"
+        ],
+        "summary": "Add Wishlist Item",
+        "description": "Add a ticker to the wishlist.",
+        "operationId": "add_wishlist_item_api_v1_wishlist_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishlistCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistItemResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wishlist/{ticker}/target": {
+      "put": {
+        "tags": [
+          "wishlist"
+        ],
+        "summary": "Update Wishlist Target",
+        "description": "Set or clear a wishlist target price.",
+        "operationId": "update_wishlist_target_api_v1_wishlist__ticker__target_put",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishlistTargetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wishlist/{ticker}": {
+      "delete": {
+        "tags": [
+          "wishlist"
+        ],
+        "summary": "Remove Wishlist Item",
+        "description": "Remove a ticker from the wishlist.",
+        "operationId": "remove_wishlist_item_api_v1_wishlist__ticker__delete",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wishlist/{ticker}/alert": {
+      "put": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Configure Wishlist Alert",
+        "description": "Configure a target intent on a wishlist entry.",
+        "operationId": "configure_wishlist_alert_api_v1_wishlist__ticker__alert_put",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishlistAlertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguredResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wishlist/{ticker}/alert/check": {
+      "post": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Check Wishlist Alert",
+        "description": "Evaluate a stored wishlist alert against the current quote.",
+        "operationId": "check_wishlist_alert_api_v1_wishlist__ticker__alert_check_post",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertCheckResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bibliography": {
+      "get": {
+        "tags": [
+          "bibliography"
+        ],
+        "summary": "List Bibliography",
+        "description": "Return bibliography resources.",
+        "operationId": "list_bibliography_api_v1_bibliography_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BibliographyItemResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Bibliography Api V1 Bibliography Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "bibliography"
+        ],
+        "summary": "Add Bibliography Item",
+        "description": "Create a bibliography resource.",
+        "operationId": "add_bibliography_item_api_v1_bibliography_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BibliographyCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BibliographyItemResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bibliography/{item_id}": {
+      "delete": {
+        "tags": [
+          "bibliography"
+        ],
+        "summary": "Delete Bibliography Item",
+        "description": "Delete a bibliography resource.",
+        "operationId": "delete_bibliography_item_api_v1_bibliography__item_id__delete",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/splits": {
+      "post": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Calculate Split",
+        "description": "Return a forward or reverse split projection.",
+        "operationId": "calculate_split_api_v1_splits_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SplitProjectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitProjectionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Check",
+        "description": "Return the liveness status of the API process.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness Check",
+        "description": "Report ready only when the configured database accepts a query.",
+        "operationId": "readiness_check_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Readiness Check Ready Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AlertCheckResponse": {
+        "properties": {
+          "current_price": {
+            "type": "string",
+            "title": "Current Price"
+          },
+          "event": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TargetAlertEventResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_price",
+          "event"
+        ],
+        "title": "AlertCheckResponse",
+        "description": "Expose an alert evaluation with its canonical observed price."
+      },
+      "AlertIntent": {
+        "type": "string",
+        "enum": [
+          "NEUTRAL",
+          "STOP_LOSS",
+          "BUY",
+          "SELL"
+        ],
+        "title": "AlertIntent",
+        "description": "Supported meanings for a configured target price."
+      },
+      "BibliographyCreateRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Author"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2100.0,
+                "minimum": 1900.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Category",
+            "default": "General"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "author"
+        ],
+        "title": "BibliographyCreateRequest",
+        "description": "Validate a bibliography resource and optional metadata."
+      },
+      "BibliographyItemResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "author",
+          "year",
+          "category",
+          "link",
+          "description"
+        ],
+        "title": "BibliographyItemResponse",
+        "description": "Expose a bibliography resource and its optional metadata."
+      },
+      "ConfiguredResponse": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          }
+        },
+        "type": "object",
+        "required": [
+          "configured"
+        ],
+        "title": "ConfiguredResponse",
+        "description": "Acknowledge a successful alert configuration."
+      },
+      "CurrencyValuationResponse": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "invested_value": {
+            "type": "string",
+            "title": "Invested Value"
+          },
+          "market_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Value"
+          },
+          "gain_loss": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gain Loss"
+          },
+          "gain_loss_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gain Loss Percent"
+          },
+          "unpriced_tickers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unpriced Tickers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency",
+          "invested_value",
+          "market_value",
+          "gain_loss",
+          "gain_loss_percent",
+          "unpriced_tickers"
+        ],
+        "title": "CurrencyValuationResponse",
+        "description": "Expose a currency-grouped valuation with optional market-derived amounts."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MarketAnalysisResponse": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "current_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Price"
+          },
+          "high_52_week": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High 52 Week"
+          },
+          "low_52_week": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low 52 Week"
+          },
+          "moving_average_50": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moving Average 50"
+          },
+          "moving_average_200": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moving Average 200"
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "status",
+          "reason",
+          "current_price",
+          "high_52_week",
+          "low_52_week",
+          "moving_average_50",
+          "moving_average_200",
+          "signals"
+        ],
+        "title": "MarketAnalysisResponse",
+        "description": "Expose technical analysis metrics with explicit unknown states."
+      },
+      "MutationResponse": {
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "title": "Deleted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "deleted"
+        ],
+        "title": "MutationResponse",
+        "description": "Acknowledge a successful delete operation."
+      },
+      "PortfolioAlertRequest": {
+        "properties": {
+          "broker": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Broker"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Category"
+          },
+          "target_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Target Price"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/AlertIntent"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "broker",
+          "category",
+          "target_price",
+          "intent"
+        ],
+        "title": "PortfolioAlertRequest",
+        "description": "Configure target price and intent for a portfolio position."
+      },
+      "PortfolioPositionResponse": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "broker": {
+            "type": "string",
+            "title": "Broker"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "quantity": {
+            "type": "string",
+            "title": "Quantity"
+          },
+          "average_price": {
+            "type": "string",
+            "title": "Average Price"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "broker",
+          "category",
+          "quantity",
+          "average_price",
+          "currency"
+        ],
+        "title": "PortfolioPositionResponse",
+        "description": "Expose one portfolio position with canonical string amounts."
+      },
+      "PositionAlertCheckRequest": {
+        "properties": {
+          "broker": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Broker"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Category"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "broker",
+          "category"
+        ],
+        "title": "PositionAlertCheckRequest",
+        "description": "Identify a broker/category position whose alert should be evaluated."
+      },
+      "SplitProjectionRequest": {
+        "properties": {
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "average_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Average Price"
+          },
+          "new_shares": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "New Shares"
+          },
+          "old_shares": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Old Shares"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "quantity",
+          "average_price",
+          "new_shares",
+          "old_shares"
+        ],
+        "title": "SplitProjectionRequest",
+        "description": "Validate a forward or reverse split projection request."
+      },
+      "SplitProjectionResponse": {
+        "properties": {
+          "quantity": {
+            "type": "string",
+            "title": "Quantity"
+          },
+          "average_price": {
+            "type": "string",
+            "title": "Average Price"
+          },
+          "ratio": {
+            "type": "string",
+            "title": "Ratio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quantity",
+          "average_price",
+          "ratio"
+        ],
+        "title": "SplitProjectionResponse",
+        "description": "Expose a split projection with canonical string amounts."
+      },
+      "TargetAlertEventResponse": {
+        "properties": {
+          "intent": {
+            "$ref": "#/components/schemas/AlertIntent"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "intent",
+          "message"
+        ],
+        "title": "TargetAlertEventResponse",
+        "description": "Expose one intent-specific target crossing notification."
+      },
+      "TransactionRequest": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Ticker"
+          },
+          "broker": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Broker"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Category"
+          },
+          "operation_type": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ],
+            "title": "Operation Type"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Unit Price"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Currency"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ticker",
+          "broker",
+          "category",
+          "operation_type",
+          "quantity",
+          "unit_price",
+          "currency",
+          "occurred_at"
+        ],
+        "title": "TransactionRequest",
+        "description": "Validate a portfolio purchase or sale request."
+      },
+      "TransactionSummaryResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "broker": {
+            "type": "string",
+            "title": "Broker"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "operation_type": {
+            "type": "string",
+            "title": "Operation Type"
+          },
+          "quantity": {
+            "type": "string",
+            "title": "Quantity"
+          },
+          "unit_price": {
+            "type": "string",
+            "title": "Unit Price"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "ticker",
+          "broker",
+          "category",
+          "operation_type",
+          "quantity",
+          "unit_price",
+          "currency",
+          "occurred_at"
+        ],
+        "title": "TransactionSummaryResponse",
+        "description": "Expose one transaction with canonical string amounts."
+      },
+      "UpdatedResponse": {
+        "properties": {
+          "updated": {
+            "type": "boolean",
+            "title": "Updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "updated"
+        ],
+        "title": "UpdatedResponse",
+        "description": "Acknowledge a successful update operation."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WishlistAlertRequest": {
+        "properties": {
+          "target_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Target Price"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/AlertIntent"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_price",
+          "intent"
+        ],
+        "title": "WishlistAlertRequest",
+        "description": "Configure target price and intent for a wishlist entry."
+      },
+      "WishlistCreateRequest": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Ticker"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ticker"
+        ],
+        "title": "WishlistCreateRequest",
+        "description": "Validate a ticker added to the wishlist."
+      },
+      "WishlistItemResponse": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "target_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "target_price"
+        ],
+        "title": "WishlistItemResponse",
+        "description": "Expose a wishlist entry with an optional canonical target price."
+      },
+      "WishlistTargetRequest": {
+        "properties": {
+          "target_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Price"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WishlistTargetRequest",
+        "description": "Set or clear a wishlist target price."
+      }
+    }
+  }
+}

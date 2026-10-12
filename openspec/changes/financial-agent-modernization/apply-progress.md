@@ -18,6 +18,7 @@
 - [x] 4.1 Added a read-only migration dry-run reader/validator in `backend/app/adapters/migration/` (`source.py` opens `file:<path>?mode=ro`; `validation.py` with explicit, never-inferred currency mapping; `report.py` with `ValidationReport.ready`). New `verify/verify_migration_dry_run.py` (gitignored scratch) reproduces counts without touching source/destination.
 - [x] 4.2 Implemented the transactional, idempotent import (`importer.py`, `runner.py`, `__main__.py`) keyed on a per-entity nullable unique `source_id`, with `Compra`/`Venta`→`BUY`/`SELL`, mandatory currency, and a single-session commit only when `ValidationReport.ready`; added `ImportResult`/`ReconciliationReport` and Alembic `a0003_migration_source_ids`. CLI: `python -m backend.app.adapters.migration` (`dry-run`|`import`|`reconcile`).
 - [x] 4.3 Built the migration rehearsal harness (`verify/verify_migration_rehearsal.py`, gitignored scratch) running dry-run → import → reconcile against an immutable copy of `finance.db` with a temp SQLite destination (schema via `alembic upgrade head`): counts 8/9/0/0, `operation_type` all `BUY`, `alert_intent` NULL, idempotent re-import (17 skipped), and a perturb-then-restore demo. Procedure documented in `docs/operations/migration.md` and the README (EN/ES); user-confirmed mapping all `.BA`→`ARS`.
+- [x] 5.1 Scaffolded `frontend/` (Vite 8, React 19, TypeScript 5.9, Vitest 5, React Testing Library) with a versioned `frontend/openapi.json` and generated `src/api/types.ts` (openapi-typescript). Typed `http.ts` (`VITE_API_BASE_URL`, `ApiError` with 422/503, money kept as strings) and `client.ts` over generated paths; minimal `App` shell. 10 tests.
 
 ## TDD Cycle Evidence
 
@@ -75,6 +76,7 @@
 - Task 4.1: RED `pytest backend/tests/test_migration_dry_run.py -q` → ModuleNotFoundError; GREEN → 15 passed; `pytest backend/tests -q` → 102 passed; `mypy backend/app/adapters/migration` → no issues; `ruff check backend` → passed. `verify/verify_migration_dry_run.py` on a temp copy: portfolio 8 / transactions 9 / wishlist 0 / bibliography 0, ready=False with empty mapping (17 unresolved), ready=True with a full ticker→currency map; `finance.db` sha256 unchanged (`7897cb3c…33bc`).
 - Task 4.2: RED `pytest backend/tests/test_migration_import.py -q` → ImportError; GREEN → 12 passed; `pytest backend/tests -q` → 114 passed; `mypy backend/app/adapters/migration backend/app/adapters/persistence/models.py` → no issues; `ruff check backend` → passed; `alembic upgrade head` → `a0003` head and `downgrade -1` → `a0002` proven on a temp SQLite URL; CLI dry-run/import/reconcile smoke OK; `finance.db` sha256 unchanged.
 - Task 4.3: `python verify/verify_migration_rehearsal.py --source finance.db --currency-map <ars.json>` → exit 0, counts 8/9/0/0, `matched: True`, restore demo OK; `finance.db` sha256 unchanged (`7897cb3c…33bc`); `pytest backend/tests -q` → 114 passed; `ruff check backend` → passed.
+- Task 5.1: RED `npm test` → unresolved imports; GREEN `npm test` → 10 passed; `npm run build` → success; `npm run lint` → clean; `pytest backend/tests -q` → 114 passed.
 
 ## Known environmental failures (pre-existing, out of scope)
 
@@ -94,7 +96,7 @@
 
 ## Remaining Tasks
 
-Tasks 5.1-7.3 remain pending. Phase 4 (delivery slice P2) is complete.
+Tasks 5.2-7.3 remain pending. Phase 4 (delivery slice P2) is complete; Phase 5 (P3) is being delivered sub-sliced: 5.1 scaffold, 5.2 portfolio, 5.3 market/alerts, 5.4 resources.
 
 ## Delivery
 
