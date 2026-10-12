@@ -34,6 +34,35 @@ export function TextField({
   )
 }
 
+export interface TextAreaFieldProps {
+  id: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  rows?: number
+}
+
+/** Labeled multi-line text input. */
+export function TextAreaField({
+  id,
+  label,
+  value,
+  onChange,
+  rows = 3,
+}: TextAreaFieldProps) {
+  return (
+    <label htmlFor={id}>
+      {label}
+      <textarea
+        id={id}
+        rows={rows}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  )
+}
+
 export interface SelectOption {
   value: string
   label: string

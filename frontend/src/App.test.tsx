@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
 import { api } from './api/client'
+import { bibliographyApi } from './features/bibliography/bibliographyApi'
 import { marketApi } from './features/market/marketApi'
+import { wishlistApi } from './features/wishlist/wishlistApi'
 
 vi.mock('./api/client', () => ({
   api: {
@@ -42,11 +44,36 @@ vi.mock('./features/alerts/alertApi', () => ({
   },
 }))
 
+vi.mock('./features/wishlist/wishlistApi', () => ({
+  wishlistApi: {
+    list: vi.fn(),
+    add: vi.fn(),
+    setTarget: vi.fn(),
+    remove: vi.fn(),
+  },
+}))
+
+vi.mock('./features/bibliography/bibliographyApi', () => ({
+  bibliographyApi: {
+    list: vi.fn(),
+    add: vi.fn(),
+    remove: vi.fn(),
+  },
+}))
+
+vi.mock('./features/tools/split/splitApi', () => ({
+  splitApi: {
+    calculate: vi.fn(),
+  },
+}))
+
 describe('App', () => {
   beforeEach(() => {
     vi.mocked(api.ready).mockResolvedValue({ status: 'ready' })
     vi.mocked(api.listPortfolio).mockResolvedValue([])
     vi.mocked(api.getValuations).mockResolvedValue([])
+    vi.mocked(wishlistApi.list).mockResolvedValue([])
+    vi.mocked(bibliographyApi.list).mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -99,5 +126,34 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Market' })).toBeInTheDocument()
     expect(screen.getByLabelText('Period')).toBeInTheDocument()
     expect(screen.getByLabelText('Chart mode')).toBeInTheDocument()
+  })
+
+  it('opens the wishlist workspace', async () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Wishlist' }))
+
+    expect(await screen.findByRole('heading', { name: 'Wishlist' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /add ticker/i })).toBeInTheDocument()
+  })
+
+  it('opens the bibliography workspace', async () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bibliography' }))
+
+    expect(await screen.findByRole('heading', { name: 'Bibliography' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Title')).toBeInTheDocument()
+  })
+
+  it('opens the split calculator', async () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tools' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Split calculator' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Ratio')).toBeInTheDocument()
   })
 })

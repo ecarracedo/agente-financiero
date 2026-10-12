@@ -21,6 +21,7 @@
 - [x] 5.1 Scaffolded `frontend/` (Vite 8, React 19, TypeScript 5.9, Vitest 5, React Testing Library) with a versioned `frontend/openapi.json` and generated `src/api/types.ts` (openapi-typescript). Typed `http.ts` (`VITE_API_BASE_URL`, `ApiError` with 422/503, money kept as strings) and `client.ts` over generated paths; minimal `App` shell. 10 tests.
 - [x] 5.2 Built the portfolio workspace (summary, holdings table, per-currency valuations/P&L) and transactions workspace (buy/sell form + position-scoped history with delete), plus shared `DataTable`/`CurrencyAmount`/`AsyncStates`/`FormControls`; extended `client.ts` with typed wrappers. Money stays strings; `market_value`/`gain_loss` null → "Not available" (not 0); totals grouped by currency (never summed); 422 shown as an error; refresh after mutation. 20 frontend tests.
 - [x] 5.3 Built the market workspace (`frontend/src/features/market/`): ticker catalog (portfolio + wishlist) or free-text search, period selector (6 periods), line/area chart mode, price chart with a target-line overlay (wishlist `target_price` or the last configured alert target) and transaction markers from the position-scoped history, explicit "Not available" for `status: "UNKNOWN"` (never 0), and derived opportunities from analysis `signals`. Built the alerts feature (`frontend/src/features/alerts/`): intent selector (`NEUTRAL`/`STOP_LOSS`/`BUY`/`SELL`) + target price saved via the portfolio or wishlist alert endpoint, and the check result showing the backend `event.message` verbatim, "No crossing" when `event` is null, and "Not available" on a 503 (never 0). Added a `Market` tab to `App.tsx`. Series/overlay computation isolated in pure helpers (`series.ts`). 53 frontend tests.
+- [x] 5.4 Built the wishlist workspace (`frontend/src/features/wishlist/`): list, add (`{ticker}`, 409 duplicate surfaced as an error), target CRUD via `PUT /target` (`{target_price: string|null}`, null clears; 404 surfaced) and delete (404 surfaced); target price stays a canonical string. Built the bibliography workspace (`frontend/src/features/bibliography/`): list and create form (title/author required; optional `year`/`link`/`description` omitted when blank, blank category defaulted to `"General"`; extra-property 422 surfaced) plus delete (404 surfaced). Built the split calculator (`frontend/src/features/tools/split/`): direction selector (Forward/Reverse) + integer ratio, forwarding `{quantity, average_price, new_shares, old_shares}` to `POST /api/v1/splits` and rendering the backend's canonical `quantity`/`average_price`/`ratio` strings verbatim — no client-side split math; invalid ratio → 422 shown as `describeApiError` (never a result). Added a reusable `TextAreaField` to `components/FormControls.tsx` and `Wishlist`/`Bibliography`/`Tools` tabs to `App.tsx`. 72 frontend tests.
 
 ## TDD Cycle Evidence
 
@@ -53,6 +54,10 @@
 | 5.3c | `frontend/src/features/market/MarketWorkspace.test.tsx`, `OpportunityList.test.tsx` | Component/integration | ✅ 20 passed | ✅ Modules missing | ✅ 8 passed | Unknown analysis → unavailable (not 0); period refetch; free-text ticker; unknown signal preserved | ✅ Hooks derive status without synchronous effect state |
 | 5.3d | `frontend/src/features/alerts/*.test.tsx` | Component/integration | ✅ 20 passed | ✅ Modules missing | ✅ 16 passed | Backend message verbatim; `event: null` → no crossing; 503 → unavailable (not 0); wishlist scope; single-currency label, no combined total | ✅ API boundary isolated in `alertApi.ts` |
 | 5.3e | `frontend/src/App.test.tsx` | Shell | ✅ 4 passed | ✅ Market tab absent | ✅ 5 passed | Market tab opens chart controls | ➖ Tab wiring only |
+| 5.4a | `frontend/src/features/wishlist/WishlistWorkspace.test.tsx` | Component/integration | ✅ 53 passed | ✅ Modules missing | ✅ 8 passed | Add ticker; duplicate 409; set/clear target; delete 404; canonical target string | ✅ API boundary isolated in `wishlistApi.ts` |
+| 5.4b | `frontend/src/features/bibliography/BibliographyWorkspace.test.tsx` | Component/integration | ✅ 53 passed | ✅ Modules missing | ✅ 5 passed | Required-only body omits optionals; full body; category default `General`; delete refetch; delete 404 | ✅ Omission logic isolated in `toRequestBody` |
+| 5.4c | `frontend/src/features/tools/split/SplitWorkspace.test.tsx` | Component/integration | ✅ 53 passed | ✅ Modules missing | ✅ 3 passed | Forward 2:1; reverse 1:2; invalid ratio → 422 error, never a result (no client math) | ✅ Request encoding isolated in `splitApi.ts` |
+| 5.4d | `frontend/src/App.test.tsx` | Shell | ✅ 53 passed | ✅ Tabs absent | ✅ 8 passed | Wishlist/Bibliography/Tools tabs open their workspaces | ➖ Tab wiring only |
 
 ## Validation Evidence
 
@@ -90,6 +95,10 @@
   - **Opportunities interpretation** (documented per task): the backend `MarketAnalysisResponse.signals` (`NEAR_52_WEEK_LOW`, `NEAR_52_WEEK_HIGH`, `BELOW_200_DAY_AVERAGE`, `ABOVE_200_DAY_AVERAGE`) are rendered as a labeled list inside the market view; unknown codes stay visible with their raw value. Pure frontend derivation — no backend change.
   - **Target overlay source**: portfolio holdings do not expose `target_price` (`PortfolioPositionResponse` has none), so the target line uses the wishlist item's `target_price` when present, otherwise the target the user just saved in the alert panel for that ticker (kept in local state). No extra GET was added.
   - **Overlay alignment**: transaction markers are placed on a numeric timestamp x-axis so they align with the series by date; the marker list displays the canonical `unit_price` string plus its currency (never a parsed number).
+- Task 5.4: RED `npx vitest run src/features/wishlist src/features/bibliography src/features/tools` → 3 suites failed (modules missing); GREEN → 3 suites / 16 passed; full `npm test` → 72 passed (14 suites); `npm run build` → success; `npm run lint` → clean; `python -m pytest backend/tests -q` → 123 passed (no backend touched). No feature test performs network I/O: all rendering suites mock `wishlistApi`/`bibliographyApi`/`splitApi` (and `api`/`marketApi`/`alertApi` in `App.test.tsx`).
+  - **Split staying backend-driven**: the calculator sends raw inputs and renders the returned canonical strings; there is no client-side projection math, so the backend remains the single source of split truth (per the spec scenario).
+  - **Build-caught path bug**: `splitApi.ts` initially imported `../../api/http` (one level too shallow). Vitest passed because `vi.mock('./splitApi', factory)` bypasses loading the real module, so unresolved specifiers in a mocked module slip past the test run; `tsc -b` in `npm run build` caught it. Fixed to `../../../api/http`.
+  - **Vitest mock-reset interaction**: `vi.resetAllMocks()` in `afterEach` breaks the mount+refresh sequence in suites where the refetch re-reads the list mock; `vi.clearAllMocks()` keeps per-test implementations intact. Wishlist/Split/App use their working form; bibliography uses `clearAllMocks` with each test seeding its own mocks.
 
 ## Known environmental failures (pre-existing, out of scope)
 
@@ -108,12 +117,16 @@
 - OpenSpec design/specs/tasks updated for single-user, currencies, configurable alerts and progress.
 - `frontend/src/features/market/` — `marketApi.ts`, `series.ts`, `useMarketAnalysis.ts`, `useMarketCatalog.ts`, `useTransactionMarkers.ts`, `MarketChart.tsx`, `OpportunityList.tsx`, `MarketWorkspace.tsx` + tests; recharts-based chart with target-line and transaction-marker overlays.
 - `frontend/src/features/alerts/` — `alertApi.ts`, `AlertConfigForm.tsx`, `AlertStatus.tsx`, `AlertsPanel.tsx` + tests; intent configuration and backend-driven crossing messages.
-- `frontend/src/App.tsx`, `frontend/src/App.test.tsx` — `Market` tab hosting the market + alerts workspace.
+- `frontend/src/App.tsx`, `frontend/src/App.test.tsx` — `Market` tab hosting the market + alerts workspace; later extended with `Wishlist`, `Bibliography`, and `Tools` tabs.
 - `frontend/package.json`, `frontend/package-lock.json` — added `recharts@^3.10.1`.
+- `frontend/src/features/wishlist/` — `wishlistApi.ts`, `useWishlist.ts`, `WishlistTable.tsx`, `WishlistWorkspace.tsx` + test; list/add/set-target/delete CRUD.
+- `frontend/src/features/bibliography/` — `bibliographyApi.ts`, `useBibliography.ts`, `BibliographyForm.tsx`, `BibliographyTable.tsx`, `BibliographyWorkspace.tsx` + test; list/create/delete with optional-field omission.
+- `frontend/src/features/tools/split/` — `splitApi.ts`, `SplitWorkspace.tsx` + test; backend-delegated forward/reverse split projection.
+- `frontend/src/components/FormControls.tsx` — added reusable `TextAreaField` (+ `TextAreaFieldProps`) for the bibliography description.
 
 ## Remaining Tasks
 
-Tasks 5.3-7.3 remain pending. Phase 4 (delivery slice P2) is complete; Phase 5 (P3) is being delivered sub-sliced: 5.1 scaffold, 5.2 portfolio, 5.3 market/alerts, 5.4 resources.
+Tasks 5.5-7.3 remain pending. Phase 4 (delivery slice P2) is complete; Phase 5 (P3) is being delivered sub-sliced: 5.1 scaffold, 5.2 portfolio, 5.3 market/alerts, 5.4 resources.
 
 ## Delivery
 

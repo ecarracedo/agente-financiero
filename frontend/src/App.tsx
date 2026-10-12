@@ -1,19 +1,37 @@
 import { useEffect, useState } from 'react'
 
 import { api } from './api/client'
+import { BibliographyWorkspace } from './features/bibliography/BibliographyWorkspace'
 import { MarketWorkspace } from './features/market/MarketWorkspace'
 import { PortfolioWorkspace } from './features/portfolio/PortfolioWorkspace'
+import { SplitWorkspace } from './features/tools/split/SplitWorkspace'
 import { TransactionsWorkspace } from './features/transactions/TransactionsWorkspace'
+import { WishlistWorkspace } from './features/wishlist/WishlistWorkspace'
 
 type BackendStatus = 'loading' | 'ready' | 'unavailable'
-type WorkspaceTab = 'portfolio' | 'transactions' | 'market'
+type WorkspaceTab =
+  | 'portfolio'
+  | 'transactions'
+  | 'market'
+  | 'wishlist'
+  | 'bibliography'
+  | 'tools'
+
+const TABS: { id: WorkspaceTab; label: string }[] = [
+  { id: 'portfolio', label: 'Portfolio' },
+  { id: 'transactions', label: 'Transactions' },
+  { id: 'market', label: 'Market' },
+  { id: 'wishlist', label: 'Wishlist' },
+  { id: 'bibliography', label: 'Bibliography' },
+  { id: 'tools', label: 'Tools' },
+]
 
 /**
  * Application shell.
  *
  * Reports backend readiness and hosts the workspace tabs. Portfolio,
- * transactions, and market (charts + alerts) are implemented here; wishlist,
- * bibliography, and split tools plug into the same shell in later tasks.
+ * transactions, market, wishlist, bibliography, and the split calculator are
+ * all rendered here from the same shell.
  */
 export function App() {
   const [status, setStatus] = useState<BackendStatus>('loading')
@@ -35,6 +53,27 @@ export function App() {
     }
   }, [])
 
+  function renderWorkspace() {
+    switch (tab) {
+      case 'portfolio':
+        return <PortfolioWorkspace refreshToken={portfolioVersion} />
+      case 'transactions':
+        return (
+          <TransactionsWorkspace
+            onPortfolioChanged={() => setPortfolioVersion((version) => version + 1)}
+          />
+        )
+      case 'market':
+        return <MarketWorkspace />
+      case 'wishlist':
+        return <WishlistWorkspace />
+      case 'bibliography':
+        return <BibliographyWorkspace />
+      case 'tools':
+        return <SplitWorkspace />
+    }
+  }
+
   return (
     <main>
       <header>
@@ -42,37 +81,18 @@ export function App() {
         <p role="status">Backend: {status}</p>
       </header>
       <nav aria-label="Workspaces">
-        <button
-          type="button"
-          aria-pressed={tab === 'portfolio'}
-          onClick={() => setTab('portfolio')}
-        >
-          Portfolio
-        </button>
-        <button
-          type="button"
-          aria-pressed={tab === 'transactions'}
-          onClick={() => setTab('transactions')}
-        >
-          Transactions
-        </button>
-        <button
-          type="button"
-          aria-pressed={tab === 'market'}
-          onClick={() => setTab('market')}
-        >
-          Market
-        </button>
+        {TABS.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            aria-pressed={tab === entry.id}
+            onClick={() => setTab(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
       </nav>
-      {tab === 'portfolio' ? (
-        <PortfolioWorkspace refreshToken={portfolioVersion} />
-      ) : tab === 'transactions' ? (
-        <TransactionsWorkspace
-          onPortfolioChanged={() => setPortfolioVersion((version) => version + 1)}
-        />
-      ) : (
-        <MarketWorkspace />
-      )}
+      {renderWorkspace()}
     </main>
   )
 }
