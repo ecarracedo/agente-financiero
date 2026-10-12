@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
 
 import { api } from './api/client'
+import { MarketWorkspace } from './features/market/MarketWorkspace'
 import { PortfolioWorkspace } from './features/portfolio/PortfolioWorkspace'
 import { TransactionsWorkspace } from './features/transactions/TransactionsWorkspace'
 
 type BackendStatus = 'loading' | 'ready' | 'unavailable'
-type WorkspaceTab = 'portfolio' | 'transactions'
+type WorkspaceTab = 'portfolio' | 'transactions' | 'market'
 
 /**
  * Application shell.
  *
- * Reports backend readiness and hosts the workspace tabs. Portfolio and
- * transactions are implemented here; charts, alerts, wishlist, bibliography,
- * and split tools plug into the same shell in later tasks.
+ * Reports backend readiness and hosts the workspace tabs. Portfolio,
+ * transactions, and market (charts + alerts) are implemented here; wishlist,
+ * bibliography, and split tools plug into the same shell in later tasks.
  */
 export function App() {
   const [status, setStatus] = useState<BackendStatus>('loading')
@@ -55,13 +56,22 @@ export function App() {
         >
           Transactions
         </button>
+        <button
+          type="button"
+          aria-pressed={tab === 'market'}
+          onClick={() => setTab('market')}
+        >
+          Market
+        </button>
       </nav>
       {tab === 'portfolio' ? (
         <PortfolioWorkspace refreshToken={portfolioVersion} />
-      ) : (
+      ) : tab === 'transactions' ? (
         <TransactionsWorkspace
           onPortfolioChanged={() => setPortfolioVersion((version) => version + 1)}
         />
+      ) : (
+        <MarketWorkspace />
       )}
     </main>
   )

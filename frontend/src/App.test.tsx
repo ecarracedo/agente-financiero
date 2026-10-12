@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
 import { api } from './api/client'
+import { marketApi } from './features/market/marketApi'
 
 vi.mock('./api/client', () => ({
   api: {
@@ -13,6 +14,31 @@ vi.mock('./api/client', () => ({
     listTransactions: vi.fn(),
     createTransaction: vi.fn(),
     deleteTransaction: vi.fn(),
+  },
+}))
+
+vi.mock('./features/market/marketApi', () => ({
+  MARKET_PERIODS: ['1mo', '3mo', '6mo', '1y', '2y', '5y'],
+  marketApi: {
+    listPortfolio: vi.fn(),
+    listTransactions: vi.fn(),
+    listWishlist: vi.fn(),
+    getAnalysis: vi.fn(),
+  },
+}))
+
+vi.mock('./features/alerts/alertApi', () => ({
+  ALERT_INTENTS: [
+    { value: 'NEUTRAL', label: 'Neutral' },
+    { value: 'STOP_LOSS', label: 'Stop-loss' },
+    { value: 'BUY', label: 'Buy' },
+    { value: 'SELL', label: 'Sell' },
+  ],
+  alertApi: {
+    configurePortfolio: vi.fn(),
+    checkPortfolio: vi.fn(),
+    configureWishlist: vi.fn(),
+    checkWishlist: vi.fn(),
   },
 }))
 
@@ -60,5 +86,18 @@ describe('App', () => {
       await screen.findByRole('heading', { name: 'Transactions' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /record operation/i })).toBeInTheDocument()
+  })
+
+  it('opens the market workspace with its chart controls', async () => {
+    vi.mocked(marketApi.listPortfolio).mockResolvedValue([])
+    vi.mocked(marketApi.listWishlist).mockResolvedValue([])
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Market' }))
+
+    expect(await screen.findByRole('heading', { name: 'Market' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Period')).toBeInTheDocument()
+    expect(screen.getByLabelText('Chart mode')).toBeInTheDocument()
   })
 })
