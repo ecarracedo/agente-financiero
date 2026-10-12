@@ -470,6 +470,8 @@ export interface components {
             moving_average_200: string | null;
             /** Signals */
             signals: string[];
+            /** Series */
+            series: components["schemas"]["PricePointResponse"][];
         };
         /**
          * MutationResponse
@@ -519,6 +521,19 @@ export interface components {
             broker: string;
             /** Category */
             category: string;
+        };
+        /**
+         * PricePointResponse
+         * @description Expose one dated close with a canonical money string.
+         */
+        PricePointResponse: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Close */
+            close: string;
         };
         /**
          * SplitProjectionRequest

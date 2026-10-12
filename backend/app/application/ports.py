@@ -9,6 +9,7 @@ from types import TracebackType
 from typing import Callable, Protocol, Self
 
 from backend.app.domain.alerts import TargetAlertSettings
+from backend.app.domain.analysis import PricePoint
 from backend.app.domain.portfolio import PortfolioPosition
 
 
@@ -158,9 +159,9 @@ class MarketDataProviderPort(Protocol):
 
     def get_current_price(self, ticker: str) -> Decimal | None: ...
 
-    def get_historical_closes(
+    def get_historical_series(
         self, ticker: str, period: str
-    ) -> list[Decimal]: ...
+    ) -> Sequence[PricePoint]: ...
 
 
 PortfolioUnitOfWorkFactory = Callable[[], PortfolioUnitOfWorkPort]

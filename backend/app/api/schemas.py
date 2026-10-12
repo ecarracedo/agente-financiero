@@ -1,6 +1,6 @@
 """Pydantic request and response contracts for the versioned API."""
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -140,6 +140,15 @@ class CurrencyValuationResponse(BaseModel):
     unpriced_tickers: list[str]
 
 
+class PricePointResponse(BaseModel):
+    """Expose one dated close with a canonical money string."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    date: date
+    close: MoneyString
+
+
 class MarketAnalysisResponse(BaseModel):
     """Expose technical analysis metrics with explicit unknown states."""
 
@@ -154,6 +163,7 @@ class MarketAnalysisResponse(BaseModel):
     moving_average_50: OptionalMoneyString
     moving_average_200: OptionalMoneyString
     signals: list[str]
+    series: list[PricePointResponse]
 
 
 class WishlistItemResponse(BaseModel):

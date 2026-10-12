@@ -1,5 +1,6 @@
 """HTTP contract tests for the financial-agent API."""
 
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
@@ -8,16 +9,26 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from backend.app.adapters.persistence.models import Base
+from backend.app.domain.analysis import PricePoint
 from backend.app.main import create_app
 
 
+def points(closes):
+    """Build a chronological dated series for API contract tests."""
+    return [
+        PricePoint(date=date(2024, 1, 1) + timedelta(days=index), close=close)
+        for index, close in enumerate(closes)
+    ]
+
+
 class FakeMarketDataProvider:
-    """Provide deterministic quotes and historical closes for API tests."""
+    """Provide deterministic quotes and dated series for API tests."""
 
     def __init__(self):
         self.prices = {}
         self.price_sequences = {}
-        self.history = {}
+        self.series = {}
+        self.requested_periods = []
 
     def get_current_price(self, ticker):
         """Return the next configured quote or a stable quote."""
@@ -26,9 +37,10 @@ class FakeMarketDataProvider:
             return sequence.pop(0)
         return self.prices.get(ticker)
 
-    def get_historical_closes(self, ticker, period):
-        """Return configured closes for the requested ticker."""
-        return self.history.get(ticker, [])
+    def get_historical_series(self, ticker, period):
+        """Return configured dated points and record the requested period."""
+        self.requested_periods.append(period)
+        return tuple(self.series.get(ticker, []))
 
 
 @pytest.fixture
@@ -115,7 +127,9 @@ def test_valuation_and_analysis_endpoints_preserve_currency(api_client):
     """Valuation and analysis routes return currency-grouped Decimal data."""
     client, market_data = api_client
     market_data.prices["AAPL"] = Decimal("15")
-    market_data.history["AAPL"] = [Decimal("10")] * 199 + [Decimal("20")]
+    market_data.series["AAPL"] = points(
+        [Decimal("10")] * 199 + [Decimal("20")]
+    )
     client.post("/api/v1/transactions", json=operation("AAPL", "BUY", 2, 10, 1))
 
     valuations = client.get("/api/v1/valuations")
@@ -126,6 +140,51 @@ def test_valuation_and_analysis_endpoints_preserve_currency(api_client):
     assert analysis.status_code == 200
     assert analysis.json()["high_52_week"] == "20"
     assert "ABOVE_200_DAY_AVERAGE" in analysis.json()["signals"]
+
+
+def test_analysis_endpoint_exposes_a_chronological_canonical_series(api_client):
+    """The analysis response carries dated closes as canonical money strings."""
+    client, market_data = api_client
+    market_data.prices["AAPL"] = Decimal("20")
+    market_data.series["AAPL"] = points(
+        [Decimal("10"), Decimal("11.5"), Decimal("20")]
+    )
+
+    response = client.get("/api/v1/analysis/AAPL", params={"period": "3mo"})
+
+    assert response.status_code == 200
+    assert response.json()["series"] == [
+        {"date": "2024-01-01", "close": "10"},
+        {"date": "2024-01-02", "close": "11.5"},
+        {"date": "2024-01-03", "close": "20"},
+    ]
+    assert market_data.requested_periods == ["3mo"]
+
+
+def test_analysis_endpoint_returns_empty_series_for_unknown_ticker(api_client):
+    """An unavailable ticker keeps its unknown status and carries no series."""
+    client, _ = api_client
+
+    response = client.get("/api/v1/analysis/ZZZZ", params={"period": "6mo"})
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["status"] == "UNKNOWN"
+    assert body["reason"] == "No current market price"
+    assert body["series"] == []
+
+
+def test_analysis_endpoint_returns_no_series_without_history(api_client):
+    """A current quote without history stays unknown with an empty series."""
+    client, market_data = api_client
+    market_data.prices["AAPL"] = Decimal("20")
+
+    body = client.get("/api/v1/analysis/AAPL").json()
+
+    assert body["status"] == "UNKNOWN"
+    assert body["reason"] == "No historical data"
+    assert body["current_price"] == "20"
+    assert body["series"] == []
 
 
 def test_target_alert_endpoints_configure_and_emit_once(api_client):

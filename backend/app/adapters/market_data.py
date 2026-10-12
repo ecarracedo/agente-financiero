@@ -1,9 +1,31 @@
 """YFinance adapter for current and historical market prices."""
 
 from collections.abc import Callable
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 import importlib
 from typing import Any
+
+from backend.app.domain.analysis import PricePoint
+
+
+def _to_date(timestamp: Any) -> date | None:
+    """Convert a provider index entry into a calendar date when possible.
+
+    Args:
+        timestamp: A pandas Timestamp, a ``datetime``/``date``, or a string.
+
+    Returns:
+        A ``date`` for a recognizable value, otherwise ``None``.
+    """
+    if isinstance(timestamp, datetime):
+        return timestamp.date()
+    if isinstance(timestamp, date):
+        return timestamp
+    try:
+        return date.fromisoformat(str(timestamp)[:10])
+    except ValueError:
+        return None
 
 
 class YFinanceMarketDataProvider:
@@ -38,19 +60,29 @@ class YFinanceMarketDataProvider:
             return None
         return None
 
-    def get_historical_closes(self, ticker: str, period: str) -> list[Decimal]:
-        """Return valid historical close values or an empty list on failure."""
+    def get_historical_series(
+        self, ticker: str, period: str
+    ) -> tuple[PricePoint, ...]:
+        """Return dated historical closes in provider order, or empty on failure.
+
+        Missing, non-positive, or undated provider entries are skipped so the
+        series never carries invented prices.
+        """
         try:
             history = self._create_ticker(ticker).history(period=period)
-            raw_closes = history["Close"].dropna().tolist()
-            closes = []
-            for raw_close in raw_closes:
+            dated_closes = history["Close"].dropna()
+            points: list[PricePoint] = []
+            for timestamp, raw_close in dated_closes.items():
                 try:
                     close = Decimal(str(raw_close))
                 except InvalidOperation:
                     continue
-                if close.is_finite() and close > 0:
-                    closes.append(close)
-            return closes
+                if not (close.is_finite() and close > 0):
+                    continue
+                point_date = _to_date(timestamp)
+                if point_date is None:
+                    continue
+                points.append(PricePoint(date=point_date, close=close))
+            return tuple(points)
         except Exception:
-            return []
+            return ()

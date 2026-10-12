@@ -1,12 +1,22 @@
 """Pure technical market analysis using Decimal prices."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 
 
 @dataclass(frozen=True)
+class PricePoint:
+    """A dated closing price used to build the historical price series."""
+
+    date: date
+    close: Decimal
+
+
+@dataclass(frozen=True)
 class MarketAnalysis:
-    """Represent market range, rolling averages, and explicit signals."""
+    """Represent market range, rolling averages, explicit signals, and series."""
 
     ticker: str
     status: str
@@ -17,29 +27,31 @@ class MarketAnalysis:
     moving_average_50: Decimal | None
     moving_average_200: Decimal | None
     signals: tuple[str, ...]
+    series: tuple[PricePoint, ...]
 
 
 def analyze_market(
     ticker: str,
     current_price: Decimal | None,
-    closing_prices: list[Decimal],
+    series: Sequence[PricePoint],
 ) -> MarketAnalysis:
-    """Calculate range and moving-average signals from historical closes.
+    """Calculate range, moving-average signals, and a dated series.
 
     The 52-week range uses the available supplied closes. A rolling average is
     reported only when its complete window is available. Missing history yields
-    an explicit unknown result rather than a zero-valued market signal.
+    an explicit unknown result rather than a zero-valued market signal. The
+    returned series is normalized to chronological (oldest to newest) order.
 
     Args:
         ticker: Asset symbol being analyzed.
         current_price: Latest available market price, or ``None`` if unavailable.
-        closing_prices: Historical closing prices in chronological order.
+        series: Historical dated closing prices supplied by the market-data port.
 
     Returns:
-        A typed analysis result with optional metrics and deterministic signals.
+        A typed analysis result with optional metrics and a dated series.
 
     Raises:
-        ValueError: If the ticker or current price is invalid.
+        ValueError: If the ticker is empty or the current price is not positive.
     """
     normalized_ticker = ticker.strip().upper()
     if not normalized_ticker:
@@ -55,11 +67,12 @@ def analyze_market(
             moving_average_50=None,
             moving_average_200=None,
             signals=(),
+            series=(),
         )
     if current_price <= 0:
         raise ValueError("current price must be positive")
 
-    if not closing_prices:
+    if not series:
         return MarketAnalysis(
             ticker=normalized_ticker,
             status="UNKNOWN",
@@ -70,7 +83,11 @@ def analyze_market(
             moving_average_50=None,
             moving_average_200=None,
             signals=(),
+            series=(),
         )
+
+    ordered_series = tuple(sorted(series, key=lambda point: point.date))
+    closing_prices = [point.close for point in ordered_series]
 
     high_52_week = max(closing_prices)
     low_52_week = min(closing_prices)
@@ -107,4 +124,5 @@ def analyze_market(
         moving_average_50=moving_average_50,
         moving_average_200=moving_average_200,
         signals=tuple(signals),
+        series=ordered_series,
     )

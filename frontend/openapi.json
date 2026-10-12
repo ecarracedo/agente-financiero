@@ -1171,6 +1171,13 @@
             },
             "type": "array",
             "title": "Signals"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/PricePointResponse"
+            },
+            "type": "array",
+            "title": "Series"
           }
         },
         "type": "object",
@@ -1183,7 +1190,8 @@
           "low_52_week",
           "moving_average_50",
           "moving_average_200",
-          "signals"
+          "signals",
+          "series"
         ],
         "title": "MarketAnalysisResponse",
         "description": "Expose technical analysis metrics with explicit unknown states."
@@ -1305,6 +1313,26 @@
         ],
         "title": "PositionAlertCheckRequest",
         "description": "Identify a broker/category position whose alert should be evaluated."
+      },
+      "PricePointResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "close": {
+            "type": "string",
+            "title": "Close"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "close"
+        ],
+        "title": "PricePointResponse",
+        "description": "Expose one dated close with a canonical money string."
       },
       "SplitProjectionRequest": {
         "properties": {

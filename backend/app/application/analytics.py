@@ -35,13 +35,11 @@ class PortfolioAnalyticsUseCases:
         return self._market_data.get_current_price(ticker.strip().upper())
 
     def analyze_ticker(self, ticker: str, period: str = "1y") -> MarketAnalysis:
-        """Combine one current quote and provider history into technical signals."""
+        """Combine one current quote and the dated provider series."""
         normalized_ticker = ticker.strip().upper()
         current_price = self._market_data.get_current_price(normalized_ticker)
-        closing_prices = self._market_data.get_historical_closes(
-            normalized_ticker, period
-        )
-        return analyze_market(normalized_ticker, current_price, closing_prices)
+        series = self._market_data.get_historical_series(normalized_ticker, period)
+        return analyze_market(normalized_ticker, current_price, series)
 
     def evaluate_target_crossing(
         self,

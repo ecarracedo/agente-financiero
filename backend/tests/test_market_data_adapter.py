@@ -1,30 +1,40 @@
 """Tests for the yfinance market-data adapter without network calls."""
 
+from datetime import date, datetime
 from decimal import Decimal
 
 from backend.app.adapters.market_data import YFinanceMarketDataProvider
+from backend.app.domain.analysis import PricePoint
 
 
 class FakeCloseSeries:
-    """Provide a pandas-like close series for deterministic adapter tests."""
+    """Provide a pandas-like indexed close series for adapter tests."""
 
-    def __init__(self, values):
-        self._values = values
+    def __init__(self, index, values):
+        self._index = list(index)
+        self._values = list(values)
 
     def dropna(self):
-        """Return a series with missing values removed."""
-        return FakeCloseSeries([value for value in self._values if value is not None])
+        """Return dated closes with missing values removed."""
+        pairs = [
+            (stamp, value)
+            for stamp, value in zip(self._index, self._values)
+            if value is not None
+        ]
+        return FakeCloseSeries(
+            [stamp for stamp, _ in pairs], [value for _, value in pairs]
+        )
 
-    def tolist(self):
-        """Return the configured close values."""
-        return list(self._values)
+    def items(self):
+        """Return (timestamp, value) pairs like a pandas Series."""
+        return list(zip(self._index, self._values))
 
 
 class FakeHistory:
     """Provide the close column expected from a yfinance history frame."""
 
-    def __init__(self, closes):
-        self._closes = FakeCloseSeries(closes)
+    def __init__(self, index, closes):
+        self._closes = FakeCloseSeries(index, closes)
 
     def __getitem__(self, column):
         """Return closes for the expected market-data column."""
@@ -34,15 +44,16 @@ class FakeHistory:
 
 
 class FakeTicker:
-    """Expose controlled price information and historical closes."""
+    """Expose controlled price information and dated historical closes."""
 
-    def __init__(self, info, closes):
+    def __init__(self, info, closes, index=None):
         self.info = info
         self._closes = closes
+        self._index = [] if index is None else index
 
     def history(self, period):
-        """Return close history for the requested period."""
-        return FakeHistory(self._closes)
+        """Return dated close history for the requested period."""
+        return FakeHistory(self._index, self._closes)
 
 
 def test_current_price_uses_available_provider_field():
@@ -65,24 +76,56 @@ def test_current_price_falls_back_to_previous_close():
     assert provider.get_current_price("AAPL") == Decimal("9.75")
 
 
-def test_historical_prices_are_decimal_and_skip_missing_values():
-    """Historical close values are converted to Decimal and missing points drop."""
+def test_historical_series_pairs_dates_with_decimal_closes():
+    """Dated closes become PricePoints in provider (chronological) order."""
+    index = [datetime(2024, 1, 2), datetime(2024, 1, 3), datetime(2024, 1, 4)]
     provider = YFinanceMarketDataProvider(
-        ticker_factory=lambda ticker: FakeTicker({}, [10.1, None, 12.25])
+        ticker_factory=lambda ticker: FakeTicker({}, [10.1, 12.25, 9.5], index)
     )
 
-    assert provider.get_historical_closes("AAPL", "1y") == [
-        Decimal("10.1"),
-        Decimal("12.25"),
-    ]
+    series = provider.get_historical_series("AAPL", "1mo")
+
+    assert series == (
+        PricePoint(date=date(2024, 1, 2), close=Decimal("10.1")),
+        PricePoint(date=date(2024, 1, 3), close=Decimal("12.25")),
+        PricePoint(date=date(2024, 1, 4), close=Decimal("9.5")),
+    )
+
+
+def test_historical_series_skips_missing_closes():
+    """Missing provider closes drop out so the series has no invented points."""
+    index = [datetime(2024, 1, 2), datetime(2024, 1, 3), datetime(2024, 1, 4)]
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker({}, [10.1, None, 12.25], index)
+    )
+
+    series = provider.get_historical_series("AAPL", "1mo")
+
+    assert series == (
+        PricePoint(date=date(2024, 1, 2), close=Decimal("10.1")),
+        PricePoint(date=date(2024, 1, 4), close=Decimal("12.25")),
+    )
+
+
+def test_historical_series_skips_non_positive_closes():
+    """Non-positive closes are not valid market prices and are dropped."""
+    index = [datetime(2024, 1, 2), datetime(2024, 1, 3)]
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker({}, [11.0, -3.0], index)
+    )
+
+    series = provider.get_historical_series("AAPL", "1mo")
+
+    assert series == (PricePoint(date=date(2024, 1, 2), close=Decimal("11.0")),)
 
 
 def test_provider_failure_returns_unavailable_data():
     """Provider exceptions produce unknown data instead of invented prices."""
+
     def failing_ticker_factory(ticker):
         raise RuntimeError("market provider unavailable")
 
     provider = YFinanceMarketDataProvider(ticker_factory=failing_ticker_factory)
 
     assert provider.get_current_price("AAPL") is None
-    assert provider.get_historical_closes("AAPL", "1y") == []
+    assert provider.get_historical_series("AAPL", "1y") == ()
