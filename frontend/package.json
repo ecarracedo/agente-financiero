@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "eslint .",
     "generate:api": "openapi-typescript openapi.json -o src/api/types.ts",
-    "generate:api:live": "openapi-typescript http://localhost:8000/openapi.json -o src/api/types.ts"
+    "generate:api:live": "openapi-typescript http://localhost:8000/openapi.json -o src/api/types.ts",
+    "check:api-drift": "node scripts/check-api-drift.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",
