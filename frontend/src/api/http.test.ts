@@ -100,4 +100,39 @@ describe('request', () => {
     expect(typeof position.average_price).toBe('string')
     expect(position.average_price).toBe('100.25')
   })
+
+  it('returns undefined for a 204 No Content response without parsing a body', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })))
+
+    await expect(request('/api/v1/transactions/7', { method: 'DELETE' })).resolves.toBeUndefined()
+  })
+
+  it('raises an ApiError with null detail when an error body is not JSON', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('<html>Bad Gateway</html>', {
+          status: 502,
+          headers: { 'Content-Type': 'text/html' },
+        }),
+      ),
+    )
+
+    const error = await request('/ready').catch((caught) => caught)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(502)
+    expect((error as ApiError).detail).toBeNull()
+  })
+
+  it('concatenates a trailing-slash base URL verbatim with the path', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'http://api.example.test/')
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ status: 'ok' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await request('/health')
+
+    expect(resolveBaseUrl()).toBe('http://api.example.test/')
+    expect(fetchMock).toHaveBeenCalledWith('http://api.example.test//health', undefined)
+  })
 })

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { CurrencyValuation, PortfolioPosition } from '../../api/client'
@@ -66,10 +66,15 @@ describe('PortfolioWorkspace', () => {
 
     render(<PortfolioWorkspace />)
 
-    expect(await screen.findByText('USD')).toBeInTheDocument()
-    expect(screen.getByText('EUR')).toBeInTheDocument()
-    expect(screen.getByText('1502.50 USD')).toBeInTheDocument()
-    expect(screen.getByText('500.00 EUR')).toBeInTheDocument()
+    const usdCell = await screen.findByRole('cell', { name: 'USD' })
+    const eurCell = screen.getByRole('cell', { name: 'EUR' })
+    const usdRow = within(usdCell.closest('tr') as HTMLElement)
+    const eurRow = within(eurCell.closest('tr') as HTMLElement)
+
+    expect(usdRow.getByRole('cell', { name: '1502.50 USD' })).toBeInTheDocument()
+    expect(usdRow.queryByText(/EUR/)).not.toBeInTheDocument()
+    expect(eurRow.getByRole('cell', { name: '500.00 EUR' })).toBeInTheDocument()
+    expect(eurRow.queryByText(/USD/)).not.toBeInTheDocument()
   })
 
   it('renders "Not available" for missing market values instead of zero', async () => {
@@ -78,9 +83,33 @@ describe('PortfolioWorkspace', () => {
 
     render(<PortfolioWorkspace />)
 
-    expect(await screen.findByText('EUR')).toBeInTheDocument()
+    expect(await screen.findByRole('cell', { name: 'EUR' })).toBeInTheDocument()
     expect(screen.getAllByText(/not available/i)).toHaveLength(3)
     expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
+
+  it('refetches when refreshToken changes and not when it stays the same', async () => {
+    vi.mocked(api.listPortfolio).mockResolvedValue(positions)
+    vi.mocked(api.getValuations).mockResolvedValue(valuations)
+
+    const { rerender } = render(<PortfolioWorkspace refreshToken={0} />)
+
+    expect(await screen.findByText('AAPL')).toBeInTheDocument()
+    expect(api.listPortfolio).toHaveBeenCalledTimes(1)
+    expect(api.getValuations).toHaveBeenCalledTimes(1)
+
+    rerender(<PortfolioWorkspace refreshToken={0} />)
+    expect(await screen.findByText('AAPL')).toBeInTheDocument()
+    expect(api.listPortfolio).toHaveBeenCalledTimes(1)
+    expect(api.getValuations).toHaveBeenCalledTimes(1)
+
+    vi.mocked(api.listPortfolio).mockResolvedValue([{ ...positions[0], ticker: 'MSFT' }])
+    rerender(<PortfolioWorkspace refreshToken={1} />)
+
+    expect(await screen.findByText('MSFT')).toBeInTheDocument()
+    expect(api.listPortfolio).toHaveBeenCalledTimes(2)
+    expect(api.getValuations).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('AAPL')).not.toBeInTheDocument()
   })
 
   it('shows a loading state while data is pending', () => {

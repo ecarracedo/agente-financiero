@@ -89,4 +89,68 @@ describe('SplitWorkspace', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/rejected/i)
     expect(screen.queryByText('200')).not.toBeInTheDocument()
   })
+
+  it('maps a non-numeric forward ratio to 0 shares so the backend rejects it', async () => {
+    vi.mocked(splitApi.calculate).mockRejectedValue(
+      new ApiError(422, [{ loc: ['body', 'new_shares'], msg: 'Input should be greater than 0' }]),
+    )
+
+    render(<SplitWorkspace />)
+
+    fillSplitForm('abc')
+    fireEvent.click(screen.getByRole('button', { name: /calculate split/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/rejected/i)
+    expect(splitApi.calculate).toHaveBeenCalledTimes(1)
+    expect(splitApi.calculate).toHaveBeenCalledWith({
+      quantity: '100',
+      average_price: '50.00',
+      new_shares: 0,
+      old_shares: 1,
+    })
+    expect(screen.queryByRole('heading', { name: 'Result' })).not.toBeInTheDocument()
+  })
+
+  it('maps a non-numeric reverse ratio to 0 old shares', async () => {
+    vi.mocked(splitApi.calculate).mockRejectedValue(new ApiError(422, []))
+
+    render(<SplitWorkspace />)
+
+    fireEvent.change(screen.getByLabelText('Direction'), { target: { value: 'reverse' } })
+    fillSplitForm('   ')
+    fireEvent.click(screen.getByRole('button', { name: /calculate split/i }))
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(splitApi.calculate).toHaveBeenCalledWith({
+      quantity: '100',
+      average_price: '50.00',
+      new_shares: 1,
+      old_shares: 0,
+    })
+  })
+
+  it('sends exactly one request with the exact payload keys and string amounts', async () => {
+    vi.mocked(splitApi.calculate).mockResolvedValue({
+      quantity: '300',
+      average_price: '16.67',
+      ratio: '3:1',
+    })
+
+    render(<SplitWorkspace />)
+
+    fillSplitForm(' 3 ')
+    fireEvent.click(screen.getByRole('button', { name: /calculate split/i }))
+
+    expect(await screen.findByRole('heading', { name: 'Result' })).toBeInTheDocument()
+    expect(splitApi.calculate).toHaveBeenCalledTimes(1)
+    const [payload] = vi.mocked(splitApi.calculate).mock.calls[0]
+    expect(payload).toStrictEqual({
+      quantity: '100',
+      average_price: '50.00',
+      new_shares: 3,
+      old_shares: 1,
+    })
+    expect(typeof payload.quantity).toBe('string')
+    expect(typeof payload.average_price).toBe('string')
+  })
 })

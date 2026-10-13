@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
@@ -92,6 +92,26 @@ describe('App', () => {
     expect(await screen.findByText(/backend: ready/i)).toBeInTheDocument()
   })
 
+  it('shows the checking state while readiness is pending, then settles', async () => {
+    let resolveReady: (value: { status: string }) => void = () => {}
+    vi.mocked(api.ready).mockReturnValue(
+      new Promise((resolve) => {
+        resolveReady = resolve
+      }),
+    )
+
+    render(<App />)
+
+    expect(screen.getByText('Backend: loading')).toBeInTheDocument()
+    expect(screen.queryByText(/backend: ready/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/backend: unavailable/i)).not.toBeInTheDocument()
+
+    resolveReady({ status: 'ready' })
+
+    expect(await screen.findByText(/backend: ready/i)).toBeInTheDocument()
+    expect(screen.queryByText(/backend: loading/i)).not.toBeInTheDocument()
+  })
+
   it('renders without a real backend when the client request fails', async () => {
     vi.mocked(api.ready).mockRejectedValue(new Error('network down'))
 
@@ -113,6 +133,56 @@ describe('App', () => {
       await screen.findByRole('heading', { name: 'Transactions' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /record operation/i })).toBeInTheDocument()
+  })
+
+  it('refetches the portfolio after a transaction is recorded from the shell', async () => {
+    vi.mocked(api.createTransaction).mockResolvedValue({
+      ticker: 'AAPL',
+      broker: 'IBKR',
+      category: 'Stock',
+      quantity: '5',
+      average_price: '120.00',
+      currency: 'USD',
+    })
+    vi.mocked(api.listTransactions).mockResolvedValue([])
+
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Portfolio' })
+    await waitFor(() => expect(api.listPortfolio).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Transactions' }))
+    await screen.findByRole('heading', { name: 'Transactions' })
+
+    fireEvent.change(screen.getByLabelText('Ticker'), { target: { value: 'AAPL' } })
+    fireEvent.change(screen.getByLabelText('Broker'), { target: { value: 'IBKR' } })
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Stock' } })
+    fireEvent.change(screen.getByLabelText('Quantity'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Unit price'), { target: { value: '120.00' } })
+    fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'USD' } })
+    fireEvent.change(screen.getByLabelText('Occurred at'), {
+      target: { value: '2024-02-01T10:00' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /record operation/i }))
+
+    expect(await screen.findByText('Operation recorded.')).toBeInTheDocument()
+    expect(api.createTransaction).toHaveBeenCalledTimes(1)
+
+    vi.mocked(api.listPortfolio).mockResolvedValue([
+      {
+        ticker: 'AAPL',
+        broker: 'IBKR',
+        category: 'Stock',
+        quantity: '5',
+        average_price: '120.00',
+        currency: 'USD',
+      },
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Portfolio' }))
+
+    expect(await screen.findByRole('cell', { name: 'AAPL' })).toBeInTheDocument()
+    expect(api.listPortfolio).toHaveBeenCalledTimes(2)
   })
 
   it('opens the market workspace with its chart controls', async () => {

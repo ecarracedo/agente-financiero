@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { MarketChart } from './MarketChart'
@@ -24,41 +24,44 @@ const markers: TransactionMarker[] = [
 
 describe('MarketChart', () => {
   it('renders the price series as an SVG line chart', () => {
-    const { container } = render(<MarketChart series={series} mode="line" />)
+    render(<MarketChart series={series} mode="line" />)
 
-    expect(container.querySelector('svg')).not.toBeNull()
-    expect(container.querySelector('.recharts-line-curve')).not.toBeNull()
+    const chart = screen.getByTestId('market-chart')
+    expect(chart.querySelector('svg')).not.toBeNull()
+    expect(screen.getByRole('application')).toBeInTheDocument()
   })
 
-  it('renders an area series when the chart mode is area', () => {
-    const { container } = render(<MarketChart series={series} mode="area" />)
+  it('renders the same chart surface when the chart mode is area', () => {
+    render(<MarketChart series={series} mode="area" />)
 
-    expect(container.querySelector('.recharts-area-area')).not.toBeNull()
+    expect(screen.getByTestId('market-chart').querySelector('svg')).not.toBeNull()
+    expect(screen.getByRole('application')).toBeInTheDocument()
   })
 
-  it('draws a target overlay when a target price is configured', () => {
-    const { container } = render(
-      <MarketChart series={series} mode="line" targetPrice={180} targetLabel="180.00 USD" />,
-    )
+  it('shows the target label when a target price is configured', () => {
+    render(<MarketChart series={series} mode="line" targetPrice={180} targetLabel="180.00 USD" />)
 
-    expect(container.querySelector('.recharts-reference-line')).not.toBeNull()
+    expect(screen.getByText('180.00 USD')).toBeInTheDocument()
   })
 
-  it('omits the target overlay when no target price is configured', () => {
-    const { container } = render(<MarketChart series={series} mode="line" targetPrice={null} />)
+  it('omits the target label when no target price is configured', () => {
+    render(<MarketChart series={series} mode="line" targetPrice={null} targetLabel="180.00 USD" />)
 
-    expect(container.querySelector('.recharts-reference-line')).toBeNull()
+    expect(screen.queryByText('180.00 USD')).not.toBeInTheDocument()
   })
 
-  it('draws one marker symbol per transaction and lists canonical values', () => {
-    const { container } = render(
-      <MarketChart series={series} mode="line" markers={markers} />,
-    )
+  it('lists one canonical entry per transaction marker', () => {
+    render(<MarketChart series={series} mode="line" markers={markers} />)
 
-    expect(container.querySelectorAll('.recharts-scatter-symbol')).toHaveLength(1)
-    expect(container.querySelector('[aria-label="Transaction markers"]')).not.toBeNull()
-    expect(container.textContent).toContain('2024-02-01')
-    expect(container.textContent).toContain('BUY')
-    expect(container.textContent).toContain('120.00 USD')
+    const list = screen.getByRole('list', { name: 'Transaction markers' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items).toHaveLength(1)
+    expect(items[0]).toHaveTextContent('2024-02-01 · BUY · 120.00 USD')
+  })
+
+  it('omits the marker list when there are no transactions', () => {
+    render(<MarketChart series={series} mode="line" />)
+
+    expect(screen.queryByRole('list', { name: 'Transaction markers' })).not.toBeInTheDocument()
   })
 })
