@@ -43,6 +43,7 @@ export function MarketWorkspace() {
   const [searchTicker, setSearchTicker] = useState('')
   const [configuredTargets, setConfiguredTargets] = useState<Record<string, string>>({})
 
+  // An out-of-catalog selection is deliberate: the free-text ticker search relies on it.
   const activeTicker =
     selectedTicker.trim() !== ''
       ? selectedTicker.trim().toUpperCase()
@@ -62,6 +63,13 @@ export function MarketWorkspace() {
     label:
       entry.source === 'portfolio' ? `${entry.ticker} (portfolio)` : `${entry.ticker} (wishlist)`,
   }))
+
+  // An out-of-catalog selection still needs a matching option, otherwise the
+  // select falls back to displaying the first catalog entry while the chart
+  // and the analysis requests already belong to the searched ticker.
+  if (activeTicker !== '' && selectedEntry === null) {
+    tickerOptions.unshift({ value: activeTicker, label: `${activeTicker} (search)` })
+  }
 
   const currency = selectedEntry?.currency ?? null
   const targetPrice = configuredTargets[activeTicker] ?? selectedEntry?.targetPrice ?? null

@@ -170,4 +170,16 @@ describe('MarketWorkspace', () => {
 
     await waitFor(() => expect(marketApi.getAnalysis).toHaveBeenCalledWith('MSFT', '1y'))
   })
+
+  it('keeps a free-text ticker outside the catalog selected and requests its analysis', async () => {
+    render(<MarketWorkspace />)
+
+    await screen.findByTestId('market-chart')
+
+    fireEvent.change(screen.getByLabelText('Search ticker'), { target: { value: 'nvda' } })
+    fireEvent.click(screen.getByRole('button', { name: /load ticker/i }))
+
+    await waitFor(() => expect(marketApi.getAnalysis).toHaveBeenCalledWith('NVDA', '1y'))
+    expect(screen.getByLabelText('Ticker')).toHaveValue('NVDA')
+  })
 })
