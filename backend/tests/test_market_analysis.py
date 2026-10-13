@@ -80,3 +80,18 @@ def test_analysis_omits_average_signal_when_history_is_too_short():
     assert result.moving_average_200 is None
     assert "ABOVE_200_DAY_AVERAGE" not in result.signals
     assert "BELOW_200_DAY_AVERAGE" not in result.signals
+
+
+def test_analysis_keeps_duplicate_dates_and_counts_them_in_windows():
+    """Characterization: sorting is by date only, so duplicates are all kept."""
+    series = points([Decimal("10")] * 49)
+    series.append(PricePoint(date=series[-1].date, close=Decimal("60")))
+
+    result = analyze_market("AAPL", Decimal("10"), series)
+
+    assert len(result.series) == 50
+    assert [point.close for point in result.series][-2:] == [
+        Decimal("10"),
+        Decimal("60"),
+    ]
+    assert result.moving_average_50 == Decimal("11")

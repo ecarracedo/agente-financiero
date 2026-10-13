@@ -129,3 +129,18 @@ def test_provider_failure_returns_unavailable_data():
 
     assert provider.get_current_price("AAPL") is None
     assert provider.get_historical_series("AAPL", "1y") == ()
+
+
+def test_historical_series_skips_entries_with_unparseable_dates():
+    """Entries whose index is not a date are dropped; valid ones survive."""
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {},
+            [10.0, 11.0, 12.0],
+            index=["not-a-date", datetime(2024, 1, 3, 9, 30), None],
+        )
+    )
+
+    assert provider.get_historical_series("AAPL", "1y") == (
+        PricePoint(date=date(2024, 1, 3), close=Decimal("11.0")),
+    )
