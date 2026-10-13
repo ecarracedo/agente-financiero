@@ -126,8 +126,8 @@
 
 ## Remaining Tasks
 
-Tasks 5.5-7.3 remain pending. Phase 4 (delivery slice P2) is complete; Phase 5 (P3) is being delivered sub-sliced: 5.1 scaffold, 5.2 portfolio, 5.3 market/alerts, 5.4 resources.
+Phase 5 (P3) is complete: 5.1 scaffold, 5.2 portfolio, 5.3 market/alerts, 5.4 resources. Remaining work is Phase 6 (6.1-6.3: agent and deployment) and Phase 7 (7.1-7.3: cutover and cleanup).
 
 ## Delivery
 
-- P1 (task 3.4) → commit `593b6c6`. P2 (Phase 4: 4.1-4.3 + `a0003`) → commits `7c3ff96`, `c6319ee`, and this one. P2 authored ~1,470 lines (>400 heuristic) across the phase; per `apply-spec.md` §slicing it needs `size:exception` or a cohesive split at PR time (recorded, not yet sliced). Alert intents are neutral (cross either way), stop-loss/buy (downward), and sell (upward), with distinct messages and no repeated trigger. Legacy intents remain nullable until explicitly mapped during SQLite import.
+- P1 (task 3.4) → commit `593b6c6`. P2 (Phase 4: 4.1-4.3 + `a0003`) → commits `7c3ff96`, `c6319ee`, and this one. P2 authored ~1,470 lines (>400 heuristic) across the phase; per `apply-spec.md` §slicing it needs `size:exception` or a cohesive split at PR time (recorded, not yet sliced). P3 (Phase 5: 5.1-5.4, plus the dated price-series API serving 5.3, which no task bullet records) → commits `3d95243`, `aa0f30f`, `332e6ac`, `9783bb2`, `9f5d128`. P3 authored ~4,880 lines excluding generated artifacts (12,365 raw; the generated `frontend/package-lock.json`, `frontend/openapi.json` and `frontend/src/api/types.ts` account for 7,485 lines) (>400 heuristic) across the phase; per `apply-spec.md` §slicing it needs `size:exception` or a cohesive split at PR time (recorded, not yet sliced). Alert intents are neutral (cross either way), stop-loss/buy (downward), and sell (upward), with distinct messages and no repeated trigger. Legacy intents remain nullable until explicitly mapped during SQLite import.
