@@ -132,4 +132,32 @@ describe('BibliographyWorkspace', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/404/)
   })
+
+  it('omits a non-numeric year instead of sending null', async () => {
+    vi.mocked(bibliographyApi.list).mockResolvedValue([])
+    vi.mocked(bibliographyApi.add).mockResolvedValue(resource)
+
+    render(<BibliographyWorkspace />)
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Security Analysis' } })
+    fireEvent.change(screen.getByLabelText('Author'), { target: { value: 'Benjamin Graham' } })
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: 'abc' } })
+    fireEvent.click(screen.getByRole('button', { name: /add resource/i }))
+
+    await waitFor(() => expect(bibliographyApi.add).toHaveBeenCalled())
+    const [body] = vi.mocked(bibliographyApi.add).mock.calls[0]
+    expect(body).not.toHaveProperty('year')
+  })
+
+  it('shows a required-fields error and sends nothing when title or author is blank', async () => {
+    vi.mocked(bibliographyApi.list).mockResolvedValue([])
+
+    render(<BibliographyWorkspace />)
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: /add resource/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Title and author are required.')
+    expect(bibliographyApi.add).not.toHaveBeenCalled()
+  })
 })

@@ -42,7 +42,8 @@ function toRequestBody(values: BibliographyFormValues): BibliographyCreateBody {
   }
 
   const year = values.year.trim()
-  if (year !== '') body.year = Number.parseInt(year, 10)
+  const parsedYear = Number.parseInt(year, 10)
+  if (year !== '' && Number.isFinite(parsedYear)) body.year = parsedYear
 
   const link = values.link.trim()
   if (link !== '') body.link = link
@@ -69,7 +70,11 @@ export function BibliographyWorkspace() {
   async function handleAdd(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const body = toRequestBody(values)
-    if (body.title === '' || body.author === '') return
+    if (body.title === '' || body.author === '') {
+      setMessage(null)
+      setActionError('Title and author are required.')
+      return
+    }
 
     setActionError(null)
     setMessage(null)
