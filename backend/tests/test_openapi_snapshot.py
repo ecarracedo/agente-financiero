@@ -29,16 +29,26 @@ def test_snapshot_is_present_and_parsable() -> None:
     )
 
 
-def test_snapshot_matches_live_application_surface() -> None:
-    """Fail when the committed snapshot drifts from the live application schema."""
+def test_snapshot_matches_live_application_schema_exactly() -> None:
+    """Fail on any drift from the live schema, including property-level changes.
+
+    A name-only comparison would let a changed property, parameter, response shape
+    or required field pass, and the generated frontend types follow the snapshot.
+    """
     live = create_app().openapi()
     snapshot = load_snapshot()
 
-    assert snapshot["openapi"] == live["openapi"]
-    assert snapshot["info"]["version"] == live["info"]["version"]
-    assert sorted(snapshot["paths"]) == sorted(live["paths"]), (
-        "OpenAPI paths drifted; regenerate frontend/openapi.json"
+    if snapshot == live:
+        return
+
+    drifted_paths = sorted(set(snapshot.get("paths", {})) ^ set(live.get("paths", {})))
+    drifted_schemas = sorted(
+        set(snapshot.get("components", {}).get("schemas", {}))
+        ^ set(live.get("components", {}).get("schemas", {}))
     )
-    assert sorted(snapshot["components"]["schemas"]) == sorted(
-        live["components"]["schemas"]
-    ), "OpenAPI schemas drifted; regenerate frontend/openapi.json"
+    raise AssertionError(
+        "OpenAPI snapshot drifted from the live application; regenerate "
+        f"frontend/openapi.json. Path-only differences: {drifted_paths}. "
+        f"Schema-name differences: {drifted_schemas}. Any other difference is a "
+        "property, parameter, response or required-field change in a shared name."
+    )
