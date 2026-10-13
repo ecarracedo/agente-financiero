@@ -53,6 +53,10 @@ export function AlertsPanel({
     event.preventDefault()
     setSaveError(null)
     setSaved(false)
+    if (targetPrice.trim() === '') {
+      setSaveError('Target price is required.')
+      return
+    }
     setSaving(true)
     try {
       if (scope === 'portfolio') {

@@ -144,4 +144,14 @@ describe('AlertsPanel', () => {
     expect(await screen.findByText(/150\.00 USD/)).toBeInTheDocument()
     expect(screen.queryByText(/total/i)).not.toBeInTheDocument()
   })
+
+  it('shows a message and sends nothing when the target price is empty', async () => {
+    render(<AlertsPanel ticker="MSFT" currency={null} scope="wishlist" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /save alert/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Target price is required.')
+    expect(alertApi.configureWishlist).not.toHaveBeenCalled()
+    expect(screen.queryByText('Alert saved.')).not.toBeInTheDocument()
+  })
 })
