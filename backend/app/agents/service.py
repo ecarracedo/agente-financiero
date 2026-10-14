@@ -1,8 +1,10 @@
 """Orchestrate the read-only financial agent behind its tool allowlist."""
 
 import logging
+import traceback
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Protocol
 
 from backend.app.agents.config import AgentSettings
@@ -51,6 +53,29 @@ class AgentAnswer:
     message: str
 
 
+def _describe_failure(error: Exception) -> str:
+    """Describe a failure by its class and deepest frame, never by its text.
+
+    The exception text comes from a third-party library, so it can carry
+    anything, including a credential. The log keeps the shape of the failure
+    and the caller still receives the same uncertainty answer.
+
+    Args:
+        error: The exception caught while answering.
+
+    Returns:
+        A description such as ``RuntimeError at runtime.py:48 in _load_strands``.
+    """
+    frames = traceback.extract_tb(error.__traceback__)
+    if not frames:
+        return type(error).__name__
+    frame = frames[-1]
+    return (
+        f"{type(error).__name__} at {Path(frame.filename).name}:{frame.lineno} "
+        f"in {frame.name}"
+    )
+
+
 class FinancialAgentService:
     """Answer questions with read-only tools and report uncertainty on failure."""
 
@@ -81,8 +106,7 @@ class FinancialAgentService:
         except Exception as error:
             logger.warning(
                 "the agent runtime failed, so no answer is reported: %s",
-                error,
-                exc_info=True,
+                _describe_failure(error),
             )
             return AgentAnswer(
                 status=ANSWER_STATUS_UNAVAILABLE, message=UNAVAILABLE_MESSAGE
