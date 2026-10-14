@@ -363,3 +363,27 @@ def test_valid_path_and_query_tickers_reach_the_domain_normalized(api_client):
     assert analysis.json()["ticker"] == "AAPL"
     assert history.status_code == 200
     assert len(history.json()) == 1
+
+
+def test_padded_tickers_beyond_the_raw_bound_are_rejected(api_client):
+    """Padding cannot slip a symbol past the declared contract bound.
+
+    The contract bound measures the raw string, so a symbol whose normalized
+    form fits inside the column is still a client error when its unpadded
+    length exceeds the bound, and nothing is persisted.
+    """
+    client, _ = api_client
+    alert = {"target_price": "10", "intent": "BUY"}
+    padded_path = "%20%20%20%20" + "A" * 30 + "%20%20%20%20"
+    padded_query = " " * 4 + "A" * 30 + " " * 4
+
+    path_write = client.put(f"/api/v1/wishlist/{padded_path}/alert", json=alert)
+    path_read = client.get(f"/api/v1/analysis/{padded_path}")
+    query_read = client.get(
+        "/api/v1/transactions", params={"ticker": padded_query, "broker": "Broker A"}
+    )
+
+    assert path_write.status_code == 422
+    assert path_read.status_code == 422
+    assert query_read.status_code == 422
+    assert client.get("/api/v1/wishlist").json() == []
