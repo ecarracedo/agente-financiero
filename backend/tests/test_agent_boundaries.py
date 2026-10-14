@@ -2,6 +2,7 @@
 
 import dataclasses
 import importlib
+import logging
 import sys
 from datetime import datetime
 from decimal import Decimal
@@ -220,6 +221,24 @@ def test_provider_failure_returns_uncertainty_without_inventing_a_price():
 
     assert answer.status == ANSWER_STATUS_UNAVAILABLE
     assert answer.message == UNAVAILABLE_MESSAGE
+
+
+def test_a_provider_failure_leaves_the_cause_in_the_log(caplog):
+    """A swallowed runtime failure still reports its cause, so it is debuggable."""
+    _, portfolio, analytics = build_services()
+    service = build_agent_service(
+        portfolio,
+        analytics,
+        environment=ENVIRONMENT,
+        runtime_factory=lambda tools, system_prompt: FailingRuntime(),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="backend.app.agents.service"):
+        answer = service.ask("what is my portfolio worth?")
+
+    assert answer.status == ANSWER_STATUS_UNAVAILABLE
+    assert answer.message == UNAVAILABLE_MESSAGE
+    assert "provider unavailable" in caplog.text
 
 
 def test_a_mutation_request_changes_no_record_and_grants_no_mutating_tool():

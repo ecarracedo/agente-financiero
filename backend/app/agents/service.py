@@ -1,5 +1,6 @@
 """Orchestrate the read-only financial agent behind its tool allowlist."""
 
+import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -13,6 +14,8 @@ from backend.app.agents.tools import (
 )
 from backend.app.application.analytics import PortfolioAnalyticsUseCases
 from backend.app.application.portfolio import PortfolioUseCases
+
+logger = logging.getLogger(__name__)
 
 ANSWER_STATUS_ANSWERED = "answered"
 ANSWER_STATUS_UNAVAILABLE = "unavailable"
@@ -75,7 +78,12 @@ class FinancialAgentService:
                 self._registry.callables(), READ_ONLY_SYSTEM_PROMPT
             )
             message = runtime.run(question)
-        except Exception:
+        except Exception as error:
+            logger.warning(
+                "the agent runtime failed, so no answer is reported: %s",
+                error,
+                exc_info=True,
+            )
             return AgentAnswer(
                 status=ANSWER_STATUS_UNAVAILABLE, message=UNAVAILABLE_MESSAGE
             )
