@@ -14,6 +14,7 @@ from backend.app.adapters.persistence.models import (
 )
 from backend.app.domain.alerts import AlertIntent, TargetAlertSettings
 from backend.app.domain.portfolio import PortfolioPosition
+from backend.app.domain.tickers import normalize_ticker
 
 
 class SqlAlchemyPortfolioRepository:
@@ -213,8 +214,8 @@ class SqlAlchemyResourceRepository:
         self._session = session
 
     def add_wishlist_item(self, ticker: str) -> WishlistRecord:
-        """Add a normalized ticker to the wishlist."""
-        record = WishlistRecord(ticker=ticker.strip().upper())
+        """Add a validated ticker to the wishlist, rejecting an invalid symbol."""
+        record = WishlistRecord(ticker=normalize_ticker(ticker))
         self._session.add(record)
         self._session.flush()
         return record

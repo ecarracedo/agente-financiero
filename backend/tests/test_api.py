@@ -268,3 +268,98 @@ def test_resource_and_split_endpoints_are_exposed_in_openapi(api_client):
     assert "/api/v1/portfolio/{ticker}/alert" in routes
     assert "/api/v1/valuations" in routes
     assert "/api/v1/splits" in routes
+
+
+def test_analysis_endpoint_rejects_an_invalid_ticker(api_client):
+    """A blank or over-long analysis ticker is a client error, not a server error."""
+    client, _ = api_client
+
+    blank = client.get("/api/v1/analysis/%20")
+    over_long = client.get(f"/api/v1/analysis/{'A' * 33}")
+
+    assert blank.status_code == 422
+    assert over_long.status_code == 422
+
+
+def test_wishlist_write_endpoints_reject_an_invalid_ticker(api_client):
+    """No wishlist path may create a row for a blank or over-long ticker."""
+    client, _ = api_client
+    alert = {"target_price": "10", "intent": "BUY"}
+
+    blank_create = client.post("/api/v1/wishlist", json={"ticker": "   "})
+    blank_alert = client.put("/api/v1/wishlist/%20/alert", json=alert)
+    over_long_alert = client.put(f"/api/v1/wishlist/{'A' * 33}/alert", json=alert)
+
+    assert blank_create.status_code == 422
+    assert blank_alert.status_code == 422
+    assert over_long_alert.status_code == 422
+    assert client.get("/api/v1/wishlist").json() == []
+
+
+def test_wishlist_item_endpoints_reject_an_invalid_ticker(api_client):
+    """Target and removal endpoints validate before reporting a missing item."""
+    client, _ = api_client
+
+    blank_target = client.put(
+        "/api/v1/wishlist/%20/target", json={"target_price": "10"}
+    )
+    over_long_target = client.put(
+        f"/api/v1/wishlist/{'A' * 33}/target", json={"target_price": "10"}
+    )
+    blank_delete = client.delete("/api/v1/wishlist/%20")
+
+    assert blank_target.status_code == 422
+    assert over_long_target.status_code == 422
+    assert blank_delete.status_code == 422
+
+
+def test_alert_check_endpoints_reject_an_invalid_ticker(api_client):
+    """An invalid ticker is a client error, never an unavailable market price."""
+    client, _ = api_client
+
+    portfolio = client.post(
+        "/api/v1/portfolio/%20/alert/check",
+        json={"broker": "Broker A", "category": "Acciones"},
+    )
+    wishlist = client.post("/api/v1/wishlist/%20/alert/check")
+
+    assert portfolio.status_code == 422
+    assert wishlist.status_code == 422
+    assert portfolio.json()["detail"] != "market price unavailable"
+    assert wishlist.json()["detail"] != "market price unavailable"
+
+
+def test_transaction_ticker_inputs_share_the_canonical_rule(api_client):
+    """Body and query tickers report the same canonical rejection."""
+    client, _ = api_client
+
+    blank_body = client.post(
+        "/api/v1/transactions", json=operation("   ", "BUY", 1, 10, 1)
+    )
+    blank_query = client.get(
+        "/api/v1/transactions", params={"ticker": "   ", "broker": "Broker A"}
+    )
+
+    assert blank_body.status_code == 422
+    assert blank_body.json()["detail"] == "ticker is required"
+    assert blank_query.status_code == 422
+    assert blank_query.json()["detail"] == "ticker is required"
+    assert client.get("/api/v1/portfolio").json() == []
+
+
+def test_valid_path_and_query_tickers_reach_the_domain_normalized(api_client):
+    """A valid ticker keeps working and is normalized before use."""
+    client, market_data = api_client
+    market_data.prices["AAPL"] = Decimal("15")
+    market_data.series["AAPL"] = points([Decimal("10"), Decimal("15")])
+    client.post("/api/v1/transactions", json=operation("AAPL", "BUY", 2, 10, 1))
+
+    analysis = client.get("/api/v1/analysis/aapl")
+    history = client.get(
+        "/api/v1/transactions", params={"ticker": " aapl ", "broker": "Broker A"}
+    )
+
+    assert analysis.status_code == 200
+    assert analysis.json()["ticker"] == "AAPL"
+    assert history.status_code == 200
+    assert len(history.json()) == 1

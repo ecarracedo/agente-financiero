@@ -1,8 +1,9 @@
 """Versioned API endpoints for financial-agent use cases."""
 
 from decimal import Decimal
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, HTTPException, Path, Query, Request, status
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.api.schemas import (
@@ -27,13 +28,40 @@ from backend.app.api.schemas import (
     WishlistTargetRequest,
 )
 from backend.app.domain.portfolio import PortfolioPosition
+from backend.app.domain.tickers import MAX_TICKER_LENGTH, normalize_ticker
 
 router = APIRouter(prefix="/api/v1")
+
+TickerPath = Annotated[str, Path(min_length=1, max_length=MAX_TICKER_LENGTH)]
+TickerQuery = Annotated[str, Query(min_length=1, max_length=MAX_TICKER_LENGTH)]
 
 
 def _services(request: Request):
     """Return the configured application services from the ASGI state."""
     return request.app.state.services
+
+
+def _canonical_ticker(raw: str) -> str:
+    """Return the canonical ticker symbol, or reject the request as invalid.
+
+    Every ticker entering this API is normalized and validated here so that no
+    use case, market provider, or repository can receive a symbol the domain
+    would refuse.
+
+    Args:
+        raw: Ticker exactly as supplied by the caller.
+
+    Returns:
+        The canonical ticker symbol.
+
+    Raises:
+        HTTPException: 422 when the symbol is blank or longer than
+            ``MAX_TICKER_LENGTH``.
+    """
+    try:
+        return normalize_ticker(raw)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get(
@@ -72,12 +100,14 @@ def record_transaction(
     tags=["transactions"],
 )
 def list_transactions(
+    ticker: TickerQuery,
     request: Request,
-    ticker: str = Query(min_length=1, max_length=32),
     broker: str = Query(min_length=1, max_length=120),
 ) -> list:
     """Return chronological transaction history for a ticker and broker."""
-    return _services(request).portfolio.list_history(ticker, broker)
+    return _services(request).portfolio.list_history(
+        _canonical_ticker(ticker), broker
+    )
 
 
 @router.delete(
@@ -109,12 +139,14 @@ def value_portfolio(request: Request) -> dict[str, object]:
     tags=["market"],
 )
 def analyze_ticker(
-    ticker: str,
+    ticker: TickerPath,
     request: Request,
     period: str = Query(default="1y", pattern=r"^(1mo|3mo|6mo|1y|2y|5y)$"),
 ):
     """Return market signals and explicit unknown states for unavailable data."""
-    result = _services(request).analytics.analyze_ticker(ticker, period)
+    result = _services(request).analytics.analyze_ticker(
+        _canonical_ticker(ticker), period
+    )
     return result
 
 
@@ -124,13 +156,14 @@ def analyze_ticker(
     tags=["alerts"],
 )
 def configure_portfolio_alert(
-    ticker: str, payload: PortfolioAlertRequest, request: Request
+    ticker: TickerPath, payload: PortfolioAlertRequest, request: Request
 ) -> dict[str, bool]:
     """Configure a target intent on a portfolio holding."""
     services = _services(request)
+    canonical_ticker = _canonical_ticker(ticker)
     try:
         services.alerts.configure_portfolio_alert(
-            ticker,
+            canonical_ticker,
             payload.broker,
             payload.category,
             payload.target_price,
@@ -147,15 +180,16 @@ def configure_portfolio_alert(
     tags=["alerts"],
 )
 def check_portfolio_alert(
-    ticker: str, payload: PositionAlertCheckRequest, request: Request
+    ticker: TickerPath, payload: PositionAlertCheckRequest, request: Request
 ) -> dict[str, object]:
     """Evaluate a stored portfolio alert against the current quote."""
     services = _services(request)
-    current_price = services.analytics.get_current_price(ticker)
+    canonical_ticker = _canonical_ticker(ticker)
+    current_price = services.analytics.get_current_price(canonical_ticker)
     if current_price is None:
         raise HTTPException(status_code=503, detail="market price unavailable")
     event = services.alerts.evaluate_portfolio_alert(
-        ticker, payload.broker, payload.category, current_price
+        canonical_ticker, payload.broker, payload.category, current_price
     )
     return {"current_price": current_price, "event": event}
 
@@ -180,8 +214,9 @@ def add_wishlist_item(
     payload: WishlistCreateRequest, request: Request
 ):
     """Add a ticker to the wishlist."""
+    ticker = _canonical_ticker(payload.ticker)
     try:
-        return _services(request).resources.add_wishlist_item(payload.ticker)
+        return _services(request).resources.add_wishlist_item(ticker)
     except IntegrityError as error:
         raise HTTPException(status_code=409, detail="wishlist item already exists") from error
 
@@ -192,11 +227,11 @@ def add_wishlist_item(
     tags=["wishlist"],
 )
 def update_wishlist_target(
-    ticker: str, payload: WishlistTargetRequest, request: Request
+    ticker: TickerPath, payload: WishlistTargetRequest, request: Request
 ) -> dict[str, bool]:
     """Set or clear a wishlist target price."""
     updated = _services(request).resources.update_wishlist_target(
-        ticker, payload.target_price
+        _canonical_ticker(ticker), payload.target_price
     )
     if not updated:
         raise HTTPException(status_code=404, detail="wishlist item not found")
@@ -208,9 +243,11 @@ def update_wishlist_target(
     response_model=MutationResponse,
     tags=["wishlist"],
 )
-def remove_wishlist_item(ticker: str, request: Request) -> dict[str, bool]:
+def remove_wishlist_item(ticker: TickerPath, request: Request) -> dict[str, bool]:
     """Remove a ticker from the wishlist."""
-    removed = _services(request).resources.remove_wishlist_item(ticker)
+    removed = _services(request).resources.remove_wishlist_item(
+        _canonical_ticker(ticker)
+    )
     if not removed:
         raise HTTPException(status_code=404, detail="wishlist item not found")
     return {"deleted": True}
@@ -222,11 +259,11 @@ def remove_wishlist_item(ticker: str, request: Request) -> dict[str, bool]:
     tags=["alerts"],
 )
 def configure_wishlist_alert(
-    ticker: str, payload: WishlistAlertRequest, request: Request
+    ticker: TickerPath, payload: WishlistAlertRequest, request: Request
 ) -> dict[str, bool]:
     """Configure a target intent, adding the ticker to the wishlist when absent."""
     _services(request).alerts.configure_wishlist_alert(
-        ticker, payload.target_price, payload.intent
+        _canonical_ticker(ticker), payload.target_price, payload.intent
     )
     return {"configured": True}
 
@@ -236,13 +273,14 @@ def configure_wishlist_alert(
     response_model=AlertCheckResponse,
     tags=["alerts"],
 )
-def check_wishlist_alert(ticker: str, request: Request) -> dict[str, object]:
+def check_wishlist_alert(ticker: TickerPath, request: Request) -> dict[str, object]:
     """Evaluate a stored wishlist alert against the current quote."""
     services = _services(request)
-    current_price = services.analytics.get_current_price(ticker)
+    canonical_ticker = _canonical_ticker(ticker)
+    current_price = services.analytics.get_current_price(canonical_ticker)
     if current_price is None:
         raise HTTPException(status_code=503, detail="market price unavailable")
-    event = services.alerts.evaluate_wishlist_alert(ticker, current_price)
+    event = services.alerts.evaluate_wishlist_alert(canonical_ticker, current_price)
     return {"current_price": current_price, "event": event}
 
 

@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 
+import pytest
 from sqlalchemy.orm import sessionmaker
 
 from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
@@ -143,3 +144,24 @@ def test_wishlist_buy_alert_persists_crossing_state(session):
     assert event is not None
     assert event.intent is AlertIntent.BUY
     assert repeated is None
+
+
+@pytest.mark.parametrize(
+    ("ticker", "message"),
+    [
+        ("   ", "ticker is required"),
+        ("A" * 33, "ticker must be at most 32 characters"),
+    ],
+)
+def test_wishlist_alert_rejects_an_invalid_ticker_without_persisting(
+    session, ticker, message
+):
+    """An invalid ticker is refused instead of creating an unusable wishlist row."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    use_cases = alert_use_cases(session)
+
+    with pytest.raises(ValueError, match=message):
+        use_cases.configure_wishlist_alert(ticker, Decimal("500"), AlertIntent.BUY)
+
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        assert unit_of_work.resources.list_wishlist() == []
