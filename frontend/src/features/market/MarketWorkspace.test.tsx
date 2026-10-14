@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MarketWorkspace } from './MarketWorkspace'
 import { marketApi } from './marketApi'
+import { alertApi } from '../alerts/alertApi'
 
 vi.mock('./marketApi', () => ({
   MARKET_PERIODS: ['1mo', '3mo', '6mo', '1y', '2y', '5y'],
@@ -181,5 +182,29 @@ describe('MarketWorkspace', () => {
 
     await waitFor(() => expect(marketApi.getAnalysis).toHaveBeenCalledWith('NVDA', '1y'))
     expect(screen.getByLabelText('Ticker')).toHaveValue('NVDA')
+  })
+
+  it('configures a wishlist alert for a ticker outside the catalog', async () => {
+    render(<MarketWorkspace />)
+
+    await screen.findByTestId('market-chart')
+
+    fireEvent.change(screen.getByLabelText('Search ticker'), { target: { value: 'nvda' } })
+    fireEvent.click(screen.getByRole('button', { name: /load ticker/i }))
+
+    // A ticker outside the portfolio is watched through the wishlist, so the panel
+    // is offered and its save targets the wishlist endpoints.
+    expect(await screen.findByRole('heading', { name: 'Target alert' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Target price'), { target: { value: '500' } })
+    fireEvent.click(screen.getByRole('button', { name: /save alert/i }))
+
+    await waitFor(() =>
+      expect(alertApi.configureWishlist).toHaveBeenCalledWith('NVDA', {
+        target_price: '500',
+        intent: 'NEUTRAL',
+      }),
+    )
+    expect(await screen.findByText('Alert saved.')).toBeInTheDocument()
   })
 })
