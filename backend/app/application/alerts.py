@@ -69,11 +69,20 @@ class TargetAlertUseCases:
     def configure_wishlist_alert(
         self, ticker: str, target_price: Decimal, intent: AlertIntent
     ) -> None:
-        """Configure a target alert for an existing wishlist item."""
+        """Configure a target alert, adding the ticker to the wishlist when absent.
+
+        An alert means "tell me when this asset reaches a price", so a ticker that is
+        in neither the portfolio nor the wishlist is added to the wishlist first:
+        otherwise nothing would ever evaluate it.
+        """
         settings = TargetAlertSettings(target_price, intent)
         with self._unit_of_work_factory() as unit_of_work:
             if not unit_of_work.resources.set_wishlist_alert(ticker, settings):
-                raise ValueError("wishlist item does not exist")
+                unit_of_work.resources.add_wishlist_item(ticker)
+                if not unit_of_work.resources.set_wishlist_alert(ticker, settings):
+                    raise RuntimeError(
+                        "wishlist entry was added but its alert could not be set"
+                    )
             unit_of_work.commit()
 
     def evaluate_wishlist_alert(

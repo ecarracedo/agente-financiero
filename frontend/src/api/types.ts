@@ -222,7 +222,7 @@ export interface paths {
         get?: never;
         /**
          * Configure Wishlist Alert
-         * @description Configure a target intent on a wishlist entry.
+         * @description Configure a target intent, adding the ticker to the wishlist when absent.
          */
         put: operations["configure_wishlist_alert_api_v1_wishlist__ticker__alert_put"];
         post?: never;

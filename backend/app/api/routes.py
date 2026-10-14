@@ -224,13 +224,10 @@ def remove_wishlist_item(ticker: str, request: Request) -> dict[str, bool]:
 def configure_wishlist_alert(
     ticker: str, payload: WishlistAlertRequest, request: Request
 ) -> dict[str, bool]:
-    """Configure a target intent on a wishlist entry."""
-    try:
-        _services(request).alerts.configure_wishlist_alert(
-            ticker, payload.target_price, payload.intent
-        )
-    except ValueError as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+    """Configure a target intent, adding the ticker to the wishlist when absent."""
+    _services(request).alerts.configure_wishlist_alert(
+        ticker, payload.target_price, payload.intent
+    )
     return {"configured": True}
 
 

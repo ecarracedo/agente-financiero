@@ -222,6 +222,22 @@ def test_target_alert_endpoints_configure_and_emit_once(api_client):
     assert repeated.json()["event"] is None
 
 
+def test_wishlist_alert_endpoint_adds_a_missing_wishlist_entry(api_client):
+    """Configuring an alert for a ticker outside the wishlist adds it, then configures it."""
+    client, _ = api_client
+
+    response = client.put(
+        "/api/v1/wishlist/NVDA/alert",
+        json={"target_price": "500", "intent": "BUY"},
+    )
+    wishlist = client.get("/api/v1/wishlist").json()
+
+    assert response.status_code == 200
+    assert response.json() == {"configured": True}
+    assert [item["ticker"] for item in wishlist] == ["NVDA"]
+    assert wishlist[0]["target_price"] == "500"
+
+
 def test_resource_and_split_endpoints_are_exposed_in_openapi(api_client):
     """Resource CRUD and split routes appear in OpenAPI and execute successfully."""
     client, _ = api_client

@@ -89,6 +89,43 @@ def test_unconfigured_alert_does_not_emit_event(session):
     ) is None
 
 
+def test_wishlist_alert_adds_a_ticker_absent_from_the_wishlist(session):
+    """An alert on an unknown ticker adds it to the wishlist and stores the alert."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    use_cases = alert_use_cases(session)
+
+    use_cases.configure_wishlist_alert("NVDA", Decimal("500"), AlertIntent.BUY)
+
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        tickers = [record.ticker for record in unit_of_work.resources.list_wishlist()]
+        settings = unit_of_work.resources.get_wishlist_alert("NVDA")
+
+    assert tickers == ["NVDA"]
+    assert settings is not None
+    assert settings.target_price == Decimal("500")
+    assert settings.intent is AlertIntent.BUY
+
+
+def test_wishlist_alert_updates_an_existing_entry_without_duplicating_it(session):
+    """An alert on an existing wishlist entry updates it in place."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        unit_of_work.resources.add_wishlist_item("AAPL")
+        unit_of_work.commit()
+
+    use_cases = alert_use_cases(session)
+    use_cases.configure_wishlist_alert("AAPL", Decimal("10"), AlertIntent.STOP_LOSS)
+
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        tickers = [record.ticker for record in unit_of_work.resources.list_wishlist()]
+        settings = unit_of_work.resources.get_wishlist_alert("AAPL")
+
+    assert tickers == ["AAPL"]
+    assert settings is not None
+    assert settings.target_price == Decimal("10")
+    assert settings.intent is AlertIntent.STOP_LOSS
+
+
 def test_wishlist_buy_alert_persists_crossing_state(session):
     """A wishlist alert stores its intent and suppresses repeated crossings."""
     session_factory = sessionmaker(bind=session.get_bind())
