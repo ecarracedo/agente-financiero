@@ -5,6 +5,7 @@ from decimal import Decimal
 from backend.app.application.ports import MarketDataProviderPort, PortfolioReadRepositoryPort
 from backend.app.domain.alerts import AlertIntent, TargetAlertEvent, evaluate_target_alert
 from backend.app.domain.analysis import MarketAnalysis, analyze_market
+from backend.app.domain.tickers import normalize_ticker
 from backend.app.domain.valuation import CurrencyValuation, value_portfolio
 
 
@@ -32,11 +33,11 @@ class PortfolioAnalyticsUseCases:
 
     def get_current_price(self, ticker: str) -> Decimal | None:
         """Return the current provider quote for alert evaluation."""
-        return self._market_data.get_current_price(ticker.strip().upper())
+        return self._market_data.get_current_price(normalize_ticker(ticker))
 
     def analyze_ticker(self, ticker: str, period: str = "1y") -> MarketAnalysis:
         """Combine one current quote and the dated provider series."""
-        normalized_ticker = ticker.strip().upper()
+        normalized_ticker = normalize_ticker(ticker)
         current_price = self._market_data.get_current_price(normalized_ticker)
         series = self._market_data.get_historical_series(normalized_ticker, period)
         return analyze_market(normalized_ticker, current_price, series)

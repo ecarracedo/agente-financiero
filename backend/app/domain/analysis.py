@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
+from backend.app.domain.tickers import normalize_ticker
+
 
 @dataclass(frozen=True)
 class PricePoint:
@@ -51,11 +53,10 @@ def analyze_market(
         A typed analysis result with optional metrics and a dated series.
 
     Raises:
-        ValueError: If the ticker is empty or the current price is not positive.
+        ValueError: If the ticker is missing or too long, or the current price
+            is not positive.
     """
-    normalized_ticker = ticker.strip().upper()
-    if not normalized_ticker:
-        raise ValueError("ticker is required")
+    normalized_ticker = normalize_ticker(ticker)
     if current_price is None:
         return MarketAnalysis(
             ticker=normalized_ticker,

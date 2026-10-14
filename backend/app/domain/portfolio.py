@@ -4,6 +4,8 @@ from dataclasses import dataclass, replace
 from decimal import Decimal
 import re
 
+from backend.app.domain.tickers import normalize_ticker
+
 _CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
 
 
@@ -28,9 +30,9 @@ class PortfolioPosition:
 
     def __post_init__(self) -> None:
         """Normalize identifiers and validate the position's monetary state."""
-        normalized_ticker = self.ticker.strip().upper()
+        normalized_ticker = normalize_ticker(self.ticker)
         normalized_broker = self.broker.strip()
-        if not normalized_ticker or not normalized_broker or not self.category.strip():
+        if not normalized_broker or not self.category.strip():
             raise ValueError("ticker, broker, and category are required")
         if self.quantity <= 0:
             raise ValueError("position quantity must be positive")
@@ -74,7 +76,7 @@ def apply_purchase(
         ValueError: If values are invalid or the purchase conflicts with the
             existing position's identity or currency.
     """
-    normalized_ticker = ticker.strip().upper()
+    normalized_ticker = normalize_ticker(ticker)
     normalized_broker = broker.strip()
     normalized_currency = _normalize_currency(currency)
     if quantity <= 0 or unit_price <= 0:
