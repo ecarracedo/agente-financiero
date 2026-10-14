@@ -34,8 +34,8 @@
 
 ## Phase 6: Agente y despliegue
 
-- [ ] 6.1 Integrar Strands en `backend/app/agents/` con allowlist read-only; probar consultas y que solicitudes de mutación no cambien datos.
-- [ ] 6.2 Crear Dockerfiles y `compose.yaml`, `compose.dev.yaml`, `.env.example`; probar hot reload, healthchecks, volumen persistente y DB no expuesta.
+- [x] 6.1 Integrar Strands en `backend/app/agents/` con allowlist read-only; probar consultas y que solicitudes de mutación no cambien datos.
+- [x] 6.2 Crear Dockerfiles y `compose.yaml`, `compose.dev.yaml`, `.env.example`; probar hot reload, healthchecks, volumen persistente y DB no expuesta.
 - [ ] 6.3 Validar despliegue Coolify y flujos E2E con Playwright contra Compose; probar reinicio, errores de dependencia y recorrido principal.
 
 ## Phase 7: Corte y limpieza
