@@ -1,0 +1,32 @@
+# Keep secrets, local data, test evidence and version control state out of every
+# image. Docker sends this whole context to the daemon before building, so an
+# entry missing here is a file shipped inside an image.
+#
+# Docker matches each pattern against the path relative to the context root, so
+# a bare directory name only excludes that name at the root: `node_modules/`
+# does not exclude `frontend/node_modules/`. Nested paths therefore use the
+# `**/` prefix, which matches at any depth.
+.git
+.github
+.atl
+**/.env
+**/.env.*
+finance.db
+finance.db-journal
+**/*.sqlite3
+**/*.xlsx
+**/*.csv
+verify/
+odd/
+openspec/
+docs/
+backend/tests/
+**/node_modules/
+**/dist/
+**/coverage/
+**/__pycache__/
+**/*.py[cod]
+.venv/
+venv/
+Dockerfile*
+compose*.yaml

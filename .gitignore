@@ -53,6 +53,9 @@ frontend/coverage/
 frontend/.env
 *.tsbuildinfo
 
+# Docker / Compose
+compose.override.yaml
+
 # IDEs
 .vscode/
 .idea/
