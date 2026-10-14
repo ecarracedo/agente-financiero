@@ -75,6 +75,8 @@ Development layers an override over the same base file. It reloads the backend f
 docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
 
+- The dev frontend runs `npm ci` before Vite serves anything, so the page answers a few seconds after the containers report running. The override resets the image healthcheck, which probes the Nginx port that the dev server does not use.
+
 The agent is not deployed to AWS. `strands-agents` is a library dependency, and its model and region (`AGENT_MODEL_ID`, `AWS_REGION`) are read from the environment whenever an agent route exposes it; no Compose service consumes them yet.
 
 ### Data Migration
@@ -156,6 +158,8 @@ El desarrollo superpone un override sobre el mismo archivo base. Recarga el back
 ```bash
 docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
+
+- El frontend de desarrollo corre `npm ci` antes de que Vite sirva nada, así que la página responde unos segundos después de que los contenedores reporten estar en marcha. El override anula el healthcheck de la imagen, que apunta al puerto de Nginx que el servidor de desarrollo no usa.
 
 El agente no se despliega en AWS. `strands-agents` es una dependencia de librería, y su modelo y región (`AGENT_MODEL_ID`, `AWS_REGION`) se leen del entorno cuando alguna ruta exponga el agente; ningún servicio de Compose los consume todavía.
 

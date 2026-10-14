@@ -13,6 +13,7 @@ Docker daemon, so they run in CI on every push like the rest of the suite.
 from __future__ import annotations
 
 import re
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -95,6 +96,15 @@ def command_text(service: dict[str, Any]) -> str:
     return str(command)
 
 
+def command_tokens(service: dict[str, Any]) -> list[str]:
+    """Split a service command into argv tokens.
+
+    A substring check cannot tell `--reload` from `--reload-dir`, so a flag that
+    governs behaviour is asserted as its own token instead.
+    """
+    return shlex.split(command_text(service))
+
+
 def declared_variables() -> set[str]:
     """Return the variable names declared by the example environment file."""
     names: set[str] = set()
@@ -128,8 +138,9 @@ def test_backend_migrates_before_serving_and_waits_for_a_healthy_database():
     image_entrypoint = BACKEND_DOCKERFILE_PATH.read_text(encoding="utf-8")
     assert appears_before(image_entrypoint, "alembic", "uvicorn")
 
-    dev_command = command_text(services(DEV_COMPOSE_PATH)["backend"])
-    assert "--reload" in dev_command
+    dev_backend = services(DEV_COMPOSE_PATH)["backend"]
+    dev_command = command_text(dev_backend)
+    assert "--reload" in command_tokens(dev_backend)
     assert appears_before(dev_command, "alembic", "uvicorn")
 
 
@@ -204,7 +215,7 @@ def test_dev_override_adds_hot_reload_over_isolated_data():
     """The override reloads both applications and keeps its own database volume."""
     dev = services(DEV_COMPOSE_PATH)
 
-    assert "--reload" in command_text(dev["backend"])
+    assert "--reload" in command_tokens(dev["backend"])
     assert "./backend:/app/backend" in dev["backend"]["volumes"]
     frontend_command = command_text(dev["frontend"])
     assert "npm run dev" in frontend_command
