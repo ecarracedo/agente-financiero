@@ -189,26 +189,74 @@ def nginx_locations() -> dict[str, str]:
     }
 
 
+def proxied_locations() -> dict[str, str]:
+    """Map the Nginx locations that forward to the backend to their body."""
+    return {
+        header: body
+        for header, body in nginx_locations().items()
+        if "proxy_pass" in body
+    }
+
+
+def proxied_matcher() -> re.Pattern[str]:
+    """Compile the single regex location that forwards requests to the backend.
+
+    The proxied endpoints share one block so their headers cannot drift apart,
+    so more than one matcher means the consolidation was undone.
+    """
+    headers = [
+        header
+        for header, body in proxied_locations().items()
+        if header.startswith("~ ") and "proxy_pass" in body
+    ]
+
+    assert len(headers) == 1, f"expected one proxied regex location, got {headers}"
+    return re.compile(headers[0].removeprefix("~ ").strip())
+
+
 def test_nginx_serves_client_routes_and_forwards_the_api_unchanged():
     """Nginx falls back to the SPA entry point and proxies `/api` verbatim."""
     locations = nginx_locations()
 
     assert "try_files $uri $uri/ /index.html" in locations["/"]
-    assert "proxy_pass http://backend:8000;" in locations["/api/"]
-    # No path suffix on the target, so `/api/v1/...` is not duplicated.
-    assert "proxy_pass http://backend:8000/api" not in "".join(locations.values())
+
+    matcher = proxied_matcher()
+    assert matcher.match("/api/v1/portfolio")
+    # The target carries no path suffix, so `/api/v1/...` is not duplicated.
+    for body in proxied_locations().values():
+        assert "proxy_pass http://$backend_upstream;" in body
 
 
 def test_nginx_proxies_health_and_readiness_instead_of_serving_the_spa():
     """A probe on the public origin reports the database, not the SPA."""
-    proxied = [
-        header
-        for header, body in nginx_locations().items()
-        if "proxy_pass http://backend:8000;" in body
-    ]
+    matcher = proxied_matcher()
 
-    assert any("/api/" in header for header in proxied)
-    assert any("health" in header and "ready" in header for header in proxied)
+    assert matcher.match("/health")
+    assert matcher.match("/ready")
+    # Every client-side route still falls through to the SPA entry point.
+    assert not matcher.match("/portfolio")
+    assert not matcher.match("/healthz")
+
+
+def test_nginx_keeps_near_miss_paths_on_the_spa_fallback():
+    """Paths that only resemble a proxied one stay on the SPA, not the backend."""
+    matcher = proxied_matcher()
+
+    for path in ("/apix", "/healthy", "/readiness", "/"):
+        assert not matcher.match(path)
+
+
+def test_nginx_re_resolves_the_backend_instead_of_caching_it_at_startup():
+    """A backend recreated with a new address stays reachable without a restart."""
+    configuration = NGINX_CONFIG_PATH.read_text(encoding="utf-8")
+
+    # Docker's embedded DNS, so the name resolves through the container network.
+    assert "resolver 127.0.0.11" in configuration
+    # The upstream is a variable, because a literal name would be resolved once
+    # at startup and then cached for the lifetime of this container.
+    assert "set $backend_upstream backend:8000;" in configuration
+    assert "proxy_pass http://$backend_upstream;" in configuration
+    assert "proxy_pass http://backend:8000;" not in configuration
 
 
 def test_dev_override_adds_hot_reload_over_isolated_data():
