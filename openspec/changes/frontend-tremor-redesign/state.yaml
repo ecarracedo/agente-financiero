@@ -1,3 +1,8 @@
+# State: Frontend Tremor Redesign
+
+## Base note
+The source of truth for the `financial-web-frontend` capability is now `openspec/specs/financial-web-frontend/spec.md` (synced on 2026-10-15 from the archived `financial-agent-modernization` change). This delta applies against that source of truth; the earlier note that no main spec existed was obsoleted by archiving that change.
+
 change: frontend-tremor-redesign
 schema: spec-driven
 created: 2026-10-15
@@ -32,14 +37,19 @@ decisions:
     decision: >-
       MSW at the network boundary, shared by the dev demo mode (setupWorker)
       and the tests (setupServer).
+    confirmed_by_user: true
+    confirmed_on: 2026-10-15
 
 notes:
-  - Artifact store mode is file-based (openspec), matching the existing
-    financial-agent-modernization change; no Engram-only artifacts.
   - >-
-    The financial-web-frontend capability has no file in openspec/specs/ yet:
-    its text still lives as a delta inside the un-archived
-    financial-agent-modernization change. Archive that change before this one.
+    Obsidian Capital design system exists in Stitch (project
+    11316378228190616070), but the design is still finalising; re-align
+    Tailwind tokens and the first rendered screens once the exported assets
+    and final screen set are stable.
   - >-
-    SPA routes must not collide with nginx location ~ ^/(api/|health$|ready$)
-    (frontend/nginx.conf:29).
+    The tab shell (mount-once-then-hide) is the transitional surface; no global
+    store. Only the surrounding chrome moves to Tremor; MarketChart keeps
+    Recharts.
+  - >-
+    The OpenAPI snapshot (frontend/openapi.json) drives generated types and is
+    checked in CI. Any API surface change must regenerate it.

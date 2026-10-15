@@ -1,0 +1,43 @@
+change: deployment-hardening-and-cutover
+schema: spec-driven
+created: 2026-10-15
+status: in-progress
+artifact_store: openspec
+
+phases:
+  propose: complete
+  spec: complete
+  design: complete
+  tasks: complete
+  apply: pending
+  verify: pending
+  archive: pending
+
+origin:
+  description: >-
+    Receives the work left pending when financial-agent-modernization was
+    archived, plus the review findings deferred to this scope.
+  inherited_tasks:
+    - 6.3 Validate the Coolify deployment and Playwright E2E flows against Compose
+    - 7.1 Update README.md and dependency manifests; document setup, variables, migration, rollback and operation
+    - 7.2 Run the parity gate, backup, write freeze, reconciliation and restore before the cutover
+    - 7.3 Retire main.py, src/ui/, Peewee and the SQLite runtime after the gate is approved
+
+decisions:
+  - id: single-change
+    decision: >-
+      One change carrying both the deployment validation/hardening work and the
+      legacy cutover, as two ordered phases, rather than two separate changes.
+    confirmed_by_user: true
+    confirmed_on: 2026-10-15
+
+notes:
+  - >-
+    The capability text for containerized-deployment, financial-domain-api,
+    financial-web-frontend, postgres-data-migration and read-only-financial-agent
+    became the source of truth in openspec/specs/ when
+    financial-agent-modernization was archived on 2026-10-15. The specs here are
+    deltas against those files.
+  - >-
+    This change owns the destructive retirement (task 7.3). Its gate task must be
+    approved before the retirement task starts, per rules.archive in config.yaml.
