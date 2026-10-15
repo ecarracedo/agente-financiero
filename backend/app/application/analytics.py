@@ -8,6 +8,11 @@ from backend.app.domain.analysis import MarketAnalysis, analyze_market
 from backend.app.domain.tickers import normalize_ticker
 from backend.app.domain.valuation import CurrencyValuation, value_portfolio
 
+# The period the analysis uses whenever a caller does not ask for one. The use
+# cases and the agent tools read it from here so they cannot drift apart. The
+# HTTP API declares its own default beside the pattern that validates it.
+DEFAULT_ANALYSIS_PERIOD: str = "1y"
+
 
 class PortfolioAnalyticsUseCases:
     """Coordinate portfolio reads with market data and pure domain analysis."""
@@ -35,7 +40,9 @@ class PortfolioAnalyticsUseCases:
         """Return the current provider quote for alert evaluation."""
         return self._market_data.get_current_price(normalize_ticker(ticker))
 
-    def analyze_ticker(self, ticker: str, period: str = "1y") -> MarketAnalysis:
+    def analyze_ticker(
+        self, ticker: str, period: str = DEFAULT_ANALYSIS_PERIOD
+    ) -> MarketAnalysis:
         """Combine one current quote and the dated provider series."""
         normalized_ticker = normalize_ticker(ticker)
         current_price = self._market_data.get_current_price(normalized_ticker)

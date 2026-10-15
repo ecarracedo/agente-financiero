@@ -9,7 +9,10 @@ from collections.abc import Callable
 from decimal import Decimal
 from typing import Any
 
-from backend.app.application.analytics import PortfolioAnalyticsUseCases
+from backend.app.application.analytics import (
+    DEFAULT_ANALYSIS_PERIOD,
+    PortfolioAnalyticsUseCases,
+)
 from backend.app.application.portfolio import PortfolioUseCases
 
 READ_ONLY_TOOL_NAMES: tuple[str, ...] = (
@@ -73,7 +76,9 @@ class FinancialReadTools:
             ]
         }
 
-    def read_market_analysis(self, ticker: str, period: str = "1y") -> dict[str, Any]:
+    def read_market_analysis(
+        self, ticker: str, period: str = DEFAULT_ANALYSIS_PERIOD
+    ) -> dict[str, Any]:
         """Return one ticker's analysis, reporting missing prices as absent."""
         analysis = self._analytics.analyze_ticker(ticker, period)
         return {

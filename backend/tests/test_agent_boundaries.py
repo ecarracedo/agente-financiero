@@ -8,12 +8,10 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from backend.app.adapters.persistence.models import Base
-from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
 from backend.app.agents.config import AgentConfigurationError, AgentSettings
 from backend.app.agents.service import (
     ANSWER_STATUS_ANSWERED,
@@ -29,25 +27,12 @@ from backend.app.agents.tools import (
     ToolNotPermittedError,
     build_tool_registry,
 )
-from backend.app.application.analytics import PortfolioAnalyticsUseCases
-from backend.app.application.portfolio import PortfolioUseCases
+from backend.tests.agent_support import FakeMarketDataProvider, build_read_use_cases
 
 ENVIRONMENT = {
     "AGENT_MODEL_ID": "anthropic.claude-sonnet-4-6",
     "AWS_REGION": "us-east-1",
 }
-
-
-class FakeMarketDataProvider:
-    """Provide a provider that has no market data at all."""
-
-    def get_current_price(self, ticker):
-        """Return no quote."""
-        return None
-
-    def get_historical_series(self, ticker, period):
-        """Return no dated points."""
-        return ()
 
 
 class StubRuntime:
@@ -71,24 +56,8 @@ class FailingRuntime:
 
 
 def build_services():
-    """Build the real read-only use cases over an isolated in-memory database."""
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine)
-
-    def unit_of_work_factory():
-        """Create a unit of work bound to the isolated engine."""
-        return SqlAlchemyPortfolioUnitOfWork(sessionmaker(bind=engine))
-
-    portfolio = PortfolioUseCases(unit_of_work_factory)
-    return (
-        engine,
-        portfolio,
-        PortfolioAnalyticsUseCases(portfolio, FakeMarketDataProvider()),
-    )
+    """Build the read use cases over an isolated database with no market data."""
+    return build_read_use_cases(FakeMarketDataProvider())
 
 
 def snapshot_database(engine):

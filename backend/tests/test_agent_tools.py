@@ -5,21 +5,15 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from backend.app.adapters.persistence.models import Base
-from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
 from backend.app.agents.tools import (
     READ_ONLY_TOOL_NAMES,
     FinancialReadTools,
     ToolNotPermittedError,
     build_tool_registry,
 )
-from backend.app.application.analytics import PortfolioAnalyticsUseCases
-from backend.app.application.portfolio import PortfolioUseCases
 from backend.app.domain.analysis import PricePoint
+from backend.tests.agent_support import FakeMarketDataProvider, build_read_use_cases
 
 WRITE_USE_CASE_NAMES = (
     "record_purchase",
@@ -33,45 +27,9 @@ WRITE_USE_CASE_NAMES = (
 )
 
 
-class FakeMarketDataProvider:
-    """Provide deterministic quotes and dated series for agent tool tests."""
-
-    def __init__(self, prices=None, series=None):
-        """Store configured quotes and series keyed by ticker."""
-        self._prices = dict(prices or {})
-        self._series = dict(series or {})
-        self.requested_periods = []
-
-    def get_current_price(self, ticker):
-        """Return a configured quote, or None when the provider has no data."""
-        return self._prices.get(ticker)
-
-    def get_historical_series(self, ticker, period):
-        """Return configured dated points and record the requested period."""
-        self.requested_periods.append(period)
-        return tuple(self._series.get(ticker, ()))
-
-
-def build_use_cases(provider):
-    """Build the real read-only use cases over an isolated in-memory database."""
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine)
-
-    def unit_of_work_factory():
-        """Create a unit of work bound to the isolated engine."""
-        return SqlAlchemyPortfolioUnitOfWork(sessionmaker(bind=engine))
-
-    portfolio = PortfolioUseCases(unit_of_work_factory)
-    return engine, portfolio, PortfolioAnalyticsUseCases(portfolio, provider)
-
-
 def build_tools(provider):
     """Build the financial read tools plus the isolated database engine."""
-    engine, portfolio, analytics = build_use_cases(provider)
+    engine, portfolio, analytics = build_read_use_cases(provider)
     return engine, portfolio, FinancialReadTools(portfolio, analytics)
 
 
