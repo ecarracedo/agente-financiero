@@ -1,0 +1,30 @@
+change: frontend-tremor-redesign
+schema: spec-driven
+created: 2026-10-15
+status: in-progress
+artifact_store: openspec
+
+phases:
+  explore: complete
+  propose: drafted-pending-approval
+  spec: pending
+  design: pending
+  tasks: pending
+  apply: pending
+  verify: pending
+  archive: pending
+
+blocking_decision:
+  - id: tremor-flavor
+    question: >-
+      Which Tremor distribution and which Recharts alignment: Tremor Raw
+      (copy-and-paste) on Tailwind 4 keeping Recharts 3.10 for charts, or the
+      @tremor/react npm package with its own bundled Recharts.
+    status: awaiting-user-confirmation
+
+notes:
+  - Artifact store mode is file-based (openspec), matching the existing
+    financial-agent-modernization change; no Engram-only artifacts.
+  - The financial-web-frontend capability is not yet in openspec/specs/; it
+    currently lives as a delta inside the un-archived
+    financial-agent-modernization change, so archive order matters.
