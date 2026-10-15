@@ -6,25 +6,40 @@ artifact_store: openspec
 
 phases:
   explore: complete
-  propose: drafted-pending-approval
-  spec: pending
-  design: pending
-  tasks: pending
+  propose: approved
+  spec: complete
+  design: complete
+  tasks: complete
   apply: pending
   verify: pending
   archive: pending
 
-blocking_decision:
+decisions:
   - id: tremor-flavor
-    question: >-
-      Which Tremor distribution and which Recharts alignment: Tremor Raw
-      (copy-and-paste) on Tailwind 4 keeping Recharts 3.10 for charts, or the
-      @tremor/react npm package with its own bundled Recharts.
-    status: awaiting-user-confirmation
+    decision: >-
+      Tremor Raw (components vendored into the repository) on Tailwind CSS 4,
+      keeping the single Recharts 3.10 major for charts.
+    confirmed_by_user: true
+    confirmed_on: 2026-10-15
+  - id: routing
+    decision: >-
+      react-router v7 with createBrowserRouter and RouterProvider, using
+      createMemoryRouter in tests.
+    evidence: >-
+      frontend/nginx.conf:46-48 already has try_files $uri $uri/ /index.html,
+      so deep links need no deployment change.
+  - id: test-stubbing
+    decision: >-
+      MSW at the network boundary, shared by the dev demo mode (setupWorker)
+      and the tests (setupServer).
 
 notes:
   - Artifact store mode is file-based (openspec), matching the existing
     financial-agent-modernization change; no Engram-only artifacts.
-  - The financial-web-frontend capability is not yet in openspec/specs/; it
-    currently lives as a delta inside the un-archived
-    financial-agent-modernization change, so archive order matters.
+  - >-
+    The financial-web-frontend capability has no file in openspec/specs/ yet:
+    its text still lives as a delta inside the un-archived
+    financial-agent-modernization change. Archive that change before this one.
+  - >-
+    SPA routes must not collide with nginx location ~ ^/(api/|health$|ready$)
+    (frontend/nginx.conf:29).
