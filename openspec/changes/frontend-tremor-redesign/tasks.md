@@ -4,17 +4,22 @@ Every task is completable in one session and leaves the application runnable. Te
 
 ## Phase 1: Harness first (no visual change)
 
-- [ ] 1.1 Add `msw`; create `src/mocks/fixtures.ts` and `src/mocks/handlers.ts` covering every `/api/v1` route.
+- [x] 1.1 Add `msw`; create `src/mocks/fixtures.ts` and `src/mocks/handlers.ts` covering every `/api/v1` route.
   - RED: a test that renders a workspace with no module mock and fails for lack of data.
-- [ ] 1.2 Extend `tests/setup.ts` with the `setupServer` lifecycle (`listen`, `resetHandlers`, `close`).
-- [ ] 1.3 Add `tests/render.tsx` using `createMemoryRouter`; migrate one workspace test off `vi.mock` as proof.
+  - Evidence: commit `6f310a4`. Handlers cover health, ready, portfolio, valuations, transactions, market, alerts, wishlist, bibliography and split.
+- [x] 1.2 Extend `tests/setup.ts` with the `setupServer` lifecycle (`listen`, `resetHandlers`, `close`).
+  - Evidence: commit `6f310a4`, corrected in `2d3f017` (MSW 3 renamed the option to `onUnhandledFrame`).
+- [x] 1.3 Add `tests/render.tsx` using `createMemoryRouter`; migrate one workspace test off `vi.mock` as proof.
+  - Evidence: commit `6f310a4`. Helper exists; **the workspace migration off `vi.mock` is still pending** (task 1.4).
 - [ ] 1.4 Remove the per-module `vi.mock` calls workspace by workspace; the suite stays green throughout.
 
 ## Phase 2: Toolchain and routing
 
-- [ ] 2.1 Add `tailwindcss` and `@tailwindcss/vite`; create `src/index.css` with `@import "tailwindcss"` and import it from `main.tsx`.
+- [x] 2.1 Add `tailwindcss` and `@tailwindcss/vite`; create `src/index.css` with `@import "tailwindcss"` and import it from `main.tsx`.
   - RED: a test asserting a rendered element carries its Tailwind class.
-- [ ] 2.2 Vendor one Tremor Raw component and verify compatibility (peer React `^18.3` against 19.3) before going further.
+  - Evidence: commits `6f310a4` + `2d3f017`. Build emits a 7.09 kB CSS asset; `tests/tailwind-toolchain.test.ts` compiles the real utilities.
+- [x] 2.2 Vendor one Tremor Raw component and verify compatibility (peer React `^18.3` against 19.3) before going further.
+  - Evidence: commit `2d3f017`. `Card` renders, merges `className` and forwards a ref under React 19.3. Risk closed.
 - [ ] 2.3 Vendor the remaining non-chart Tremor components in use into `src/components/tremor/`.
 - [ ] 2.4 Add `react-router`; create the route tree and the mount-once shell; promote alerts to its own route.
   - RED: a deep-link test (open a workspace URL directly) and an entered-data-survives-navigation test.
