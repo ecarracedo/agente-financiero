@@ -12,6 +12,11 @@ Every task is completable in one session and leaves the application runnable. Te
 - [x] 1.3 Add `tests/render.tsx` using `createMemoryRouter`; migrate one workspace test off `vi.mock` as proof.
   - Evidence: commit `6f310a4`. Helper exists; **the workspace migration off `vi.mock` is still pending** (task 1.4).
 - [ ] 1.4 Remove the per-module `vi.mock` calls workspace by workspace; the suite stays green throughout.
+  - **BLOCKER (found 2026-10-19).** `src/mocks/handlers.ts` registers invented routes, so with `onUnhandledFrame: 'error'` every migrated test would fail. Verified against `frontend/openapi.json`. Fix the handlers before starting this task.
+    - Invented, real route on the right: `/api/v1/market/analysis/:ticker` → `/api/v1/analysis/{ticker}`; `/api/v1/market/portfolio` → `/api/v1/portfolio`; `/api/v1/market/transactions` → `/api/v1/transactions`; `/api/v1/market/wishlist` → `/api/v1/wishlist`; `/api/v1/alerts/portfolio` → `/api/v1/portfolio/{ticker}/alert`; `/api/v1/alerts/wishlist` → `/api/v1/wishlist/{ticker}/alert`; `/api/v1/tools/split` → `/api/v1/splits`; `/api/v1/health` → `/health`; `/api/v1/ready` → `/ready`.
+    - Real routes with no handler: `/api/v1/splits`, `/api/v1/portfolio/{ticker}/alert`, `/api/v1/portfolio/{ticker}/alert/check`, `/api/v1/wishlist/{ticker}/alert`, `/api/v1/wishlist/{ticker}/alert/check`, `/api/v1/analysis/{ticker}`, `/health`, `/ready`.
+    - Path parameter names differ too: `{item_id}` and `{transaction_id}`, not `:id`.
+    - The whole harness (tasks 1.4 and 5.1) depends on this being correct.
 
 ## Phase 2: Toolchain and routing
 
@@ -21,8 +26,11 @@ Every task is completable in one session and leaves the application runnable. Te
 - [x] 2.2 Vendor one Tremor Raw component and verify compatibility (peer React `^18.3` against 19.3) before going further.
   - Evidence: commit `2d3f017`. `Card` renders, merges `className` and forwards a ref under React 19.3. Risk closed.
 - [ ] 2.3 Vendor the remaining non-chart Tremor components in use into `src/components/tremor/`.
-- [ ] 2.4 Add `react-router`; create the route tree and the mount-once shell; promote alerts to its own route.
+- [x] 2.4 Add `react-router`; create the route tree and the mount-once shell; promote alerts to its own route.
   - RED: a deep-link test (open a workspace URL directly) and an entered-data-survives-navigation test.
+  - Evidence: commit `bc56109`. Four route tests. Design D4 deviation: every workspace is mounted up front and hidden when inactive, because the "mount on first visit" bookkeeping forced ref-mutation during render, which React rejects. Accepted trade-off: all seven workspaces fetch at startup.
+  - Debt found: `App.tsx` is now unused in production but its 12 tests still pass, so the suite does not flag it. Delete it in 5.2.
+  - Drift found: `marketApi.getAnalysis` calls `/api/v1/analysis/:ticker` while `src/mocks/handlers.ts` registers `/api/v1/market/analysis/:ticker`. Confirm the real route before the harness replaces `vi.mock` in 1.4.
 
 ## Phase 3: Shared components
 
