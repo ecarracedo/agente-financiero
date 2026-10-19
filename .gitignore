@@ -62,3 +62,6 @@ compose.override.yaml
 .agent/
 .atl/
 verify/
+
+# Tailwind toolchain test probe (transient)
+.tw-probe-*/

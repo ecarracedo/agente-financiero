@@ -14,7 +14,9 @@
     "check:api-drift": "node scripts/check-api-drift.mjs"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.5.0",
     "@tailwindcss/vite": "^4.3.3",
+    "lucide-react": "^1.59.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0",
