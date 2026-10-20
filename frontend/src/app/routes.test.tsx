@@ -13,7 +13,7 @@ import { renderWithRouter } from '../../tests/render'
  */
 describe('workspace routes', () => {
   it('shows the default workspace at the application root', async () => {
-    renderWithRouter(null, { initialEntries: ['/'] })
+    renderWithRouter({ initialEntries: ['/'] })
 
     expect(
       await screen.findByRole('heading', { name: 'Portfolio' }),
@@ -21,7 +21,7 @@ describe('workspace routes', () => {
   })
 
   it('restores a workspace opened by its URL with no manual navigation', async () => {
-    renderWithRouter(null, { initialEntries: ['/transactions'] })
+    renderWithRouter({ initialEntries: ['/transactions'] })
 
     expect(
       await screen.findByRole('heading', { name: 'Transactions' }),
@@ -30,7 +30,7 @@ describe('workspace routes', () => {
 
   it('keeps entered form data when leaving and returning to a workspace', async () => {
     const user = userEvent.setup()
-    renderWithRouter(null, { initialEntries: ['/bibliography'] })
+    renderWithRouter({ initialEntries: ['/bibliography'] })
 
     await screen.findByRole('heading', { name: 'Bibliography' })
 
@@ -46,7 +46,7 @@ describe('workspace routes', () => {
   })
 
   it('reaches alerts without opening the market workspace', async () => {
-    renderWithRouter(null, { initialEntries: ['/alerts'] })
+    renderWithRouter({ initialEntries: ['/alerts'] })
 
     expect(await screen.findByRole('heading', { name: 'Alerts' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Market' })).not.toBeInTheDocument()

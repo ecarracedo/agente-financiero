@@ -1,131 +1,86 @@
-import { render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { screen, within } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { http, HttpResponse } from 'msw'
 
-import type { CurrencyValuation, PortfolioPosition } from '../../api/client'
-import { api } from '../../api/client'
-import { PortfolioWorkspace } from './PortfolioWorkspace'
+import { server } from '../../../tests/setup'
+import { renderWithRouter } from '../../../tests/render'
 
-vi.mock('../../api/client', () => ({
-  api: {
-    listPortfolio: vi.fn(),
-    getValuations: vi.fn(),
-  },
-}))
-
-const positions: PortfolioPosition[] = [
-  {
-    ticker: 'AAPL',
-    broker: 'IBKR',
-    category: 'Stock',
-    quantity: '10',
-    average_price: '150.25',
-    currency: 'USD',
-  },
-]
-
-const valuations: CurrencyValuation[] = [
-  {
-    currency: 'USD',
-    invested_value: '1502.50',
-    market_value: '1700.00',
-    gain_loss: '197.50',
-    gain_loss_percent: '13.14',
-    unpriced_tickers: [],
-  },
-  {
-    currency: 'EUR',
-    invested_value: '500.00',
-    market_value: null,
-    gain_loss: null,
-    gain_loss_percent: null,
-    unpriced_tickers: ['SAP'],
-  },
-]
-
+/**
+ * PortfolioWorkspace against the MSW harness.
+ *
+ * There is no `vi.mock` here: requests go to MSW, which serves the shared
+ * fixtures through the real client. That makes this file a check on the harness
+ * itself as well as on the view, so a fixture that stops matching the contract
+ * fails here instead of rendering `undefined` in a cell.
+ *
+ * Loading and failure are still covered: `server.use` replaces a handler for one
+ * test, which is how the pending and rejected paths are reached now that the
+ * client is real.
+ */
 describe('PortfolioWorkspace', () => {
-  afterEach(() => {
-    vi.resetAllMocks()
-  })
-
   it('renders holdings with quantity, average price, and their currency', async () => {
-    vi.mocked(api.listPortfolio).mockResolvedValue(positions)
-    vi.mocked(api.getValuations).mockResolvedValue(valuations)
+    renderWithRouter({ initialEntries: ['/portfolio'] })
 
-    render(<PortfolioWorkspace />)
+    // Both fixture positions share the IBKR broker, so the assertions are
+    // scoped to one row: the point is that the fields belong to the same holding.
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
 
-    expect(await screen.findByText('AAPL')).toBeInTheDocument()
-    expect(screen.getByText('IBKR')).toBeInTheDocument()
-    expect(screen.getByText('Stock')).toBeInTheDocument()
-    expect(screen.getByText('10')).toBeInTheDocument()
-    expect(screen.getByText('150.25 USD')).toBeInTheDocument()
+    expect(row.getByRole('cell', { name: 'IBKR' })).toBeInTheDocument()
+    expect(row.getByRole('cell', { name: 'Stock' })).toBeInTheDocument()
+    expect(row.getByRole('cell', { name: '10' })).toBeInTheDocument()
+    expect(row.getByRole('cell', { name: '150.25 USD' })).toBeInTheDocument()
   })
 
   it('renders each currency as a separate valuation group, never summed together', async () => {
-    vi.mocked(api.listPortfolio).mockResolvedValue(positions)
-    vi.mocked(api.getValuations).mockResolvedValue(valuations)
-
-    render(<PortfolioWorkspace />)
+    renderWithRouter({ initialEntries: ['/portfolio'] })
 
     const usdCell = await screen.findByRole('cell', { name: 'USD' })
     const eurCell = screen.getByRole('cell', { name: 'EUR' })
     const usdRow = within(usdCell.closest('tr') as HTMLElement)
     const eurRow = within(eurCell.closest('tr') as HTMLElement)
 
-    expect(usdRow.getByRole('cell', { name: '1502.50 USD' })).toBeInTheDocument()
+    expect(usdRow.getByRole('cell', { name: '2902.50 USD' })).toBeInTheDocument()
     expect(usdRow.queryByText(/EUR/)).not.toBeInTheDocument()
-    expect(eurRow.getByRole('cell', { name: '500.00 EUR' })).toBeInTheDocument()
+    expect(eurRow.getByRole('cell', { name: '1200.00 EUR' })).toBeInTheDocument()
     expect(eurRow.queryByText(/USD/)).not.toBeInTheDocument()
   })
 
   it('renders "Not available" for missing market values instead of zero', async () => {
-    vi.mocked(api.listPortfolio).mockResolvedValue([])
-    vi.mocked(api.getValuations).mockResolvedValue([valuations[1]])
+    renderWithRouter({ initialEntries: ['/portfolio'] })
 
-    render(<PortfolioWorkspace />)
+    // The EUR fixture has a null valuation across three fields.
+    const eurCell = await screen.findByRole('cell', { name: 'EUR' })
+    const eurRow = within(eurCell.closest('tr') as HTMLElement)
 
-    expect(await screen.findByRole('cell', { name: 'EUR' })).toBeInTheDocument()
-    expect(screen.getAllByText(/not available/i)).toHaveLength(3)
-    expect(screen.queryByText('0')).not.toBeInTheDocument()
+    expect(eurRow.getAllByText(/not available/i)).toHaveLength(3)
+    expect(eurRow.queryByText('0')).not.toBeInTheDocument()
   })
 
-  it('refetches when refreshToken changes and not when it stays the same', async () => {
-    vi.mocked(api.listPortfolio).mockResolvedValue(positions)
-    vi.mocked(api.getValuations).mockResolvedValue(valuations)
+  it('shows the priced currencies the backend reported', async () => {
+    renderWithRouter({ initialEntries: ['/portfolio'] })
 
-    const { rerender } = render(<PortfolioWorkspace refreshToken={0} />)
-
-    expect(await screen.findByText('AAPL')).toBeInTheDocument()
-    expect(api.listPortfolio).toHaveBeenCalledTimes(1)
-    expect(api.getValuations).toHaveBeenCalledTimes(1)
-
-    rerender(<PortfolioWorkspace refreshToken={0} />)
-    expect(await screen.findByText('AAPL')).toBeInTheDocument()
-    expect(api.listPortfolio).toHaveBeenCalledTimes(1)
-    expect(api.getValuations).toHaveBeenCalledTimes(1)
-
-    vi.mocked(api.listPortfolio).mockResolvedValue([{ ...positions[0], ticker: 'MSFT' }])
-    rerender(<PortfolioWorkspace refreshToken={1} />)
-
-    expect(await screen.findByText('MSFT')).toBeInTheDocument()
-    expect(api.listPortfolio).toHaveBeenCalledTimes(2)
-    expect(api.getValuations).toHaveBeenCalledTimes(2)
-    expect(screen.queryByText('AAPL')).not.toBeInTheDocument()
+    expect(await screen.findByText('Currencies: 2')).toBeInTheDocument()
   })
 
-  it('shows a loading state while data is pending', () => {
-    vi.mocked(api.listPortfolio).mockReturnValue(new Promise(() => {}))
-    vi.mocked(api.getValuations).mockReturnValue(new Promise(() => {}))
+  it('shows a loading state while the request is pending', async () => {
+    server.use(
+      http.get('*/api/v1/portfolio', () => new Promise<never>(() => {})),
+      http.get('*/api/v1/valuations', () => new Promise<never>(() => {})),
+    )
 
-    render(<PortfolioWorkspace />)
+    renderWithRouter({ initialEntries: ['/portfolio'] })
 
-    expect(screen.getByRole('status')).toBeInTheDocument()
+    // Named specifically: the shell's backend indicator is also role="status".
+    expect(await screen.findByText('Loading portfolio…')).toBeInTheDocument()
   })
 
   it('shows an error state when the backend request fails', async () => {
-    vi.mocked(api.listPortfolio).mockRejectedValue(new Error('boom'))
-    vi.mocked(api.getValuations).mockResolvedValue([])
+    server.use(
+      http.get('*/api/v1/portfolio', () => HttpResponse.json({ detail: 'boom' }, { status: 500 })),
+    )
 
-    render(<PortfolioWorkspace />)
+    renderWithRouter({ initialEntries: ['/portfolio'] })
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })

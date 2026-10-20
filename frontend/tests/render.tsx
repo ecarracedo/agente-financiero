@@ -10,11 +10,14 @@ import { appRoutes } from '../src/app/routes'
  * test exercises real navigation and real route wiring instead of hand-mocking
  * the shell. `initialEntries` opens a workspace by URL, which is how the
  * deep-link tests work.
+ *
+ * No element is passed: the shell renders every workspace and hides the inactive
+ * ones, so the route chosen by `initialEntries` decides what is visible. Taking
+ * an element would suggest it selects the view, which it does not.
  */
-export function renderWithRouter(
-  _element: null,
-  { initialEntries = ['/'] }: { initialEntries?: string[] } = {},
-) {
+export function renderWithRouter({
+  initialEntries = ['/'],
+}: { initialEntries?: string[] } = {}) {
   const router = createMemoryRouter(appRoutes, { initialEntries })
   return rtlRender(<RouterProvider router={router} />)
 }

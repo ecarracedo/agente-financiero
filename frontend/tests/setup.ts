@@ -5,7 +5,14 @@ import { setupServer } from 'msw/node'
 
 import { handlers } from '../src/mocks/handlers'
 
-const server = setupServer(...handlers)
+/**
+ * The MSW server the suite runs against.
+ *
+ * Exported so a test can replace a single handler with `server.use(...)` for the
+ * duration of one test, which is how a pending or failing request is reached now
+ * that the views call the real client.
+ */
+export const server = setupServer(...handlers)
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => server.resetHandlers())

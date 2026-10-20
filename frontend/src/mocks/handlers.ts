@@ -1,12 +1,15 @@
 import { http, HttpResponse } from 'msw'
 
+import type { MutationResponse, PortfolioPosition, TransactionSummary } from '../api/client'
+import type { AlertCheck } from '../features/alerts/alertApi'
+import type { BibliographyItem } from '../features/bibliography/bibliographyApi'
+import type { SplitProjection } from '../features/tools/split/splitApi'
+import type { WishlistItem } from '../features/wishlist/wishlistApi'
 import {
-  alertsPortfolio,
-  alertsWishlist,
+  alertCheckClear,
+  alertCheckTriggered,
   analysisAAPL,
   bibliography,
-  marketPortfolio,
-  marketTransactions,
   portfolioItems,
   splitResult,
   transactions,
@@ -15,58 +18,114 @@ import {
   wishlist,
 } from './fixtures'
 
-const BASE = ''
+/**
+ * MSW handlers for every route the frontend consumes.
+ *
+ * The paths mirror `frontend/openapi.json` exactly, including `/health` and
+ * `/ready`, which are served outside the `/api/v1` prefix. Two shapes are not
+ * the obvious ones and are called out at their handler: valuations are a
+ * currency-keyed object, and a wishlist alert check takes no request body.
+ *
+ * `BASE` is a `*` wildcard, so a handler matches the route whatever origin the
+ * client builds. Under test the client resolves an absolute
+ * `http://localhost:8000`, and in demo mode the browser resolves the dev server;
+ * a bare path matches neither.
+ *
+ * `src/mocks/contract.test.ts` reads the OpenAPI document and fails when a path
+ * here stops existing in the contract, so this file cannot drift silently.
+ */
+
+const BASE = '*'
+
+/** Valuations are keyed by currency, not returned as a list. */
+function valuationsByCurrency() {
+  return Object.fromEntries(valuations.map((entry) => [entry.currency, entry]))
+}
 
 export const handlers = [
-  http.get(`${BASE}/api/v1/health`, () => HttpResponse.json({ status: 'ok' })),
-  http.get(`${BASE}/api/v1/ready`, () => HttpResponse.json({ status: 'ready' })),
-  http.get(`${BASE}/api/v1/portfolio`, () => HttpResponse.json(portfolioItems)),
-  http.get(`${BASE}/api/v1/valuations`, () => HttpResponse.json(valuations)),
-  http.get(`${BASE}/api/v1/transactions`, () => HttpResponse.json(transactions)),
+  // Health and readiness answer from the public origin, outside /api/v1.
+  http.get(`${BASE}/health`, () => HttpResponse.json({ status: 'ok' })),
+  http.get(`${BASE}/ready`, () => HttpResponse.json({ status: 'ready' })),
+
+  http.get(`${BASE}/api/v1/portfolio`, () =>
+    HttpResponse.json<PortfolioPosition[]>(portfolioItems),
+  ),
+
+  // The client normalizes this object into an array with Object.values.
+  http.get(`${BASE}/api/v1/valuations`, () => HttpResponse.json(valuationsByCurrency())),
+
+  http.get(`${BASE}/api/v1/transactions`, () =>
+    HttpResponse.json<TransactionSummary[]>(transactions),
+  ),
   http.post(`${BASE}/api/v1/transactions`, async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>
-    return HttpResponse.json({ ...body, id: Date.now() }, { status: 201 })
+    const body = (await request.json()) as TransactionSummary
+    // The contract answers with the resulting position, or null.
+    const position = portfolioItems.find((item) => item.ticker === body.ticker) ?? null
+    return HttpResponse.json<PortfolioPosition | null>(position, { status: 201 })
   }),
-  http.delete(`${BASE}/api/v1/transactions/:id`, () =>
-    HttpResponse.json({ success: true }),
+  http.delete(`${BASE}/api/v1/transactions/:transaction_id`, () =>
+    HttpResponse.json<MutationResponse>({ deleted: true }),
   ),
-  http.get(`${BASE}/api/v1/market/portfolio`, () => HttpResponse.json(marketPortfolio)),
-  http.get(`${BASE}/api/v1/market/transactions`, () =>
-    HttpResponse.json(marketTransactions),
-  ),
-  http.get(`${BASE}/api/v1/market/wishlist`, () => HttpResponse.json(wishlist)),
-  http.get(`${BASE}/api/v1/market/analysis/:ticker`, ({ params }) => {
+
+  http.get(`${BASE}/api/v1/analysis/:ticker`, ({ params }) => {
     const ticker = String(params.ticker)
-    if (ticker === 'AAPL') {
-      return HttpResponse.json(analysisAAPL)
-    }
-    if (ticker === 'ZZZZ') {
-      return HttpResponse.json(unknownAnalysis)
-    }
+    if (ticker === 'ZZZZ') return HttpResponse.json(unknownAnalysis)
     return HttpResponse.json(analysisAAPL)
   }),
-  http.get(`${BASE}/api/v1/alerts/portfolio`, () => HttpResponse.json(alertsPortfolio)),
-  http.get(`${BASE}/api/v1/alerts/wishlist`, () => HttpResponse.json(alertsWishlist)),
-  http.post(`${BASE}/api/v1/alerts/portfolio`, () => HttpResponse.json(alertsPortfolio)),
-  http.post(`${BASE}/api/v1/alerts/wishlist`, () => HttpResponse.json(alertsWishlist)),
-  http.get(`${BASE}/api/v1/wishlist`, () => HttpResponse.json(wishlist)),
+
+  // A portfolio alert is configured per ticker.
+  http.put(`${BASE}/api/v1/portfolio/:ticker/alert`, () =>
+    HttpResponse.json({ configured: true }),
+  ),
+  // The check carries the observed price and the derived event, or null.
+  http.post(`${BASE}/api/v1/portfolio/:ticker/alert/check`, ({ params }) => {
+    const ticker = String(params.ticker)
+    const check: AlertCheck =
+      ticker === 'MSFT' ? alertCheckClear : alertCheckTriggered
+    return HttpResponse.json(check)
+  }),
+
+  http.get(`${BASE}/api/v1/wishlist`, () =>
+    HttpResponse.json<WishlistItem[]>(wishlist),
+  ),
   http.post(`${BASE}/api/v1/wishlist`, async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>
-    return HttpResponse.json({ ...body }, { status: 201 })
+    const body = (await request.json()) as { ticker: string; target_price?: string | null }
+    return HttpResponse.json<WishlistItem>(
+      { ticker: body.ticker, target_price: body.target_price ?? null },
+      { status: 201 },
+    )
   }),
-  http.put(`${BASE}/api/v1/wishlist/:ticker/target`, () =>
-    HttpResponse.json({ success: true }),
-  ),
   http.delete(`${BASE}/api/v1/wishlist/:ticker`, () =>
-    HttpResponse.json({ success: true }),
+    HttpResponse.json<MutationResponse>({ deleted: true }),
   ),
-  http.get(`${BASE}/api/v1/bibliography`, () => HttpResponse.json(bibliography)),
+  http.put(`${BASE}/api/v1/wishlist/:ticker/target`, () =>
+    HttpResponse.json({ updated: true }),
+  ),
+
+  // A wishlist alert is configured per ticker.
+  http.put(`${BASE}/api/v1/wishlist/:ticker/alert`, () =>
+    HttpResponse.json({ configured: true }),
+  ),
+  // This check sends no request body, so there is nothing to read from it.
+  http.post(`${BASE}/api/v1/wishlist/:ticker/alert/check`, () =>
+    HttpResponse.json<AlertCheck>(alertCheckTriggered),
+  ),
+
+  http.get(`${BASE}/api/v1/bibliography`, () =>
+    HttpResponse.json<BibliographyItem[]>(bibliography),
+  ),
   http.post(`${BASE}/api/v1/bibliography`, async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>
-    return HttpResponse.json({ ...body }, { status: 201 })
+    const body = (await request.json()) as Omit<BibliographyItem, 'id'>
+    return HttpResponse.json<BibliographyItem>(
+      { ...body, id: bibliography.length + 1 },
+      { status: 201 },
+    )
   }),
-  http.delete(`${BASE}/api/v1/bibliography/:id`, () =>
-    HttpResponse.json({ success: true }),
+  http.delete(`${BASE}/api/v1/bibliography/:item_id`, () =>
+    HttpResponse.json<MutationResponse>({ deleted: true }),
   ),
-  http.post(`${BASE}/api/v1/tools/split`, () => HttpResponse.json(splitResult)),
+
+  http.post(`${BASE}/api/v1/splits`, () =>
+    HttpResponse.json<SplitProjection>(splitResult),
+  ),
 ]

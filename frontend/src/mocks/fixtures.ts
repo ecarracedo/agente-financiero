@@ -1,7 +1,13 @@
 /**
  * Shared MSW fixtures used by both browser (dev) and node (tests).
+ *
+ * Every shape here mirrors `frontend/openapi.json`. `src/mocks/contract.test.ts`
+ * reads that document and fails when a fixture stops matching its response
+ * schema, so a backend contract change surfaces here instead of as `undefined`
+ * in a view.
  */
 
+/** PortfolioPositionResponse */
 export const portfolioItems = [
   {
     ticker: 'AAPL',
@@ -21,25 +27,33 @@ export const portfolioItems = [
   },
 ]
 
+/**
+ * CurrencyValuationResponse.
+ *
+ * One entry per currency, not per ticker: the backend groups the portfolio by
+ * currency and reports `unpriced_tickers` for the positions it could not value.
+ */
 export const valuations = [
   {
-    ticker: 'AAPL',
-    broker: 'IBKR',
-    valuation: '1900.00',
     currency: 'USD',
-    day_change: '+50.00',
-    day_change_percent: '+2.70',
+    invested_value: '2902.50',
+    market_value: '3400.00',
+    gain_loss: '497.50',
+    gain_loss_percent: '+17.14',
+    unpriced_tickers: [],
   },
   {
-    ticker: 'MSFT',
-    broker: 'IBKR',
-    valuation: '1500.00',
-    currency: 'USD',
-    day_change: '-10.00',
-    day_change_percent: '-0.66',
+    currency: 'EUR',
+    invested_value: '1200.00',
+    // A currency with no priced position reports a null valuation, not zero.
+    market_value: null,
+    gain_loss: null,
+    gain_loss_percent: null,
+    unpriced_tickers: ['SAP'],
   },
 ]
 
+/** TransactionSummaryResponse */
 export const transactions = [
   {
     id: 1,
@@ -65,12 +79,7 @@ export const transactions = [
   },
 ]
 
-export const marketPortfolio = portfolioItems.map((item) => ({
-  ...item,
-}))
-
-export const marketTransactions = transactions.map((t) => ({ ...t }))
-
+/** WishlistItemResponse */
 export const wishlist = [
   {
     ticker: 'NVDA',
@@ -82,6 +91,7 @@ export const wishlist = [
   },
 ]
 
+/** MarketAnalysisResponse, with series points as PricePointResponse. */
 export const analysisAAPL = {
   ticker: 'AAPL',
   status: 'OK' as const,
@@ -99,6 +109,7 @@ export const analysisAAPL = {
   ],
 }
 
+/** MarketAnalysisResponse for a ticker with no current price. */
 export const unknownAnalysis = {
   ticker: 'ZZZZ',
   status: 'UNKNOWN' as const,
@@ -112,41 +123,53 @@ export const unknownAnalysis = {
   series: [],
 }
 
-export const alertsPortfolio = {
-  ticker: 'AAPL',
-  intent: 'NEUTRAL' as const,
-  triggered: false,
-  message: 'Price within target range',
+/**
+ * AlertCheckResponse with a crossing event.
+ *
+ * A check reports the price it observed plus the event the backend derived; it
+ * carries no intent or trigger of its own, because a crossing is never
+ * re-emitted client-side.
+ */
+export const alertCheckTriggered = {
   current_price: '190.00',
-  target_price: '200.00',
+  event: {
+    intent: 'BUY' as const,
+    message: 'Price below target',
+  },
 }
 
-export const alertsWishlist = {
-  ticker: 'NVDA',
-  intent: 'BUY' as const,
-  triggered: true,
-  message: 'Price below target',
-  current_price: '110.00',
-  target_price: '120.00',
+/** AlertCheckResponse with no crossing: the price is known, the event is null. */
+export const alertCheckClear = {
+  current_price: '190.00',
+  event: null,
 }
 
+/** BibliographyItemResponse */
 export const bibliography = [
   {
-    ticker: 'AAPL',
-    source: '10-K',
-    description: 'Annual report',
+    id: 1,
+    title: 'Risk and Return',
+    author: 'Merton Miller',
+    year: 1991,
+    category: 'Paper',
+    link: 'https://example.test/risk-and-return',
+    description: 'Foundational reading on portfolio theory.',
   },
   {
-    ticker: 'MSFT',
-    source: 'Quarterly call',
-    description: 'Q4 earnings',
+    id: 2,
+    title: 'Security Analysis',
+    author: 'Benjamin Graham',
+    // A source with no publication year is stored as null, not as an empty string.
+    year: null,
+    category: 'Book',
+    link: null,
+    description: null,
   },
 ]
 
+/** SplitProjectionResponse. */
 export const splitResult = {
-  pre_split_shares: '100',
-  split_ratio: '2:1',
-  post_split_shares: '200',
-  adjusted_average_price: '75.125',
-  currency: 'USD',
+  quantity: '100',
+  average_price: '150.25',
+  ratio: '2:1',
 }
