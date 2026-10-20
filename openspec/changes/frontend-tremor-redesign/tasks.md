@@ -11,12 +11,12 @@ Every task is completable in one session and leaves the application runnable. Te
   - Evidence: commit `6f310a4`, corrected in `2d3f017` (MSW 3 renamed the option to `onUnhandledFrame`).
 - [x] 1.3 Add `tests/render.tsx` using `createMemoryRouter`; migrate one workspace test off `vi.mock` as proof.
   - Evidence: commit `6f310a4`. Helper exists; **the workspace migration off `vi.mock` is still pending** (task 1.4).
-- [ ] 1.4 Remove the per-module `vi.mock` calls workspace by workspace; the suite stays green throughout.
-  - **BLOCKER (found 2026-10-19).** `src/mocks/handlers.ts` registers invented routes, so with `onUnhandledFrame: 'error'` every migrated test would fail. Verified against `frontend/openapi.json`. Fix the handlers before starting this task.
-    - Invented, real route on the right: `/api/v1/market/analysis/:ticker` → `/api/v1/analysis/{ticker}`; `/api/v1/market/portfolio` → `/api/v1/portfolio`; `/api/v1/market/transactions` → `/api/v1/transactions`; `/api/v1/market/wishlist` → `/api/v1/wishlist`; `/api/v1/alerts/portfolio` → `/api/v1/portfolio/{ticker}/alert`; `/api/v1/alerts/wishlist` → `/api/v1/wishlist/{ticker}/alert`; `/api/v1/tools/split` → `/api/v1/splits`; `/api/v1/health` → `/health`; `/api/v1/ready` → `/ready`.
-    - Real routes with no handler: `/api/v1/splits`, `/api/v1/portfolio/{ticker}/alert`, `/api/v1/portfolio/{ticker}/alert/check`, `/api/v1/wishlist/{ticker}/alert`, `/api/v1/wishlist/{ticker}/alert/check`, `/api/v1/analysis/{ticker}`, `/health`, `/ready`.
-    - Path parameter names differ too: `{item_id}` and `{transaction_id}`, not `:id`.
-    - The whole harness (tasks 1.4 and 5.1) depends on this being correct.
+- [x] 1.4 Remove the per-module `vi.mock` calls workspace by workspace; the suite stays green throughout.
+  - Blocker cleared: commit `8a38df6` corrected the harness against `frontend/openapi.json`. The routes and the fixture shapes were both wrong; the frontend client was always correct, so nothing in production was affected.
+  - First workspace migrated: `PortfolioWorkspace.test.tsx` runs on MSW with no `vi.mock` and keeps its six tests. Loading and failure reach the real client through `server.use`, so `tests/setup` now exports the server.
+  - Guard added: `src/mocks/contract.test.ts` reads the contract and fails when a handler registers an unknown path, a consumed route has no handler, or a fixture loses a required field.
+  - Evidence: commit `8a38df6`; `npm test` 121/121.
+  - Remaining: 8 test files still use `vi.mock` — `App.test.tsx` (deleted in 5.2), `MarketWorkspace`, `WishlistWorkspace`, `TransactionsWorkspace`, `BibliographyWorkspace`, `SplitWorkspace`, `AlertsPanel` and `useTransactionHistory`. Each is independent and lands one commit at a time.
 
 ## Phase 2: Toolchain and routing
 
