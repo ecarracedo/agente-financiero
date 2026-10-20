@@ -25,7 +25,11 @@ Every task is completable in one session and leaves the application runnable. Te
   - Evidence: commits `6f310a4` + `2d3f017`. Build emits a 7.09 kB CSS asset; `tests/tailwind-toolchain.test.ts` compiles the real utilities.
 - [x] 2.2 Vendor one Tremor Raw component and verify compatibility (peer React `^18.3` against 19.3) before going further.
   - Evidence: commit `2d3f017`. `Card` renders, merges `className` and forwards a ref under React 19.3. Risk closed.
-- [ ] 2.3 Vendor the remaining non-chart Tremor components in use into `src/components/tremor/`.
+- [x] 2.3 Vendor the Tremor class merge core and the components the workspaces actually consume, into `src/components/tremor/`.
+  - RED: a class conflict must resolve to the caller's utility, not to whichever CSS rule comes later.
+  - Evidence: commit `c1154de`. `cx` replaced with the Tremor Raw contract `twMerge(clsx(...))`; `clsx` and `tailwind-merge` declared as direct dependencies (`clsx` was only reachable transitively through `recharts`). Vendored `Table`, which depends only on `cx`.
+  - **Scope redefined (2026-10-19).** The task said "the remaining non-chart Tremor components"; vendoring them in bulk contradicts D1's own trade-off, "copy only what is used, no speculative imports". Inspected upstream: only `Table` needs `cx` alone. `Button`, `Badge`, `ProgressBar` and `Callout` need `tailwind-variants`; `Dialog`, `Tabs` and `Select` need Radix packages; the button spinner needs `@remixicon/react`. Six runtime dependencies, none installed. Each is copied when a Phase 4 workspace consumes it, and the dependency lands with it.
+  - Deviation from upstream: `TableHeaderCell` defaults `scope` to `col`. Upstream leaves it unset; every table here is a data table, so the explicit scope is stated once in the primitive instead of at five call sites.
 - [x] 2.4 Add `react-router`; create the route tree and the mount-once shell; promote alerts to its own route.
   - RED: a deep-link test (open a workspace URL directly) and an entered-data-survives-navigation test.
   - Evidence: commit `bc56109`. Four route tests. Design D4 deviation: every workspace is mounted up front and hidden when inactive, because the "mount on first visit" bookkeeping forced ref-mutation during render, which React rejects. Accepted trade-off: all seven workspaces fetch at startup.

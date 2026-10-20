@@ -54,11 +54,11 @@ prod   browser ──▶ nginx ──┬──▶ /api | /health | /ready ──
 
 | File | Change |
 |---|---|
-| `frontend/package.json` | Add `tailwindcss`, `@tailwindcss/vite`, `react-router`, `msw`; add the Tremor peer deps actually used |
+| `frontend/package.json` | Add `tailwindcss`, `@tailwindcss/vite`, `react-router`, `msw`; add the Tremor peer deps actually used — so far `clsx` and `tailwind-merge` for `cx`, and one of `tailwind-variants`, the Radix packages or `@remixicon/react` only when a consumed component needs it |
 | `frontend/vite.config.ts` | Register the Tailwind plugin; add the Vitest config for the demo flag |
 | `frontend/src/index.css` | New — `@import "tailwindcss"`, imported from `main.tsx` |
-| `frontend/src/components/tremor/**` | New — vendored Tremor Raw components in use |
-| `frontend/src/app/routes.tsx`, `frontend/src/app/WorkspaceShell.tsx` | New — route tree and mount-once shell |
+| `frontend/src/components/tremor/**` | New — vendored Tremor Raw components in use; `Table` v1.0.0 and `Card` v1.0.0 today, each copied when a workspace consumes it |
+| `frontend/src/app/routes.tsx`, `frontend/src/app/WorkspaceShell.tsx` | New — route tree and the shell |
 | `frontend/src/main.tsx` | Wire `createBrowserRouter` + `RouterProvider` |
 | `frontend/src/App.tsx` | Superseded by the shell; deleted at the end of the migration |
 | `frontend/src/components/{DataTable,FormControls,AsyncStates,CurrencyAmount}.tsx` | Rebuilt on Tremor, with error/description props, `aria-invalid` and `aria-describedby` |
