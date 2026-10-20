@@ -18,7 +18,7 @@ export function TransactionHistoryTable({
   onDelete,
 }: TransactionHistoryTableProps) {
   const columns: Column<TransactionSummary>[] = [
-    { key: 'id', header: 'ID', render: (transaction) => String(transaction.id) },
+    { key: 'id', header: 'ID', align: 'right', render: (transaction) => String(transaction.id) },
     { key: 'ticker', header: 'Ticker', render: (transaction) => transaction.ticker },
     { key: 'broker', header: 'Broker', render: (transaction) => transaction.broker },
     { key: 'category', header: 'Category', render: (transaction) => transaction.category },
@@ -27,10 +27,16 @@ export function TransactionHistoryTable({
       header: 'Operation',
       render: (transaction) => transaction.operation_type,
     },
-    { key: 'quantity', header: 'Quantity', render: (transaction) => transaction.quantity },
+    {
+      key: 'quantity',
+      header: 'Quantity',
+      align: 'right',
+      render: (transaction) => transaction.quantity,
+    },
     {
       key: 'unit_price',
       header: 'Unit price',
+      align: 'right',
       render: (transaction) => (
         <CurrencyAmount amount={transaction.unit_price} currency={transaction.currency} />
       ),
@@ -53,6 +59,7 @@ export function TransactionHistoryTable({
 
   return (
     <DataTable
+      caption="Transaction history"
       columns={columns}
       rows={transactions}
       getRowKey={(transaction) => transaction.id}

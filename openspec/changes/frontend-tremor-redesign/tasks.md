@@ -50,7 +50,14 @@ Every task is completable in one session and leaves the application runnable. Te
   - `EmptyState` takes a required `message`, because the spec asks for a state specific to the view, not one generic string.
   - Not yet consumed: the components land here and the call sites follow in Phase 4. Today the empty state travels as `emptyMessage=` strings through `DataTable` (6 call sites) and the one success message is hardcoded at `AlertsPanel.tsx:127`. Converting those is part of 3.3 and 4.4.
   - Checked and dismissed: `AlertsPanel` uses `role="status"` for its success message, but it never renders a `LoadingState`, so the two never coexist. Not a defect.
-- [ ] 3.3 `DataTable`: caption, numeric alignment, sorting and row actions, on Tremor's Table.
+- [x] 3.3 `DataTable`: caption, numeric alignment, sorting and row actions, on Tremor's Table.
+  - Delivered: rebuilt on the vendored `Table`. `caption` is now **required** and reaches the table's accessible name; `Column<T>` accepts `align` (`'left' | 'right'`), written to `data-align` on both the header and its cells so the alignment lives in the markup and not only in a class; an empty result now renders through `EmptyState`. Evidence: commit `<pending>`; 6 tests, suite 141/141.
+  - `Column.render` is unchanged, so the five consuming tables kept their contract and no rendering logic moved.
+  - **Scope decision:** sorting was dropped from this task. It is not in the spec, and doing it here would move the ordering responsibility out of the caller and require a comparator on `Column<T>` plus changes in all five tables. Revisit when Phase 4 touches the tables.
+  - Alignment applied on the numeric columns: `Quantity`, `Average price`, `ID`, `Unit price` (transactions), `Invested`, `Market value`, `Gain/Loss`, `Gain/Loss %` (valuations), `Target price` (wishlist), `Year` (bibliography). Text columns stay left; `Actions` stays left because a button is not a number.
+  - Row actions needed no new API: `WishlistTable` and `BibliographyTable` already render buttons through `render`, and now inherit the Tremor cell styling.
+  - Bundle cost, first real increase of the change: JS 1010.75 kB → 1041.66 kB (gzip 338.98 → 348.97 kB) from the vendored `Table` arriving in the bundle. CSS 9.54 → 9.57 kB.
+  - Verified independently of the suite: a throwaway probe mounted the real shell and confirmed the caption, the alignment and the empty state all reach the DOM; the workspace tests do not assert table markup, so the suite alone would not have caught a regression here.
 - [ ] 3.4 `CurrencyAmount`: currency plus a sign and a non-colour gain/loss cue.
   - RED: a gain and a loss are distinguishable without colour.
 

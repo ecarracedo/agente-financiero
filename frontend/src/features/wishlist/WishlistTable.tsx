@@ -35,6 +35,7 @@ export function WishlistTable({
     {
       key: 'target',
       header: 'Target price',
+      align: 'right',
       render: (item) =>
         item.target_price === null ? <span>No target</span> : <span>{item.target_price}</span>,
     },
@@ -72,6 +73,7 @@ export function WishlistTable({
 
   return (
     <DataTable
+      caption="Wishlist entries"
       columns={columns}
       rows={items}
       getRowKey={(item) => item.ticker}

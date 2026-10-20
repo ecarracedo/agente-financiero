@@ -11,10 +11,16 @@ const columns: Column<PortfolioPosition>[] = [
   { key: 'ticker', header: 'Ticker', render: (position) => position.ticker },
   { key: 'broker', header: 'Broker', render: (position) => position.broker },
   { key: 'category', header: 'Category', render: (position) => position.category },
-  { key: 'quantity', header: 'Quantity', render: (position) => position.quantity },
+  {
+    key: 'quantity',
+    header: 'Quantity',
+    align: 'right',
+    render: (position) => position.quantity,
+  },
   {
     key: 'average_price',
     header: 'Average price',
+    align: 'right',
     render: (position) => (
       <CurrencyAmount amount={position.average_price} currency={position.currency} />
     ),
@@ -29,6 +35,7 @@ export interface HoldingsTableProps {
 export function HoldingsTable({ positions }: HoldingsTableProps) {
   return (
     <DataTable
+      caption="Holdings"
       columns={columns}
       rows={positions}
       getRowKey={(position, index) =>

@@ -19,6 +19,7 @@ export function BibliographyTable({ items, onDelete }: BibliographyTableProps) {
     {
       key: 'year',
       header: 'Year',
+      align: 'right',
       render: (item) => (item.year === null ? <span>—</span> : <span>{item.year}</span>),
     },
     { key: 'category', header: 'Category', render: (item) => item.category },
@@ -46,6 +47,7 @@ export function BibliographyTable({ items, onDelete }: BibliographyTableProps) {
 
   return (
     <DataTable
+      caption="Bibliography"
       columns={columns}
       rows={items}
       getRowKey={(item) => item.id}

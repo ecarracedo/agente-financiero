@@ -12,6 +12,7 @@ const columns: Column<CurrencyValuation>[] = [
   {
     key: 'invested_value',
     header: 'Invested',
+    align: 'right',
     render: (valuation) => (
       <CurrencyAmount amount={valuation.invested_value} currency={valuation.currency} />
     ),
@@ -19,6 +20,7 @@ const columns: Column<CurrencyValuation>[] = [
   {
     key: 'market_value',
     header: 'Market value',
+    align: 'right',
     render: (valuation) => (
       <CurrencyAmount amount={valuation.market_value} currency={valuation.currency} />
     ),
@@ -26,6 +28,7 @@ const columns: Column<CurrencyValuation>[] = [
   {
     key: 'gain_loss',
     header: 'Gain/Loss',
+    align: 'right',
     render: (valuation) => (
       <CurrencyAmount amount={valuation.gain_loss} currency={valuation.currency} />
     ),
@@ -33,6 +36,7 @@ const columns: Column<CurrencyValuation>[] = [
   {
     key: 'gain_loss_percent',
     header: 'Gain/Loss %',
+    align: 'right',
     render: (valuation) =>
       valuation.gain_loss_percent === null
         ? NOT_AVAILABLE
@@ -54,6 +58,7 @@ export interface ValuationsTableProps {
 export function ValuationsTable({ valuations }: ValuationsTableProps) {
   return (
     <DataTable
+      caption="Valuations by currency"
       columns={columns}
       rows={valuations}
       getRowKey={(valuation) => valuation.currency}
