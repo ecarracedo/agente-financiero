@@ -44,7 +44,12 @@ Every task is completable in one session and leaves the application runnable. Te
   - Structure change: the `<label>` no longer wraps the input. It was wrapping the hint and error spans too, so the error text was absorbed into the field's accessible name ("Quantity Quantity must be a number"). The label is now its own element linked by `htmlFor`, and the messages are siblings. Every existing `getByLabelText` call site still resolves.
   - Numeric input: already satisfied. `TextField` has carried the `inputMode` prop (`'text' | 'decimal' | 'numeric'`) and all seven call sites use it, so a separate `NumberField` would be a second way to do the same thing. No new component added.
   - Constraint found for 4.4: the `error` prop has no consumer yet. `AlertsPanel` validates the target price with a form-level `saveError`, which the spec forbids ("associated with the field that caused it"). Wiring that field is task 4.4, not 3.1.
-- [ ] 3.2 `AsyncStates`: add empty and success components, distinguishable from loading.
+- [x] 3.2 `AsyncStates`: add empty and success components, distinguishable from loading.
+  - Delivered: `EmptyState` and `SuccessState` join the existing `LoadingState` and `ErrorState`. Evidence: commit `<pending>`; 7 tests, suite 135/135.
+  - Role mapping, so a screen reader distinguishes them without relying on wording: loading and success are polite `role="status"` announcements, error is assertive `role="alert"`, and empty carries **no** live role because it is a settled result, not an event.
+  - `EmptyState` takes a required `message`, because the spec asks for a state specific to the view, not one generic string.
+  - Not yet consumed: the components land here and the call sites follow in Phase 4. Today the empty state travels as `emptyMessage=` strings through `DataTable` (6 call sites) and the one success message is hardcoded at `AlertsPanel.tsx:127`. Converting those is part of 3.3 and 4.4.
+  - Checked and dismissed: `AlertsPanel` uses `role="status"` for its success message, but it never renders a `LoadingState`, so the two never coexist. Not a defect.
 - [ ] 3.3 `DataTable`: caption, numeric alignment, sorting and row actions, on Tremor's Table.
 - [ ] 3.4 `CurrencyAmount`: currency plus a sign and a non-colour gain/loss cue.
   - RED: a gain and a loss are distinguishable without colour.
