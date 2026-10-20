@@ -38,8 +38,10 @@ export const valuations = [
     currency: 'USD',
     invested_value: '2902.50',
     market_value: '3400.00',
+    // `format_money` emits a minus for negatives and nothing for positives, so a
+    // gain arrives unsigned. The frontend derives the plus it displays.
     gain_loss: '497.50',
-    gain_loss_percent: '+17.14',
+    gain_loss_percent: '17.14',
     unpriced_tickers: [],
   },
   {

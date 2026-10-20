@@ -30,7 +30,11 @@ const columns: Column<CurrencyValuation>[] = [
     header: 'Gain/Loss',
     align: 'right',
     render: (valuation) => (
-      <CurrencyAmount amount={valuation.gain_loss} currency={valuation.currency} />
+      <CurrencyAmount
+        amount={valuation.gain_loss}
+        currency={valuation.currency}
+        variant="gain-loss"
+      />
     ),
   },
   {
