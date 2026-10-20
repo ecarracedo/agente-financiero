@@ -38,8 +38,12 @@ Every task is completable in one session and leaves the application runnable. Te
 
 ## Phase 3: Shared components
 
-- [ ] 3.1 `FormControls`: add error and description props, `aria-invalid`, `aria-describedby` and a numeric input.
+- [x] 3.1 `FormControls`: add error and description props, `aria-invalid`, `aria-describedby` and a numeric input.
   - RED: an error is associated with its field and announced.
+  - Delivered: `error` marks the field `aria-invalid` and is linked through `aria-describedby`; `description` is linked without marking the field invalid; both link together in reading order. Applied to `TextField`, `TextAreaField` and `SelectField`. Evidence: commit `<pending>`; 7 tests, suite 128/128.
+  - Structure change: the `<label>` no longer wraps the input. It was wrapping the hint and error spans too, so the error text was absorbed into the field's accessible name ("Quantity Quantity must be a number"). The label is now its own element linked by `htmlFor`, and the messages are siblings. Every existing `getByLabelText` call site still resolves.
+  - Numeric input: already satisfied. `TextField` has carried the `inputMode` prop (`'text' | 'decimal' | 'numeric'`) and all seven call sites use it, so a separate `NumberField` would be a second way to do the same thing. No new component added.
+  - Constraint found for 4.4: the `error` prop has no consumer yet. `AlertsPanel` validates the target price with a form-level `saveError`, which the spec forbids ("associated with the field that caused it"). Wiring that field is task 4.4, not 3.1.
 - [ ] 3.2 `AsyncStates`: add empty and success components, distinguishable from loading.
 - [ ] 3.3 `DataTable`: caption, numeric alignment, sorting and row actions, on Tremor's Table.
 - [ ] 3.4 `CurrencyAmount`: currency plus a sign and a non-colour gain/loss cue.
