@@ -74,7 +74,9 @@ Every task is completable in one session and leaves the application runnable. Te
   - RED observed: the new card test failed first because the counts were plain paragraphs (`Currencies: 2`) and no `tremor-id="tremor-raw"` element existed. The summary moved to a `dl` inside a `Card`, so the count assertions read the definition value instead of a concatenated string.
   - Shell styled out of task order: the workspaces were restyled while the header and navigation were still raw HTML, which reads as a broken page rather than a redesign. Kept as its own commit so the workspace commits stay one-per-workspace. Markup and roles are unchanged, so every route test still passes untouched.
   - Still unstyled: the other six workspaces. They share the shell chrome now, so each looks unfinished only inside its own body.
-- [ ] 4.2 Transactions — per-field errors, delete confirmation, no silent filter failure, scoped success
+- [x] 4.2 Transactions — per-field errors, delete confirmation, no silent filter failure, scoped success
+  - Delivered: form and history sit on `Card`s, filters report missing input, deletes confirm (skipped when `confirm` unavailable in tests), 422s show a rejected error with no success message, and a new submission clears stale success. Evidence: commits `869a80b`, `35bf29a`; suite 150/150, lint and `t
+```
 - [ ] 4.3 Market — restyled chrome; target line and transaction markers preserved
 - [ ] 4.4 Alerts — own route, target-price validation on the shared field component
 - [ ] 4.5 Wishlist — remove confirmation
