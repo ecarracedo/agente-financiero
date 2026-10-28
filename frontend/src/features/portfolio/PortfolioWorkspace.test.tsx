@@ -57,10 +57,26 @@ describe('PortfolioWorkspace', () => {
     expect(eurRow.queryByText('0')).not.toBeInTheDocument()
   })
 
-  it('shows the priced currencies the backend reported', async () => {
+  it('renders a gain/loss percentage as the backend sent it, with one percent sign', async () => {
     renderWithRouter({ initialEntries: ['/portfolio'] })
 
-    expect(await screen.findByText('Currencies: 2')).toBeInTheDocument()
+    // `gain_loss_percent` arrives as a bare magnitude ('17.14'), never with a
+    // leading '+', so the cell must not invent one and must not double the '%'.
+    const usdCell = await screen.findByRole('cell', { name: 'USD' })
+    const usdRow = within(usdCell.closest('tr') as HTMLElement)
+
+    expect(usdRow.getByRole('cell', { name: '17.14%' })).toBeInTheDocument()
+  })
+
+  it('shows the counts the backend reported inside a styled card', async () => {
+    const { container } = renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const currencies = await screen.findByText('Currencies')
+    expect(currencies.nextElementSibling).toHaveTextContent('2')
+
+    // Three sections, each on the shared styling system: summary, holdings,
+    // valuations. Unstyled raw HTML would carry no Tremor marker at all.
+    expect(container.querySelectorAll('[tremor-id="tremor-raw"]').length).toBeGreaterThanOrEqual(3)
   })
 
   it('shows a loading state while the request is pending', async () => {
