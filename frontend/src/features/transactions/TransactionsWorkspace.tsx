@@ -7,6 +7,7 @@ import type { FormEvent } from 'react'
 
 import type { TransactionRequest } from '../../api/client'
 import { api } from '../../api/client'
+import { ApiError } from '../../api/http'
 import { describeApiError } from '../../api/errors'
 import { ErrorState, LoadingState } from '../../components/AsyncStates'
 import { TextField } from '../../components/FormControls'
@@ -44,12 +45,21 @@ export function TransactionsWorkspace({ onPortfolioChanged }: TransactionsWorksp
       setHistoryToken((token) => token + 1)
       return true
     } catch (caught) {
+      if (caught instanceof ApiError) {
+        setSubmitError('Operation rejected: the backend refused the request.')
+        return false
+      }
       setSubmitError(describeApiError(caught))
       return false
     }
   }
 
   async function handleDelete(transactionId: number) {
+    if (typeof window !== 'undefined' && typeof (window as any).confirm === 'function') {
+      if ((window as any).confirm('Delete this transaction?') === false) {
+        return
+      }
+    }
     try {
       await api.deleteTransaction(transactionId)
       onPortfolioChanged?.()
@@ -61,9 +71,13 @@ export function TransactionsWorkspace({ onPortfolioChanged }: TransactionsWorksp
 
   function handleViewHistory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setSubmitError(null)
     const ticker = filterTicker.trim()
     const broker = filterBroker.trim()
-    if (ticker.length === 0 || broker.length === 0) return
+    if (ticker.length === 0 || broker.length === 0) {
+      setSubmitError('Ticker and broker are required to load history.')
+      return
+    }
     setCriteria({ ticker, broker })
     setHistoryToken((token) => token + 1)
   }
