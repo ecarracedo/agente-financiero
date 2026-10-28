@@ -55,6 +55,16 @@ The versioned `frontend/openapi.json` is generated from the backend app:
 python -c "import json; from backend.app.main import create_app; print(json.dumps(create_app().openapi(), indent=2))" > frontend/openapi.json
 ```
 
+#### Demo mode (no backend)
+Every `/api/v1` route is served by a Mock Service Worker, so the interface can be walked with sample data while the backend is stopped or empty:
+
+```bash
+cd frontend
+VITE_DEMO=1 npm run dev
+```
+
+The handlers and fixtures in `frontend/src/mocks/` are the same ones the tests use, so demo data cannot drift from test data. The flag only works on the dev server: a production build never starts the worker, and MSW is not part of the built bundle (`src/dev/demo.ts` imports it dynamically behind `import.meta.env.DEV`). Anything the fixtures do not cover is still requested from the network, so a missing route shows up as a failure instead of an empty view.
+
 ### Docker Compose
 The whole stack — PostgreSQL, the backend API and the web interface — runs with Compose. Copy `.env.example` to `.env` and set a password there: configuration reaches the containers only through the environment, never through a file copied into an image.
 
@@ -138,6 +148,16 @@ El `frontend/openapi.json` versionado se genera desde la aplicación backend:
 ```bash
 python -c "import json; from backend.app.main import create_app; print(json.dumps(create_app().openapi(), indent=2))" > frontend/openapi.json
 ```
+
+#### Modo demo (sin backend)
+Todas las rutas `/api/v1` las sirve un Mock Service Worker, así que la interfaz se puede recorrer con datos de ejemplo aunque el backend esté detenido o vacío:
+
+```bash
+cd frontend
+VITE_DEMO=1 npm run dev
+```
+
+Los handlers y fixtures de `frontend/src/mocks/` son los mismos que usan los tests, así que los datos de demo no pueden desviarse de los de prueba. El flag solo funciona en el servidor de desarrollo: un build de producción nunca arranca el worker y MSW no forma parte del bundle (`src/dev/demo.ts` lo importa dinámicamente detrás de `import.meta.env.DEV`). Lo que los fixtures no cubren se pide igual a la red, así que una ruta faltante se ve como un fallo y no como una vista vacía.
 
 ### Docker Compose
 Todo el stack — PostgreSQL, la API del backend y la interfaz web — corre con Compose. Copiá `.env.example` a `.env` y definí ahí una contraseña: la configuración llega a los contenedores solo por variables de entorno, nunca por un archivo copiado dentro de una imagen.
