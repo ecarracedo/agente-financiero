@@ -83,7 +83,12 @@ Every task is completable in one session and leaves the application runnable. Te
 
 ## Phase 5: Demo mode and cleanup
 
-- [ ] 5.1 `src/dev/demo.ts` starting the browser worker behind a flag; document it in `README.md`.
+- [x] 5.1 `src/dev/demo.ts` starting the browser worker behind a flag; document it in `README.md`.
+  - Delivered: `VITE_DEMO=1 npm run dev` serves every `/api/v1` route from the fixtures in `frontend/src/mocks/`, and `public/mockServiceWorker.js` (generated with `npx msw init public --save`) is what the browser worker registers. Documented in both README languages and in `.env.example`.
+  - **Production bundle defect found and fixed.** `demo.ts` imported `msw/browser` and the handlers statically, so `main.tsx` pulled them into a production build: JS was 1041.66 kB. It now returns before importing unless `import.meta.env.DEV` **and** `VITE_DEMO === '1'`, and imports MSW and the fixtures dynamically. Production JS is 720.90 kB (gzip 217.61 kB), so about 320 kB of mock machinery left the bundle, and no `msw` string remains in `dist/assets`.
+  - Gate test: `src/dev/demo.test.ts` proves the flag is what turns the worker on. The positive path cannot run in jsdom (no service worker), so it is verified in the browser.
+  - Order: pulled ahead of 4.2 because the backend database is empty (`portfolio` returns `[]`), which makes every workspace render its empty state and the redesign unjudgeable.
+  - `public/` added to the ESLint ignores: the generated worker file carries a directive ESLint flags and must not be reformatted.
 - [ ] 5.2 Delete `App.tsx` and any dead tab code.
 - [ ] 5.3 Full checks: `npm test`, `npm run lint`, `npm run build`, `npm run check:api-drift`.
 
