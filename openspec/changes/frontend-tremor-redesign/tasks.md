@@ -77,7 +77,8 @@ Every task is completable in one session and leaves the application runnable. Te
 - [x] 4.2 Transactions — per-field errors, delete confirmation, no silent filter failure, scoped success
   - Delivered: form and history sit on `Card`s, filters report missing input, deletes confirm (skipped when `confirm` unavailable in tests), 422s show a rejected error with no success message, and a new submission clears stale success. Evidence: commits `869a80b`, `35bf29a`; suite 150/150, lint and `t
 ```
-- [ ] 4.3 Market — restyled chrome; target line and transaction markers preserved
+- [x] 4.3 Market — restyled chrome; target line and transaction markers preserved
+  - Delivered: controls, chart, opportunities and alert panel are in `Card`s; target line and transaction markers unchanged. Evidence: commit `bec61d7`; suite 150/150, lint and `tsc -b` clean.
 - [ ] 4.4 Alerts — own route, target-price validation on the shared field component
 - [ ] 4.5 Wishlist — remove confirmation
 - [ ] 4.6 Bibliography — delete confirmation
