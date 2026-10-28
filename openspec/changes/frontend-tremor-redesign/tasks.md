@@ -68,7 +68,12 @@ Every task is completable in one session and leaves the application runnable. Te
 
 ## Phase 4: Workspaces (one commit each)
 
-- [ ] 4.1 Portfolio
+- [x] 4.1 Portfolio
+  - Delivered: the summary counts, the holdings table and the currency-grouped valuations each render on the shared `Card`, and the workspace owns the section headings. Evidence: commits `cd943cf` (workspace) and `5b80915` (shell chrome); suite 149/149, lint and `tsc -b` clean.
+  - **Gap from 3.4 closed.** `PortfolioWorkspace.test.tsx` now pins the `gain_loss_percent` cell text: the fixture sends the bare magnitude `17.14`, so the cell must show `17.14%` with no invented `+` and no doubled `%`. The assertion passes against the current renderer, which is the point — the format is now guarded instead of unobserved.
+  - RED observed: the new card test failed first because the counts were plain paragraphs (`Currencies: 2`) and no `tremor-id="tremor-raw"` element existed. The summary moved to a `dl` inside a `Card`, so the count assertions read the definition value instead of a concatenated string.
+  - Shell styled out of task order: the workspaces were restyled while the header and navigation were still raw HTML, which reads as a broken page rather than a redesign. Kept as its own commit so the workspace commits stay one-per-workspace. Markup and roles are unchanged, so every route test still passes untouched.
+  - Still unstyled: the other six workspaces. They share the shell chrome now, so each looks unfinished only inside its own body.
 - [ ] 4.2 Transactions — per-field errors, delete confirmation, no silent filter failure, scoped success
 - [ ] 4.3 Market — restyled chrome; target line and transaction markers preserved
 - [ ] 4.4 Alerts — own route, target-price validation on the shared field component
