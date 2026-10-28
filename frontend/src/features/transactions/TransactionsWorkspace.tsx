@@ -55,8 +55,9 @@ export function TransactionsWorkspace({ onPortfolioChanged }: TransactionsWorksp
   }
 
   async function handleDelete(transactionId: number) {
-    if (typeof window !== 'undefined' && typeof (window as any).confirm === 'function') {
-      if ((window as any).confirm('Delete this transaction?') === false) {
+    if (typeof window !== 'undefined') {
+      const maybeConfirm = (window as Window & { confirm?: (message?: string) => boolean }).confirm
+      if (typeof maybeConfirm === 'function' && maybeConfirm.call(window, 'Delete this transaction?') === false) {
         return
       }
     }
