@@ -17,10 +17,12 @@ const OPERATION_OPTIONS: SelectOption[] = [
 export interface TransactionFormProps {
   /** Submit handler; resolves `true` when the operation was accepted. */
   onSubmit: (payload: TransactionRequest) => Promise<boolean>
+  /** Per-field validation errors from the backend (422). */
+  fieldErrors?: Record<string, string>
 }
 
 /** Controlled form that records a purchase or sale. */
-export function TransactionForm({ onSubmit }: TransactionFormProps) {
+export function TransactionForm({ onSubmit, fieldErrors = {} }: TransactionFormProps) {
   const [ticker, setTicker] = useState('')
   const [broker, setBroker] = useState('')
   const [category, setCategory] = useState('')
@@ -62,14 +64,27 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      <TextField id="transaction-ticker" label="Ticker" value={ticker} onChange={setTicker} />
-      <TextField id="transaction-broker" label="Broker" value={broker} onChange={setBroker} />
+    <form onSubmit={handleSubmit} noValidate aria-label="Record operation">
+      <TextField
+        id="transaction-ticker"
+        label="Ticker"
+        value={ticker}
+        onChange={setTicker}
+        error={fieldErrors.ticker}
+      />
+      <TextField
+        id="transaction-broker"
+        label="Broker"
+        value={broker}
+        onChange={setBroker}
+        error={fieldErrors.broker}
+      />
       <TextField
         id="transaction-category"
         label="Category"
         value={category}
         onChange={setCategory}
+        error={fieldErrors.category}
       />
       <SelectField
         id="transaction-operation"
@@ -77,6 +92,7 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
         value={operationType}
         options={OPERATION_OPTIONS}
         onChange={(value) => setOperationType(value === 'SELL' ? 'SELL' : 'BUY')}
+        error={fieldErrors.operation_type}
       />
       <TextField
         id="transaction-quantity"
@@ -84,6 +100,7 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
         value={quantity}
         onChange={setQuantity}
         inputMode="decimal"
+        error={fieldErrors.quantity}
       />
       <TextField
         id="transaction-unit-price"
@@ -91,12 +108,14 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
         value={unitPrice}
         onChange={setUnitPrice}
         inputMode="decimal"
+        error={fieldErrors.unit_price}
       />
       <TextField
         id="transaction-currency"
         label="Currency"
         value={currency}
         onChange={setCurrency}
+        error={fieldErrors.currency}
       />
       <TextField
         id="transaction-occurred-at"
@@ -104,6 +123,7 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
         type="datetime-local"
         value={occurredAt}
         onChange={setOccurredAt}
+        error={fieldErrors.occurred_at}
       />
       <button type="submit" disabled={submitting}>
         {submitting ? 'Recording…' : 'Record operation'}
