@@ -13,6 +13,7 @@ import { ErrorState, LoadingState } from '../../components/AsyncStates'
 import { CurrencyAmount, NOT_AVAILABLE } from '../../components/CurrencyAmount'
 import type { SelectOption } from '../../components/FormControls'
 import { SelectField, TextField } from '../../components/FormControls'
+import { Card } from '../../components/tremor/Card'
 import { AlertsPanel } from '../alerts/AlertsPanel'
 import { MarketChart } from './MarketChart'
 import type { ChartMode } from './MarketChart'
@@ -86,44 +87,60 @@ export function MarketWorkspace() {
   }
 
   return (
-    <section aria-labelledby="market-heading">
-      <h2 id="market-heading">Market</h2>
+    <section aria-labelledby="market-heading" className="space-y-6">
+      <h2 id="market-heading" className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+        Market
+      </h2>
 
       {catalog.status === 'loading' ? <LoadingState label="Loading tickers…" /> : null}
       {catalog.status === 'error' ? (
         <ErrorState message={describeApiError(catalog.error)} />
       ) : null}
 
-      <SelectField
-        id="market-ticker"
-        label="Ticker"
-        value={activeTicker}
-        options={tickerOptions}
-        onChange={setSelectedTicker}
-      />
-      <TextField
-        id="market-search"
-        label="Search ticker"
-        value={searchTicker}
-        onChange={setSearchTicker}
-      />
-      <button type="button" onClick={handleLoadSearch}>
-        Load ticker
-      </button>
-      <SelectField
-        id="market-period"
-        label="Period"
-        value={period}
-        options={PERIOD_OPTIONS}
-        onChange={(value) => setPeriod(value as MarketPeriod)}
-      />
-      <SelectField
-        id="market-mode"
-        label="Chart mode"
-        value={mode}
-        options={MODE_OPTIONS}
-        onChange={(value) => setMode(value === 'area' ? 'area' : 'line')}
-      />
+      <Card>
+        <div className="grid gap-4 md:grid-cols-5">
+          <SelectField
+            id="market-ticker"
+            label="Ticker"
+            value={activeTicker}
+            options={tickerOptions}
+            onChange={setSelectedTicker}
+          />
+          <div className="md:col-span-2">
+            <TextField
+              id="market-search"
+              label="Search ticker"
+              value={searchTicker}
+              onChange={setSearchTicker}
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={handleLoadSearch}
+              className="mb-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Load ticker
+            </button>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <SelectField
+            id="market-period"
+            label="Period"
+            value={period}
+            options={PERIOD_OPTIONS}
+            onChange={(value) => setPeriod(value as MarketPeriod)}
+          />
+          <SelectField
+            id="market-mode"
+            label="Chart mode"
+            value={mode}
+            options={MODE_OPTIONS}
+            onChange={(value) => setMode(value === 'area' ? 'area' : 'line')}
+          />
+        </div>
+      </Card>
 
       {analysis.status === 'loading' ? <LoadingState label="Loading market data…" /> : null}
       {analysis.status === 'error' ? (
@@ -131,13 +148,15 @@ export function MarketWorkspace() {
       ) : null}
       {analysis.status === 'ready' && analysis.analysis ? (
         analysis.analysis.status !== 'OK' || series.length === 0 ? (
-          <p role="status">
-            {NOT_AVAILABLE}
-            {analysis.analysis.reason ? `: ${analysis.analysis.reason}` : ''}
-          </p>
+          <Card>
+            <p role="status">
+              {NOT_AVAILABLE}
+              {analysis.analysis.reason ? `: ${analysis.analysis.reason}` : ''}
+            </p>
+          </Card>
         ) : (
-          <>
-            <p>
+          <Card>
+            <p className="mb-4">
               Current price:{' '}
               {currency !== null && currency !== '' ? (
                 <CurrencyAmount
@@ -159,22 +178,29 @@ export function MarketWorkspace() {
               }
               markers={chartMarkers}
             />
-            <OpportunityList signals={analysis.analysis.signals} />
-          </>
+            <div className="mt-4">
+              <OpportunityList signals={analysis.analysis.signals} />
+            </div>
+          </Card>
         )
       ) : null}
 
       {activeTicker !== '' ? (
-        <AlertsPanel
-          ticker={activeTicker}
-          currency={currency}
-          broker={selectedEntry?.broker ?? null}
-          category={selectedEntry?.category ?? null}
-          scope={scope}
-          onTargetConfigured={(ticker, savedTarget) =>
-            setConfiguredTargets((current) => ({ ...current, [ticker]: savedTarget }))
-          }
-        />
+        <Card>
+          <h3 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-50">
+            Alert
+          </h3>
+          <AlertsPanel
+            ticker={activeTicker}
+            currency={currency}
+            broker={selectedEntry?.broker ?? null}
+            category={selectedEntry?.category ?? null}
+            scope={scope}
+            onTargetConfigured={(ticker, savedTarget) =>
+              setConfiguredTargets((current) => ({ ...current, [ticker]: savedTarget }))
+            }
+          />
+        </Card>
       ) : null}
     </section>
   )
