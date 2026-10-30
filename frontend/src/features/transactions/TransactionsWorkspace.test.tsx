@@ -4,7 +4,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { TransactionSummary } from '../../api/client'
 import { api } from '../../api/client'
 import { ApiError } from '../../api/http'
+import { marketApi } from '../market/marketApi'
 import { TransactionsWorkspace } from './TransactionsWorkspace'
+
+vi.mock('../market/marketApi', () => ({
+  marketApi: {
+    getAnalysis: vi.fn(),
+  },
+}))
 
 vi.mock('../../api/client', () => ({
   api: {
@@ -126,5 +133,37 @@ describe('TransactionsWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: /view history/i }))
 
     expect(await screen.findByRole('status')).toBeInTheDocument()
+  })
+
+  it('autocompletes the unit price when a ticker is entered and blurred', async () => {
+    vi.mocked(marketApi.getAnalysis).mockResolvedValue({
+      ticker: 'MSFT',
+      status: 'OK',
+      reason: null,
+      current_price: '415.50',
+      high_52_week: '430.00',
+      low_52_week: '300.00',
+      moving_average_50: '400.00',
+      moving_average_200: '380.00',
+      signals: [],
+      series: [],
+    })
+
+    render(<TransactionsWorkspace />)
+
+    // Form defaults are present
+    expect(screen.getByLabelText('Broker')).toHaveValue('IBKR')
+    expect(screen.getByLabelText('Category')).toHaveValue('Stock')
+    expect(screen.getByLabelText('Currency')).toHaveValue('USD')
+
+    // Ticker entered and blurred
+    const tickerInput = screen.getByLabelText('Ticker')
+    fireEvent.change(tickerInput, { target: { value: 'MSFT' } })
+    fireEvent.blur(tickerInput)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Unit price')).toHaveValue('415.50')
+    })
+    expect(marketApi.getAnalysis).toHaveBeenCalledWith('MSFT', '1mo')
   })
 })

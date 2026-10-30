@@ -8,6 +8,8 @@ import type { FormEvent } from 'react'
 import type { TransactionRequest } from '../../api/client'
 import type { SelectOption } from '../../components/FormControls'
 import { SelectField, TextField } from '../../components/FormControls'
+import { localDateTimeValue } from '../../lib/datetime'
+import { marketApi } from '../market/marketApi'
 
 const OPERATION_OPTIONS: SelectOption[] = [
   { value: 'BUY', label: 'Buy' },
@@ -24,21 +26,39 @@ export interface TransactionFormProps {
 /** Controlled form that records a purchase or sale. */
 export function TransactionForm({ onSubmit, fieldErrors = {} }: TransactionFormProps) {
   const [ticker, setTicker] = useState('')
-  const [broker, setBroker] = useState('')
-  const [category, setCategory] = useState('')
+  const [broker, setBroker] = useState('IBKR')
+  const [category, setCategory] = useState('Stock')
   const [operationType, setOperationType] = useState<'BUY' | 'SELL'>('BUY')
   const [quantity, setQuantity] = useState('')
   const [unitPrice, setUnitPrice] = useState('')
-  const [currency, setCurrency] = useState('')
-  const [occurredAt, setOccurredAt] = useState('')
+  const [currency, setCurrency] = useState('USD')
+  const [occurredAt, setOccurredAt] = useState(localDateTimeValue)
   const [submitting, setSubmitting] = useState(false)
+  const [fetchingPrice, setFetchingPrice] = useState(false)
+
+  async function handleFetchQuote(targetTicker?: string) {
+    const symbol = (targetTicker ?? ticker).trim().toUpperCase()
+    if (!symbol) return
+
+    setFetchingPrice(true)
+    try {
+      const analysis = await marketApi.getAnalysis(symbol, '1mo')
+      if (analysis && analysis.current_price) {
+        setUnitPrice(analysis.current_price)
+      }
+    } catch {
+      // Allow manual entry on provider failure
+    } finally {
+      setFetchingPrice(false)
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting) return
 
     const payload: TransactionRequest = {
-      ticker: ticker.trim(),
+      ticker: ticker.trim().toUpperCase(),
       broker: broker.trim(),
       category: category.trim(),
       operation_type: operationType,
@@ -54,25 +74,27 @@ export function TransactionForm({ onSubmit, fieldErrors = {} }: TransactionFormP
 
     if (accepted) {
       setTicker('')
-      setBroker('')
-      setCategory('')
       setQuantity('')
       setUnitPrice('')
-      setCurrency('')
-      setOccurredAt('')
+      setOccurredAt(localDateTimeValue())
     }
   }
 
   return (
     <form onSubmit={handleSubmit} noValidate aria-label="Record operation" className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <TextField
-          id="transaction-ticker"
-          label="Ticker"
-          value={ticker}
-          onChange={setTicker}
-          error={fieldErrors.ticker}
-        />
+        <div>
+          <TextField
+            id="transaction-ticker"
+            label="Ticker"
+            value={ticker}
+            onChange={(val) => {
+              setTicker(val)
+            }}
+            onBlur={() => handleFetchQuote(ticker)}
+            error={fieldErrors.ticker}
+          />
+        </div>
         <TextField
           id="transaction-broker"
           label="Broker"
@@ -103,14 +125,24 @@ export function TransactionForm({ onSubmit, fieldErrors = {} }: TransactionFormP
           inputMode="decimal"
           error={fieldErrors.quantity}
         />
-        <TextField
-          id="transaction-unit-price"
-          label="Unit price"
-          value={unitPrice}
-          onChange={setUnitPrice}
-          inputMode="decimal"
-          error={fieldErrors.unit_price}
-        />
+        <div className="relative">
+          <TextField
+            id="transaction-unit-price"
+            label="Unit price"
+            value={unitPrice}
+            onChange={setUnitPrice}
+            inputMode="decimal"
+            error={fieldErrors.unit_price}
+          />
+          <button
+            type="button"
+            onClick={() => handleFetchQuote()}
+            disabled={fetchingPrice || !ticker.trim()}
+            className="absolute top-0 right-0 text-[10px] font-mono text-[#4cd7f6] hover:underline disabled:opacity-40 uppercase"
+          >
+            {fetchingPrice ? 'Buscando…' : 'Cotización'}
+          </button>
+        </div>
         <TextField
           id="transaction-currency"
           label="Currency"

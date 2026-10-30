@@ -1,7 +1,8 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 
+import { portfolioItems } from '../../mocks/fixtures'
 import { server } from '../../../tests/setup'
 import { renderWithRouter } from '../../../tests/render'
 
@@ -99,5 +100,48 @@ describe('PortfolioWorkspace', () => {
     renderWithRouter({ initialEntries: ['/portfolio'] })
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
+  })
+
+  it('executes a transaction from QuickOrderCard and triggers portfolio refresh', async () => {
+    let portfolioFetchCount = 0
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.get('*/api/v1/portfolio', () => {
+        portfolioFetchCount++
+        return HttpResponse.json(portfolioItems)
+      }),
+      http.post('*/api/v1/transactions', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json(null, { status: 201 })
+      }),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+    await screen.findByRole('heading', { name: /posiciones en cartera/i })
+
+    const initialCount = portfolioFetchCount
+
+    // The unit price is autocompleted from the quote before the order is sent.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('190.00')
+    })
+
+    // Submit quick order
+    const registerBtn = screen.getByRole('button', { name: /registrar transacción/i })
+    fireEvent.click(registerBtn)
+
+    // Check confirmation feedback and refetch
+    expect(await screen.findByText('¡Transacción Registrada!')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(portfolioFetchCount).toBeGreaterThan(initialCount)
+    })
+
+    expect(posted).toMatchObject({
+      ticker: 'NVDA',
+      operation_type: 'BUY',
+      quantity: '10',
+      unit_price: '190.00',
+      currency: 'USD',
+    })
   })
 })

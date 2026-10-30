@@ -34,6 +34,7 @@ export interface TextFieldProps {
   label: string
   value: string
   onChange: (value: string) => void
+  onBlur?: () => void
   type?: string
   inputMode?: 'text' | 'decimal' | 'numeric'
   /** Permanent hint shown under the field and linked to it. */
@@ -48,6 +49,7 @@ export function TextField({
   label,
   value,
   onChange,
+  onBlur,
   type = 'text',
   inputMode,
   description,
@@ -66,6 +68,7 @@ export function TextField({
         inputMode={inputMode}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         aria-invalid={error !== undefined ? true : undefined}
         aria-describedby={describedBy(descriptionId, errorId)}
         className="w-full px-3 py-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/60 text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6] transition-all text-sm"

@@ -2,6 +2,8 @@
  * Portfolio workspace: executive institutional dashboard matching Obsidian Capital design.
  */
 
+import { useState } from 'react'
+
 import { describeApiError } from '../../api/errors'
 import { ErrorState, LoadingState } from '../../components/AsyncStates'
 import { Card } from '../../components/tremor/Card'
@@ -22,7 +24,8 @@ export interface PortfolioWorkspaceProps {
 
 /** Render the institutional portfolio dashboard. */
 export function PortfolioWorkspace({ refreshToken = 0 }: PortfolioWorkspaceProps) {
-  const { status, data, error } = usePortfolio(refreshToken)
+  const [internalVersion, setInternalVersion] = useState(0)
+  const { status, data, error } = usePortfolio(refreshToken + internalVersion)
 
   return (
     <section aria-labelledby="portfolio-heading" className="space-y-6">
@@ -42,7 +45,7 @@ export function PortfolioWorkspace({ refreshToken = 0 }: PortfolioWorkspaceProps
               <HistoricalChartCard />
             </div>
             <div className="lg:col-span-4">
-              <QuickOrderCard />
+              <QuickOrderCard onTransactionCreated={() => setInternalVersion((v) => v + 1)} />
             </div>
           </div>
 
