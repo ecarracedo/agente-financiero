@@ -76,10 +76,6 @@ export function HistoricalChartCard() {
               <stop offset="65%" stopColor="#46fa9c" />
               <stop offset="100%" stopColor="#59ffa4" />
             </linearGradient>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
           </defs>
           <line className="text-[#31353e]/40" stroke="currentColor" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="800" y1="40" y2="40" />
           <line className="text-[#31353e]/40" stroke="currentColor" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="800" y1="100" y2="100" />
@@ -101,11 +97,9 @@ export function HistoricalChartCard() {
           <path
             d="M 0 180 C 80 175, 140 160, 200 130 C 260 100, 310 115, 360 85 C 410 55, 470 65, 530 45 C 600 25, 670 50, 740 30 L 800 20"
             fill="none"
-            filter="url(#glow)"
             stroke="url(#lineGrad)"
             strokeWidth="2.5"
           />
-          <circle cx="800" cy="20" r="4.5" className="fill-[#46fa9c] animate-ping" opacity="0.75" />
           <circle cx="800" cy="20" r="3.5" className="fill-[#46fa9c]" />
         </svg>
       </div>
