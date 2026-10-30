@@ -7,6 +7,11 @@ import importlib
 from typing import Any
 
 from backend.app.domain.analysis import PricePoint
+from backend.app.domain.tickers import (
+    DEFAULT_SEARCH_RESULTS,
+    TickerMatch,
+    normalize_ticker,
+)
 
 
 def _to_date(timestamp: Any) -> date | None:
@@ -31,9 +36,14 @@ def _to_date(timestamp: Any) -> date | None:
 class YFinanceMarketDataProvider:
     """Fetch market data and normalize numeric values to Decimal."""
 
-    def __init__(self, ticker_factory: Callable[[str], Any] | None = None) -> None:
-        """Initialize with an optional ticker factory for isolated tests."""
+    def __init__(
+        self,
+        ticker_factory: Callable[[str], Any] | None = None,
+        search_factory: Callable[[str, int], Any] | None = None,
+    ) -> None:
+        """Initialize with optional ticker and search factories for isolated tests."""
         self._ticker_factory = ticker_factory
+        self._search_factory = search_factory
 
     def _create_ticker(self, ticker: str) -> Any:
         """Create a yfinance ticker lazily or use the injected factory."""
@@ -41,6 +51,57 @@ class YFinanceMarketDataProvider:
             return self._ticker_factory(ticker)
         yfinance_module = importlib.import_module("yfinance")
         return getattr(yfinance_module, "Ticker")(ticker)
+
+    def _create_search(self, query: str, limit: int) -> Any:
+        """Create a yfinance symbol search lazily or use the injected factory."""
+        if self._search_factory is not None:
+            return self._search_factory(query, limit)
+        yfinance_module = importlib.import_module("yfinance")
+        return getattr(yfinance_module, "Search")(query, max_results=limit)
+
+    def search_symbols(
+        self, query: str, limit: int = DEFAULT_SEARCH_RESULTS
+    ) -> tuple[TickerMatch, ...]:
+        """Return provider symbol matches for a free-text query.
+
+        Provider entries without a usable symbol are skipped, repeated symbols are
+        collapsed, and a provider failure yields no matches rather than inventing
+        them, so a search never offers an instrument the API cannot quote later.
+        """
+        try:
+            results = self._create_search(query, limit)
+            quotes = getattr(results, "quotes", None) or ()
+        except Exception:
+            return ()
+
+        matches: list[TickerMatch] = []
+        seen: set[str] = set()
+        for quote in quotes:
+            if not isinstance(quote, dict):
+                continue
+            if quote.get("isYahooFinance") is False:
+                continue
+            try:
+                symbol = normalize_ticker(str(quote.get("symbol") or ""))
+            except ValueError:
+                continue
+            if symbol in seen:
+                continue
+            seen.add(symbol)
+            name = quote.get("longname") or quote.get("shortname") or symbol
+            exchange = quote.get("exchDisp") or quote.get("exchange") or ""
+            quote_type = quote.get("typeDisp") or quote.get("quoteType") or ""
+            matches.append(
+                TickerMatch(
+                    symbol=symbol,
+                    name=str(name),
+                    exchange=str(exchange),
+                    quote_type=str(quote_type),
+                )
+            )
+            if len(matches) >= limit:
+                break
+        return tuple(matches)
 
     def get_current_price(self, ticker: str) -> Decimal | None:
         """Return a positive current quote or None when the provider has none."""

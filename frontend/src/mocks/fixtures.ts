@@ -111,8 +111,35 @@ export const analysisAAPL = {
   ],
 }
 
-/** MarketAnalysisResponse for a ticker with no current price. */
-export const unknownAnalysis = {
+/** TickerMatchResponse[] served by the asset search endpoint. */
+export const tickerSearchResults = [
+  {
+    symbol: 'NVDA',
+    name: 'NVIDIA Corporation',
+    exchange: 'NASDAQ',
+    quote_type: 'Equity',
+  },
+  {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    exchange: 'NASDAQ',
+    quote_type: 'Equity',
+  },
+  {
+    symbol: 'MSFT',
+    name: 'Microsoft Corporation',
+    exchange: 'NASDAQ',
+    quote_type: 'Equity',
+  },
+  {
+    symbol: 'BTC-USD',
+    name: 'Bitcoin USD',
+    exchange: 'CCC',
+    quote_type: 'Cryptocurrency',
+  },
+]
+
+/** MarketAnalysisResponse for a ticker with no current price. */export const unknownAnalysis = {
   ticker: 'ZZZZ',
   status: 'UNKNOWN' as const,
   reason: 'No current market price',

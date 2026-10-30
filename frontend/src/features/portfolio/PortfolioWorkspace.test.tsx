@@ -144,4 +144,33 @@ describe('PortfolioWorkspace', () => {
       currency: 'USD',
     })
   })
+
+  it('searches an asset, picks it, and submits that symbol', async () => {
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.post('*/api/v1/transactions', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json(null, { status: 201 })
+      }),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+    await screen.findByRole('heading', { name: /posiciones en cartera/i })
+
+    const combobox = screen.getByRole('combobox', { name: /activo/i })
+    fireEvent.change(combobox, { target: { value: 'apple' } })
+
+    // The suggestion list comes from the search endpoint, not a hardcoded list.
+    fireEvent.click(await screen.findByRole('option', { name: /AAPL/ }))
+    expect(combobox).toHaveValue('AAPL')
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('190.00')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /registrar transacción/i }))
+
+    expect(await screen.findByText('¡Transacción Registrada!')).toBeInTheDocument()
+    expect(posted).toMatchObject({ ticker: 'AAPL', unit_price: '190.00' })
+  })
 })

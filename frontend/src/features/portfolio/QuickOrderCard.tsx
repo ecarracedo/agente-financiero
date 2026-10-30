@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import { describeApiError } from '../../api/errors'
+import type { TickerSuggestion } from '../../components/TickerSearch'
+import { TickerSearch } from '../../components/TickerSearch'
 import { localDateTimeValue } from '../../lib/datetime'
 import { marketApi } from '../market/marketApi'
 
@@ -9,12 +11,16 @@ export interface QuickOrderCardProps {
   onTransactionCreated?: () => void
 }
 
-const POPULAR_TICKERS = [
-  { symbol: 'NVDA', name: 'NVIDIA Corporation', category: 'Stock' },
-  { symbol: 'AAPL', name: 'Apple Inc.', category: 'Stock' },
-  { symbol: 'MSFT', name: 'Microsoft Corp.', category: 'Stock' },
-  { symbol: 'BTC', name: 'Bitcoin Core', category: 'Cripto' },
-]
+/** Delay before a typed symbol becomes a quote request. */
+const QUOTE_DEBOUNCE_MS = 400
+
+/** Map a provider instrument type onto the portfolio category vocabulary. */
+function categoryFor(asset: TickerSuggestion | null): string {
+  const type = asset?.quote_type.toLowerCase() ?? ''
+  if (type.includes('crypto') || type.includes('currency')) return 'Cripto'
+  if (type.includes('etf')) return 'ETF'
+  return 'Stock'
+}
 
 /**
  * Quick order ticket card connected to live yfinance quotes and real transactions.
@@ -22,6 +28,7 @@ const POPULAR_TICKERS = [
 export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [orderType, setOrderType] = useState<'BUY' | 'SELL'>('BUY')
   const [ticker, setTicker] = useState('NVDA')
+  const [asset, setAsset] = useState<TickerSuggestion | null>(null)
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -40,28 +47,41 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
     maximumFractionDigits: 2,
   })
 
-  // Fetch the live market price from yfinance whenever the asset changes.
+  // Fetch the live market price from yfinance, debounced so typing a symbol
+  // costs one request instead of one per keystroke.
   useEffect(() => {
     if (!symbol) return
     let active = true
 
-    marketApi
-      .getAnalysis(symbol, '1mo')
-      .then((data) => {
-        if (!active) return
-        if (data?.current_price) setPrice(data.current_price)
-      })
-      .catch(() => {
-        // Fall back to manual pricing when the provider is unavailable.
-      })
-      .finally(() => {
-        if (active) setQuotedTicker(symbol)
-      })
+    const timer = setTimeout(() => {
+      marketApi
+        .getAnalysis(symbol, '1mo')
+        .then((data) => {
+          if (!active) return
+          if (data?.current_price) setPrice(data.current_price)
+        })
+        .catch(() => {
+          // Fall back to manual pricing when the provider is unavailable.
+        })
+        .finally(() => {
+          if (active) setQuotedTicker(symbol)
+        })
+    }, QUOTE_DEBOUNCE_MS)
 
     return () => {
       active = false
+      clearTimeout(timer)
     }
   }, [symbol])
+
+  function handleTickerChange(next: string) {
+    const nextSymbol = next.trim().toUpperCase()
+    if (nextSymbol !== symbol) {
+      setAsset(null)
+      setPrice('')
+    }
+    setTicker(next)
+  }
 
   async function handleOrder(e: React.FormEvent) {
     e.preventDefault()
@@ -73,9 +93,8 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
       return
     }
 
-    const matched = POPULAR_TICKERS.find((t) => t.symbol === symbol)
-    const category = matched ? matched.category : 'Stock'
-    const broker = symbol === 'BTC' ? 'Binance' : 'IBKR'
+    const category = categoryFor(asset)
+    const broker = category === 'Cripto' ? 'Binance' : 'IBKR'
 
     setSubmitting(true)
     try {
@@ -140,36 +159,21 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-[#869397] uppercase">Activo / Ticker</span>
-            {fetchingQuote ? (
-              <span className="text-[10px] font-mono text-[#4cd7f6] animate-pulse">
-                Cotizando yfinance…
-              </span>
-            ) : null}
-          </div>
-          <div className="flex items-center justify-between bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/30">
-            <div className="flex items-center gap-2 w-full">
-              <span className="px-1.5 py-0.5 rounded bg-[#262a33] text-xs font-mono font-bold text-[#4cd7f6]">
-                {ticker}
-              </span>
-              <select
-                aria-label="Seleccionar activo"
-                value={ticker}
-                onChange={(e) => {
-                  setTicker(e.target.value)
-                  setPrice('')
-                }}
-                className="bg-transparent text-xs text-white focus:outline-none cursor-pointer w-full"
-              >
-                {POPULAR_TICKERS.map((item) => (
-                  <option key={item.symbol} value={item.symbol} className="bg-[#1c2028]">
-                    {item.name} ({item.symbol})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <TickerSearch
+            id="quick-order-ticker"
+            label="Activo / Ticker"
+            value={ticker}
+            onChange={handleTickerChange}
+            onSelect={setAsset}
+            search={marketApi.searchTickers}
+            hint={
+              fetchingQuote ? (
+                <span className="text-[10px] font-mono text-[#4cd7f6] animate-pulse">
+                  Cotizando yfinance…
+                </span>
+              ) : null
+            }
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-2">

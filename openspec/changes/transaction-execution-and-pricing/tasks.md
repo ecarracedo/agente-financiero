@@ -17,8 +17,17 @@
 - [x] 3.1 Verify complete frontend test suite (`npm test`), `tsc -b`, and ESLint.
 - [ ] 3.2 Verify interactive execution in demo mode and build production bundle (`npm run build`).
 
+## Phase 4: Asset Search
+
+- [x] 4.1 Backend: `TickerMatch` domain shape, `search_symbols` port and use case, yfinance `Search` adapter, `GET /api/v1/tickers/search`, tests.
+- [x] 4.2 Regenerate `frontend/openapi.json` and `src/api/types.ts`; keep the drift check green.
+- [x] 4.3 Frontend: `TickerSearch` combobox component with debounced suggestions, keyboard navigation, and free-text fallback.
+- [x] 4.4 Replace the hardcoded ticker list in `QuickOrderCard` with the search control and derive broker/category from the instrument type.
+- [x] 4.5 MSW handler, fixture, component tests, and an integration test that searches, picks a symbol, and submits it.
+
 ## Notes
 
 - `frontend/src/lib/datetime.ts` centralizes the local `datetime-local` value used for `occurred_at` by both entry points.
 - `QuickOrderCard` derives its loading state (`symbol !== quotedTicker`) instead of writing state inside the quote effect, which keeps `react-hooks/set-state-in-effect` satisfied.
 - Production bundle builds and the OpenAPI drift check passes; interactive demo-mode verification remains pending.
+

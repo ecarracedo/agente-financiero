@@ -11,6 +11,7 @@ from typing import Callable, Protocol, Self
 from backend.app.domain.alerts import TargetAlertSettings
 from backend.app.domain.analysis import PricePoint
 from backend.app.domain.portfolio import PortfolioPosition
+from backend.app.domain.tickers import TickerMatch
 
 
 class TransactionRecordPort(Protocol):
@@ -162,6 +163,10 @@ class MarketDataProviderPort(Protocol):
     def get_historical_series(
         self, ticker: str, period: str
     ) -> Sequence[PricePoint]: ...
+
+    def search_symbols(
+        self, query: str, limit: int = ...
+    ) -> Sequence[TickerMatch]: ...
 
 
 PortfolioUnitOfWorkFactory = Callable[[], PortfolioUnitOfWorkPort]

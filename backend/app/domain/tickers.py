@@ -6,7 +6,34 @@ means every entry point produces the same canonical symbol and rejects the same
 invalid input, instead of each caller re-implementing ``strip().upper()``.
 """
 
+from dataclasses import dataclass
+
 MAX_TICKER_LENGTH = 32
+
+# The most matches a single search request may return. The API validates the
+# caller-supplied limit against the same bound so no request can ask for an
+# unbounded provider response.
+MAX_SEARCH_RESULTS = 25
+
+# Matches returned when a caller does not ask for a specific amount.
+DEFAULT_SEARCH_RESULTS = 8
+
+
+@dataclass(frozen=True)
+class TickerMatch:
+    """One provider symbol match for an asset search.
+
+    Attributes:
+        symbol: Canonical ticker symbol returned by the provider.
+        name: Human-readable instrument name.
+        exchange: Provider exchange label, or an empty string when absent.
+        quote_type: Provider instrument type, such as ``Equity`` or ``Crypto``.
+    """
+
+    symbol: str
+    name: str
+    exchange: str
+    quote_type: str
 
 
 def normalize_ticker(raw: str) -> str:

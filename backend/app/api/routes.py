@@ -19,6 +19,7 @@ from backend.app.api.schemas import (
     PositionAlertCheckRequest,
     SplitProjectionRequest,
     SplitProjectionResponse,
+    TickerMatchResponse,
     TransactionRequest,
     TransactionSummaryResponse,
     UpdatedResponse,
@@ -28,7 +29,12 @@ from backend.app.api.schemas import (
     WishlistTargetRequest,
 )
 from backend.app.domain.portfolio import PortfolioPosition
-from backend.app.domain.tickers import MAX_TICKER_LENGTH, normalize_ticker
+from backend.app.domain.tickers import (
+    DEFAULT_SEARCH_RESULTS,
+    MAX_SEARCH_RESULTS,
+    MAX_TICKER_LENGTH,
+    normalize_ticker,
+)
 
 router = APIRouter(prefix="/api/v1")
 
@@ -131,6 +137,20 @@ def delete_transaction(transaction_id: int, request: Request) -> dict[str, bool]
 def value_portfolio(request: Request) -> dict[str, object]:
     """Return currency-grouped valuation totals."""
     return _services(request).analytics.value_portfolio()
+
+
+@router.get(
+    "/tickers/search",
+    response_model=list[TickerMatchResponse],
+    tags=["market"],
+)
+def search_tickers(
+    request: Request,
+    q: str = Query(min_length=1, max_length=64),
+    limit: int = Query(default=DEFAULT_SEARCH_RESULTS, ge=1, le=MAX_SEARCH_RESULTS),
+) -> list:
+    """Return provider symbol matches for a free-text asset search."""
+    return list(_services(request).analytics.search_symbols(q, limit))
 
 
 @router.get(

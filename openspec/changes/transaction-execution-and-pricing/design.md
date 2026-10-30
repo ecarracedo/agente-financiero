@@ -33,6 +33,16 @@ On submit, it builds a `TransactionRequest`:
 
 On success, it displays a success feedback badge and calls `onTransactionCreated()`, which increments `refreshToken` in `PortfolioWorkspace`, immediately refreshing holdings, summary metrics, and valuations.
 
+### D5. Asset search lives in the backend, not in a hardcoded frontend list
+The order ticket needs the real symbol universe, so `GET /api/v1/tickers/search?q=&limit=` wraps `yfinance.Search`. The domain owns the shape (`TickerMatch`), the port declares `search_symbols`, and the yfinance adapter maps provider quotes: it skips entries without a usable symbol, drops non-Yahoo results, collapses duplicates, and returns no matches when the provider fails. A provider failure must never block a manual symbol, so the endpoint answers `[]` with a 200 instead of an error.
+
+### D6. Suggestions are debounced and never mandatory
+`TickerSearch` is a combobox: the input is the source of truth, suggestions are a convenience. It queries after a 300 ms debounce and only from two characters up, so typing a symbol costs one request. Selecting a suggestion fills the ticker and the display name; a typed symbol with no suggestion is submitted unchanged. The quote lookup in the ticket is also debounced (400 ms) so typing does not trigger one historical download per keystroke.
+
+### D7. Category and broker derive from the instrument type
+The previous hardcoded ticker list decided broker and category. With free-text symbols, the ticket derives the category from the provider instrument type (`Cryptocurrency`/`Currency` → `Cripto`, `ETF` → `ETF`, otherwise `Stock`) and picks `Binance` for crypto and `IBKR` otherwise.
+
+
 ## Data Flow
 
 ```

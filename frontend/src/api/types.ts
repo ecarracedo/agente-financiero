@@ -88,6 +88,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tickers/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Tickers
+         * @description Return provider symbol matches for a free-text asset search.
+         */
+        get: operations["search_tickers_api_v1_tickers_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/analysis/{ticker}": {
         parameters: {
             query?: never;
@@ -571,6 +591,20 @@ export interface components {
             message: string;
         };
         /**
+         * TickerMatchResponse
+         * @description Expose one asset search result with its provider labels.
+         */
+        TickerMatchResponse: {
+            /** Symbol */
+            symbol: string;
+            /** Name */
+            name: string;
+            /** Exchange */
+            exchange: string;
+            /** Quote Type */
+            quote_type: string;
+        };
+        /**
          * TransactionRequest
          * @description Validate a portfolio purchase or sale request.
          */
@@ -824,6 +858,38 @@ export interface operations {
                     "application/json": {
                         [key: string]: components["schemas"]["CurrencyValuationResponse"];
                     };
+                };
+            };
+        };
+    };
+    search_tickers_api_v1_tickers_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TickerMatchResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

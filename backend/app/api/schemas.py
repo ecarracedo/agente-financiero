@@ -149,6 +149,17 @@ class PricePointResponse(BaseModel):
     close: MoneyString
 
 
+class TickerMatchResponse(BaseModel):
+    """Expose one asset search result with its provider labels."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    symbol: str
+    name: str
+    exchange: str
+    quote_type: str
+
+
 class MarketAnalysisResponse(BaseModel):
     """Expose technical analysis metrics with explicit unknown states."""
 

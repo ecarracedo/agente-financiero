@@ -208,6 +208,67 @@
         }
       }
     },
+    "/api/v1/tickers/search": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Search Tickers",
+        "description": "Return provider symbol matches for a free-text asset search.",
+        "operationId": "search_tickers_api_v1_tickers_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 25,
+              "minimum": 1,
+              "default": 8,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TickerMatchResponse"
+                  },
+                  "title": "Response Search Tickers Api V1 Tickers Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/analysis/{ticker}": {
       "get": {
         "tags": [
@@ -1437,6 +1498,35 @@
         ],
         "title": "TargetAlertEventResponse",
         "description": "Expose one intent-specific target crossing notification."
+      },
+      "TickerMatchResponse": {
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "exchange": {
+            "type": "string",
+            "title": "Exchange"
+          },
+          "quote_type": {
+            "type": "string",
+            "title": "Quote Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbol",
+          "name",
+          "exchange",
+          "quote_type"
+        ],
+        "title": "TickerMatchResponse",
+        "description": "Expose one asset search result with its provider labels."
       },
       "TransactionRequest": {
         "properties": {

@@ -14,6 +14,9 @@ import type { components } from '../../api/types'
 /** Market analysis payload from `GET /api/v1/analysis/{ticker}`. */
 export type MarketAnalysis = components['schemas']['MarketAnalysisResponse']
 
+/** One asset search match from `GET /api/v1/tickers/search`. */
+export type TickerMatch = components['schemas']['TickerMatchResponse']
+
 /** One wishlist entry from `GET /api/v1/wishlist`. */
 export type WishlistItem = components['schemas']['WishlistItemResponse']
 
@@ -32,5 +35,9 @@ export const marketApi = {
   getAnalysis: (ticker: string, period: MarketPeriod): Promise<MarketAnalysis> =>
     request<MarketAnalysis>(
       `/api/v1/analysis/${encodeURIComponent(ticker)}?period=${encodeURIComponent(period)}`,
+    ),
+  searchTickers: (query: string, limit = 8): Promise<TickerMatch[]> =>
+    request<TickerMatch[]>(
+      `/api/v1/tickers/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(String(limit))}`,
     ),
 }

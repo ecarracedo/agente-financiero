@@ -12,6 +12,7 @@ import {
   bibliography,
   portfolioItems,
   splitResult,
+  tickerSearchResults,
   transactions,
   unknownAnalysis,
   valuations,
@@ -66,6 +67,19 @@ export const handlers = [
   http.delete(`${BASE}/api/v1/transactions/:transaction_id`, () =>
     HttpResponse.json<MutationResponse>({ deleted: true }),
   ),
+
+  http.get(`${BASE}/api/v1/tickers/search`, ({ request }) => {
+    const url = new URL(request.url)
+    const query = (url.searchParams.get('q') ?? '').trim().toLowerCase()
+    const matches = query
+      ? tickerSearchResults.filter(
+          (match) =>
+            match.symbol.toLowerCase().includes(query) ||
+            match.name.toLowerCase().includes(query),
+        )
+      : []
+    return HttpResponse.json(matches)
+  }),
 
   http.get(`${BASE}/api/v1/analysis/:ticker`, ({ params }) => {
     const ticker = String(params.ticker)

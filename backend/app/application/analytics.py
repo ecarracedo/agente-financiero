@@ -5,7 +5,11 @@ from decimal import Decimal
 from backend.app.application.ports import MarketDataProviderPort, PortfolioReadRepositoryPort
 from backend.app.domain.alerts import AlertIntent, TargetAlertEvent, evaluate_target_alert
 from backend.app.domain.analysis import MarketAnalysis, analyze_market
-from backend.app.domain.tickers import normalize_ticker
+from backend.app.domain.tickers import (
+    DEFAULT_SEARCH_RESULTS,
+    TickerMatch,
+    normalize_ticker,
+)
 from backend.app.domain.valuation import CurrencyValuation, value_portfolio
 
 # The period the analysis uses whenever a caller does not ask for one. The use
@@ -39,6 +43,19 @@ class PortfolioAnalyticsUseCases:
     def get_current_price(self, ticker: str) -> Decimal | None:
         """Return the current provider quote for alert evaluation."""
         return self._market_data.get_current_price(normalize_ticker(ticker))
+
+    def search_symbols(
+        self, query: str, limit: int = DEFAULT_SEARCH_RESULTS
+    ) -> tuple[TickerMatch, ...]:
+        """Return provider symbol matches for a free-text asset search.
+
+        A blank query is answered with no matches instead of a provider call, so
+        an empty input can never surface an arbitrary instrument list.
+        """
+        trimmed = query.strip()
+        if not trimmed:
+            return ()
+        return tuple(self._market_data.search_symbols(trimmed, limit))
 
     def analyze_ticker(
         self, ticker: str, period: str = DEFAULT_ANALYSIS_PERIOD
