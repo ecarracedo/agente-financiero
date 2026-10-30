@@ -120,7 +120,7 @@ class _StubMarketData:
     def __init__(self):
         self.queries = []
 
-    def get_current_price(self, ticker):
+    def get_quote(self, ticker):
         """Return no quote; search tests never ask for one."""
         return None
 

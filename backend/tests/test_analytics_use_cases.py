@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from backend.app.application.analytics import PortfolioAnalyticsUseCases
 from backend.app.domain.alerts import AlertIntent
-from backend.app.domain.analysis import PricePoint
+from backend.app.domain.analysis import PricePoint, QuoteSnapshot
 from backend.app.domain.portfolio import PortfolioPosition
 
 
@@ -29,16 +29,20 @@ class FakePositionRepository:
 
 
 class FakeMarketDataProvider:
-    """Provide deterministic current prices and dated historical series."""
+    """Provide deterministic current quotes and dated historical series."""
 
-    def __init__(self, prices, histories):
+    def __init__(self, prices, histories, currencies=None):
         self._prices = prices
         self._histories = histories
+        self._currencies = dict(currencies or {})
         self.history_requests = []
 
-    def get_current_price(self, ticker):
-        """Return a configured current quote or None."""
-        return self._prices.get(ticker)
+    def get_quote(self, ticker):
+        """Return a configured current quote with its currency, or None."""
+        price = self._prices.get(ticker)
+        if price is None:
+            return None
+        return QuoteSnapshot(price, self._currencies.get(ticker))
 
     def get_historical_series(self, ticker, period):
         """Return configured dated points and record the requested period."""
@@ -108,6 +112,23 @@ def test_market_analysis_forwards_the_requested_period_to_the_provider():
     use_cases.analyze_ticker("AAPL", "5y")
 
     assert provider.history_requests == [("AAPL", "5y")]
+
+
+def test_market_analysis_use_case_carries_the_provider_currency():
+    """The analysis names the currency the instrument is quoted in."""
+    use_cases = PortfolioAnalyticsUseCases(
+        FakePositionRepository([]),
+        FakeMarketDataProvider(
+            {"PAMP.BA": Decimal("4802.5")},
+            {"PAMP.BA": points([Decimal("4000"), Decimal("4802.5")])},
+            {"PAMP.BA": "ARS"},
+        ),
+    )
+
+    result = use_cases.analyze_ticker("PAMP.BA", "1mo")
+
+    assert result.currency == "ARS"
+    assert result.current_price == Decimal("4802.5")
 
 
 def test_market_analysis_is_unknown_when_current_quote_is_unavailable():

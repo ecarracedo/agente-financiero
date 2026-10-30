@@ -141,6 +141,7 @@ describe('TransactionsWorkspace', () => {
       status: 'OK',
       reason: null,
       current_price: '415.50',
+      currency: 'USD',
       high_52_week: '430.00',
       low_52_week: '300.00',
       moving_average_50: '400.00',
@@ -165,5 +166,33 @@ describe('TransactionsWorkspace', () => {
       expect(screen.getByLabelText('Unit price')).toHaveValue('415.50')
     })
     expect(marketApi.getAnalysis).toHaveBeenCalledWith('MSFT', '1mo')
+  })
+
+  it('records an Argentine listing in the currency its quote is made in', async () => {
+    vi.mocked(marketApi.getAnalysis).mockResolvedValue({
+      ticker: 'PAMP.BA',
+      status: 'OK',
+      reason: null,
+      current_price: '4802.50',
+      currency: 'ARS',
+      high_52_week: '5200.00',
+      low_52_week: '2100.00',
+      moving_average_50: '4400.00',
+      moving_average_200: null,
+      signals: [],
+      series: [],
+    })
+
+    render(<TransactionsWorkspace />)
+
+    const tickerInput = screen.getByLabelText('Ticker')
+    fireEvent.change(tickerInput, { target: { value: 'PAMP.BA' } })
+    fireEvent.blur(tickerInput)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Unit price')).toHaveValue('4802.50')
+    })
+    // The currency follows the instrument instead of staying on dollars.
+    expect(screen.getByLabelText('Currency')).toHaveValue('ARS')
   })
 })

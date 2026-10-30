@@ -17,6 +17,14 @@ class PricePoint:
 
 
 @dataclass(frozen=True)
+class QuoteSnapshot:
+    """A current price together with the currency the provider quotes it in."""
+
+    price: Decimal
+    currency: str | None
+
+
+@dataclass(frozen=True)
 class MarketAnalysis:
     """Represent market range, rolling averages, explicit signals, and series."""
 
@@ -24,6 +32,7 @@ class MarketAnalysis:
     status: str
     reason: str | None
     current_price: Decimal | None
+    currency: str | None
     high_52_week: Decimal | None
     low_52_week: Decimal | None
     moving_average_50: Decimal | None
@@ -36,6 +45,7 @@ def analyze_market(
     ticker: str,
     current_price: Decimal | None,
     series: Sequence[PricePoint],
+    currency: str | None = None,
 ) -> MarketAnalysis:
     """Calculate range, moving-average signals, and a dated series.
 
@@ -48,6 +58,7 @@ def analyze_market(
         ticker: Asset symbol being analyzed.
         current_price: Latest available market price, or ``None`` if unavailable.
         series: Historical dated closing prices supplied by the market-data port.
+        currency: ISO code the provider quotes this instrument in, when known.
 
     Returns:
         A typed analysis result with optional metrics and a dated series.
@@ -63,6 +74,7 @@ def analyze_market(
             status="UNKNOWN",
             reason="No current market price",
             current_price=None,
+            currency=currency,
             high_52_week=None,
             low_52_week=None,
             moving_average_50=None,
@@ -79,6 +91,7 @@ def analyze_market(
             status="UNKNOWN",
             reason="No historical data",
             current_price=current_price,
+            currency=currency,
             high_52_week=None,
             low_52_week=None,
             moving_average_50=None,
@@ -120,6 +133,7 @@ def analyze_market(
         status="OK",
         reason=None,
         current_price=current_price,
+        currency=currency,
         high_52_week=high_52_week,
         low_52_week=low_52_week,
         moving_average_50=moving_average_50,

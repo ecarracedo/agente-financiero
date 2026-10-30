@@ -15,7 +15,7 @@ The autocompletion triggers when the ticker is selected or blurred (or when sele
 ### D3. Form Defaults
 To reduce cognitive friction:
 - `occurred_at`: defaults to local current date-time string (`YYYY-MM-DDTHH:mm`).
-- `currency`: defaults to `'USD'`.
+- `currency`: defaults to `'USD'` and follows the quote once one is fetched (see D8).
 - `broker`: defaults to `'IBKR'`.
 - `category`: defaults to `'Stock'`.
 
@@ -28,7 +28,7 @@ On submit, it builds a `TransactionRequest`:
 - `operation_type`: `'BUY'` | `'SELL'`.
 - `quantity`: string.
 - `unit_price`: string.
-- `currency`: `'USD'`.
+- `currency`: the currency reported by the quote (see D8).
 - `occurred_at`: current ISO timestamp.
 
 On success, it displays a success feedback badge and calls `onTransactionCreated()`, which increments `refreshToken` in `PortfolioWorkspace`, immediately refreshing holdings, summary metrics, and valuations.
@@ -42,13 +42,19 @@ The order ticket needs the real symbol universe, so `GET /api/v1/tickers/search?
 ### D7. Category and broker derive from the instrument type
 The previous hardcoded ticker list decided broker and category. With free-text symbols, the ticket derives the category from the provider instrument type (`Cryptocurrency`/`Currency` → `Cripto`, `ETF` → `ETF`, otherwise `Stock`) and picks `Binance` for crypto and `IBKR` otherwise.
 
+### D8. One provider snapshot answers price and currency
+Hardcoding `currency: 'USD'` recorded an Argentine listing quoted in pesos as dollars, which silently mixed two currencies inside one valuation group. The port now exposes `get_quote(ticker) -> QuoteSnapshot | None` (price plus currency) instead of `get_current_price`, so both fields come from a single `.info` read and can never disagree. The adapter normalizes the provider field to an upper-cased three-letter ASCII code and reports anything else as unknown, because a guess is worse than an explicit gap.
+
+`MarketAnalysis` and `MarketAnalysisResponse` carry `currency`, so the analysis endpoint answers "what is this quoted in" without a second call. Both frontend entry points adopt it: `QuickOrderCard` shows it beside the price and the estimated total and submits it, and `TransactionForm` fills the editable currency field from the quote. US dollars remain the fallback when the provider reports nothing, and the user can still overwrite the field in the full form.
 
 ## Data Flow
 
 ```
 [User interacts with QuickOrderCard / TransactionForm]
         │
-        ├── Ticker changed ──▶ marketApi.getAnalysis(ticker, '1mo') ──▶ updates unit_price
+        ├── Ticker changed ──▶ marketApi.getAnalysis(ticker, '1mo')
+        │                          ├── current_price ──▶ unit_price
+        │                          └── currency      ──▶ ticket currency
         │
         └── Click "Registrar Transacción"
                 │

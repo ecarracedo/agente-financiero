@@ -34,15 +34,16 @@ class PortfolioAnalyticsUseCases:
         """Value positions by currency without converting missing quotes to zero."""
         positions = self._position_repository.list_positions()
         current_prices = {
-            ticker: price
+            ticker: quote.price
             for ticker in {position.ticker for position in positions}
-            if (price := self._market_data.get_current_price(ticker)) is not None
+            if (quote := self._market_data.get_quote(ticker)) is not None
         }
         return value_portfolio(positions, current_prices)
 
     def get_current_price(self, ticker: str) -> Decimal | None:
         """Return the current provider quote for alert evaluation."""
-        return self._market_data.get_current_price(normalize_ticker(ticker))
+        quote = self._market_data.get_quote(normalize_ticker(ticker))
+        return None if quote is None else quote.price
 
     def search_symbols(
         self, query: str, limit: int = DEFAULT_SEARCH_RESULTS
@@ -60,11 +61,16 @@ class PortfolioAnalyticsUseCases:
     def analyze_ticker(
         self, ticker: str, period: str = DEFAULT_ANALYSIS_PERIOD
     ) -> MarketAnalysis:
-        """Combine one current quote and the dated provider series."""
+        """Combine one current quote, its currency, and the dated provider series."""
         normalized_ticker = normalize_ticker(ticker)
-        current_price = self._market_data.get_current_price(normalized_ticker)
+        quote = self._market_data.get_quote(normalized_ticker)
         series = self._market_data.get_historical_series(normalized_ticker, period)
-        return analyze_market(normalized_ticker, current_price, series)
+        return analyze_market(
+            normalized_ticker,
+            None if quote is None else quote.price,
+            series,
+            None if quote is None else quote.currency,
+        )
 
     def evaluate_target_crossing(
         self,

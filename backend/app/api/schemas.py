@@ -161,7 +161,7 @@ class TickerMatchResponse(BaseModel):
 
 
 class MarketAnalysisResponse(BaseModel):
-    """Expose technical analysis metrics with explicit unknown states."""
+    """Expose technical analysis metrics, the quote currency, and unknown states."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -169,6 +169,7 @@ class MarketAnalysisResponse(BaseModel):
     status: str
     reason: str | None
     current_price: OptionalMoneyString
+    currency: str | None
     high_52_week: OptionalMoneyString
     low_52_week: OptionalMoneyString
     moving_average_50: OptionalMoneyString

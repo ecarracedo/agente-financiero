@@ -43,8 +43,15 @@ export function TransactionForm({ onSubmit, fieldErrors = {} }: TransactionFormP
     setFetchingPrice(true)
     try {
       const analysis = await marketApi.getAnalysis(symbol, '1mo')
-      if (analysis && analysis.current_price) {
-        setUnitPrice(analysis.current_price)
+      if (analysis) {
+        if (analysis.current_price) {
+          setUnitPrice(analysis.current_price)
+        }
+        // The provider quotes each instrument in its own currency, so an
+        // Argentine listing must not be recorded as dollars.
+        if (analysis.currency) {
+          setCurrency(analysis.currency)
+        }
       }
     } catch {
       // Allow manual entry on provider failure

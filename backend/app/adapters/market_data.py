@@ -6,12 +6,29 @@ from decimal import Decimal, InvalidOperation
 import importlib
 from typing import Any
 
-from backend.app.domain.analysis import PricePoint
+from backend.app.domain.analysis import PricePoint, QuoteSnapshot
 from backend.app.domain.tickers import (
     DEFAULT_SEARCH_RESULTS,
     TickerMatch,
     normalize_ticker,
 )
+
+
+def _to_currency(value: Any) -> str | None:
+    """Normalize a provider currency field into a three-letter ISO code.
+
+    Args:
+        value: The raw provider value, usually a short code such as ``"ARS"``.
+
+    Returns:
+        The upper-cased code when it is three ASCII letters, otherwise ``None``.
+    """
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip().upper()
+    if len(candidate) == 3 and candidate.isascii() and candidate.isalpha():
+        return candidate
+    return None
 
 
 def _to_date(timestamp: Any) -> date | None:
@@ -103,8 +120,14 @@ class YFinanceMarketDataProvider:
                 break
         return tuple(matches)
 
-    def get_current_price(self, ticker: str) -> Decimal | None:
-        """Return a positive current quote or None when the provider has none."""
+    def get_quote(self, ticker: str) -> QuoteSnapshot | None:
+        """Return the current price and its quote currency, or None.
+
+        One provider information lookup answers both, so a price and its
+        currency can never come from two different snapshots. A quote without a
+        recognizable ISO currency keeps its price and reports the currency as
+        unknown rather than guessing dollars.
+        """
         try:
             information = self._create_ticker(ticker).info
             for field in ("currentPrice", "regularMarketPrice", "previousClose"):
@@ -116,7 +139,10 @@ class YFinanceMarketDataProvider:
                 except InvalidOperation:
                     continue
                 if price.is_finite() and price > 0:
-                    return price
+                    return QuoteSnapshot(
+                        price=price,
+                        currency=_to_currency(information.get("currency")),
+                    )
         except Exception:
             return None
         return None

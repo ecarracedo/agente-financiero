@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from backend.app.adapters.persistence.models import Base
-from backend.app.domain.analysis import PricePoint
+from backend.app.domain.analysis import PricePoint, QuoteSnapshot
 from backend.app.main import create_app
 
 
@@ -27,15 +27,17 @@ class FakeMarketDataProvider:
     def __init__(self):
         self.prices = {}
         self.price_sequences = {}
+        self.currencies = {}
         self.series = {}
         self.requested_periods = []
 
-    def get_current_price(self, ticker):
+    def get_quote(self, ticker):
         """Return the next configured quote or a stable quote."""
         sequence = self.price_sequences.get(ticker)
         if sequence:
-            return sequence.pop(0)
-        return self.prices.get(ticker)
+            return QuoteSnapshot(sequence.pop(0), self.currencies.get(ticker))
+        price = self.prices.get(ticker)
+        return None if price is None else QuoteSnapshot(price, self.currencies.get(ticker))
 
     def get_historical_series(self, ticker, period):
         """Return configured dated points and record the requested period."""
@@ -140,6 +142,32 @@ def test_valuation_and_analysis_endpoints_preserve_currency(api_client):
     assert analysis.status_code == 200
     assert analysis.json()["high_52_week"] == "20"
     assert "ABOVE_200_DAY_AVERAGE" in analysis.json()["signals"]
+
+
+def test_analysis_endpoint_reports_the_quote_currency(api_client):
+    """The analysis response names the currency the instrument trades in."""
+    client, market_data = api_client
+    market_data.prices["PAMP.BA"] = Decimal("4802.5")
+    market_data.currencies["PAMP.BA"] = "ARS"
+    market_data.series["PAMP.BA"] = points([Decimal("4000"), Decimal("4802.5")])
+
+    response = client.get("/api/v1/analysis/PAMP.BA", params={"period": "1mo"})
+
+    assert response.status_code == 200
+    assert response.json()["currency"] == "ARS"
+    assert response.json()["current_price"] == "4802.5"
+
+
+def test_analysis_endpoint_reports_an_unknown_currency_as_null(api_client):
+    """A provider without a recognizable currency leaves the field unknown."""
+    client, market_data = api_client
+    market_data.prices["AAPL"] = Decimal("20")
+    market_data.series["AAPL"] = points([Decimal("10"), Decimal("20")])
+
+    response = client.get("/api/v1/analysis/AAPL", params={"period": "1mo"})
+
+    assert response.status_code == 200
+    assert response.json()["currency"] is None
 
 
 def test_analysis_endpoint_exposes_a_chronological_canonical_series(api_client):

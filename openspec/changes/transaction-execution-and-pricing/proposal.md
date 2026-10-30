@@ -61,4 +61,5 @@ Revert `TransactionForm.tsx`, `QuickOrderCard.tsx`, and `PortfolioWorkspace.tsx`
 
 - [ ] Typing or selecting a ticker in `TransactionForm` populates its current market price.
 - [ ] Submitting a transaction via `QuickOrderCard` creates the transaction and updates portfolio holdings immediately.
+- [ ] The recorded currency follows the instrument's quote, so an Argentine listing is stored in ARS and a US one in USD.
 - [ ] Suite passes 100% of frontend tests with zero TypeScript or linting regressions.

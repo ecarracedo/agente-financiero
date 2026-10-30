@@ -14,6 +14,7 @@ from backend.app.adapters.persistence.models import Base
 from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
 from backend.app.application.analytics import PortfolioAnalyticsUseCases
 from backend.app.application.portfolio import PortfolioUseCases
+from backend.app.domain.analysis import QuoteSnapshot
 
 
 class FakeMarketDataProvider:
@@ -23,15 +24,19 @@ class FakeMarketDataProvider:
     data at all, which is the boundary the agent must report as uncertain.
     """
 
-    def __init__(self, prices=None, series=None):
-        """Store the configured quotes and series keyed by ticker."""
+    def __init__(self, prices=None, series=None, currencies=None):
+        """Store the configured quotes, quote currencies, and series by ticker."""
         self._prices = dict(prices or {})
         self._series = dict(series or {})
+        self._currencies = dict(currencies or {})
         self.requested_periods = []
 
-    def get_current_price(self, ticker):
-        """Return the configured quote for a ticker, or None when there is none."""
-        return self._prices.get(ticker)
+    def get_quote(self, ticker):
+        """Return the configured quote with its currency, or None."""
+        price = self._prices.get(ticker)
+        if price is None:
+            return None
+        return QuoteSnapshot(price, self._currencies.get(ticker))
 
     def get_historical_series(self, ticker, period):
         """Return the configured dated series and record the requested period."""

@@ -9,7 +9,7 @@ from types import TracebackType
 from typing import Callable, Protocol, Self
 
 from backend.app.domain.alerts import TargetAlertSettings
-from backend.app.domain.analysis import PricePoint
+from backend.app.domain.analysis import PricePoint, QuoteSnapshot
 from backend.app.domain.portfolio import PortfolioPosition
 from backend.app.domain.tickers import TickerMatch
 
@@ -158,7 +158,7 @@ class PortfolioReadRepositoryPort(Protocol):
 class MarketDataProviderPort(Protocol):
     """Read-only market data interface used by backend application services."""
 
-    def get_current_price(self, ticker: str) -> Decimal | None: ...
+    def get_quote(self, ticker: str) -> QuoteSnapshot | None: ...
 
     def get_historical_series(
         self, ticker: str, period: str

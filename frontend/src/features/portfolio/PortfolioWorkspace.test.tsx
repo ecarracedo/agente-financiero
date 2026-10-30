@@ -173,4 +173,36 @@ describe('PortfolioWorkspace', () => {
     expect(await screen.findByText('¡Transacción Registrada!')).toBeInTheDocument()
     expect(posted).toMatchObject({ ticker: 'AAPL', unit_price: '190.00' })
   })
+
+  it('records an Argentine listing in pesos instead of dollars', async () => {
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.post('*/api/v1/transactions', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json(null, { status: 201 })
+      }),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+    await screen.findByRole('heading', { name: /posiciones en cartera/i })
+
+    fireEvent.change(screen.getByRole('combobox', { name: /activo/i }), {
+      target: { value: 'PAMP.BA' },
+    })
+
+    // The quote supplies the price and the currency the ticket will record.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('4802.50')
+    })
+    expect(screen.getAllByText('ARS')).toHaveLength(2)
+
+    fireEvent.click(screen.getByRole('button', { name: /registrar transacción/i }))
+
+    expect(await screen.findByText('¡Transacción Registrada!')).toBeInTheDocument()
+    expect(posted).toMatchObject({
+      ticker: 'PAMP.BA',
+      unit_price: '4802.50',
+      currency: 'ARS',
+    })
+  })
 })

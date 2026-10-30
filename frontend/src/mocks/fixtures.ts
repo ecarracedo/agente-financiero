@@ -99,6 +99,7 @@ export const analysisAAPL = {
   status: 'OK' as const,
   reason: null,
   current_price: '190.00',
+  currency: 'USD' as const,
   high_52_week: '200.00',
   low_52_week: '150.00',
   moving_average_50: '180.00',
@@ -108,6 +109,25 @@ export const analysisAAPL = {
     { date: '2024-01-01', close: '160.00' },
     { date: '2024-02-01', close: '175.00' },
     { date: '2024-03-01', close: '190.00' },
+  ],
+}
+
+/** MarketAnalysisResponse for an Argentine listing quoted in pesos. */
+export const analysisPAMP = {
+  ticker: 'PAMP.BA',
+  status: 'OK' as const,
+  reason: null,
+  current_price: '4802.50',
+  currency: 'ARS' as const,
+  high_52_week: '5200.00',
+  low_52_week: '2100.00',
+  moving_average_50: '4400.00',
+  moving_average_200: null,
+  signals: ['NEAR_52_WEEK_HIGH'],
+  series: [
+    { date: '2024-01-01', close: '2100.00' },
+    { date: '2024-02-01', close: '3500.00' },
+    { date: '2024-03-01', close: '4802.50' },
   ],
 }
 
@@ -144,6 +164,7 @@ export const tickerSearchResults = [
   status: 'UNKNOWN' as const,
   reason: 'No current market price',
   current_price: null,
+  currency: null,
   high_52_week: null,
   low_52_week: null,
   moving_average_50: null,

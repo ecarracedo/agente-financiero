@@ -469,7 +469,7 @@ export interface components {
         };
         /**
          * MarketAnalysisResponse
-         * @description Expose technical analysis metrics with explicit unknown states.
+         * @description Expose technical analysis metrics, the quote currency, and unknown states.
          */
         MarketAnalysisResponse: {
             /** Ticker */
@@ -480,6 +480,8 @@ export interface components {
             reason: string | null;
             /** Current Price */
             current_price: string | null;
+            /** Currency */
+            currency: string | null;
             /** High 52 Week */
             high_52_week: string | null;
             /** Low 52 Week */

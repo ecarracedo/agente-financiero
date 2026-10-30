@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from backend.app.adapters.market_data import YFinanceMarketDataProvider
-from backend.app.domain.analysis import PricePoint
+from backend.app.domain.analysis import PricePoint, QuoteSnapshot
 
 
 class FakeCloseSeries:
@@ -56,6 +56,32 @@ class FakeTicker:
         return FakeHistory(self._index, self._closes)
 
 
+def test_quote_carries_the_provider_currency():
+    """The adapter reports the currency the instrument is quoted in."""
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"currentPrice": 4802.5, "currency": "ARS"}, []
+        )
+    )
+
+    quote = provider.get_quote("PAMP.BA")
+
+    assert quote == QuoteSnapshot(price=Decimal("4802.5"), currency="ARS")
+
+
+def test_quote_without_a_usable_currency_still_reports_the_price():
+    """An unrecognizable currency field becomes unknown instead of a guess."""
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"currentPrice": 12.34, "currency": "dólares"}, []
+        )
+    )
+
+    quote = provider.get_quote("AAPL")
+
+    assert quote == QuoteSnapshot(price=Decimal("12.34"), currency=None)
+
+
 def test_current_price_uses_available_provider_field():
     """The adapter converts a current quote to Decimal without binary floats."""
     provider = YFinanceMarketDataProvider(
@@ -64,7 +90,7 @@ def test_current_price_uses_available_provider_field():
         )
     )
 
-    assert provider.get_current_price("AAPL") == Decimal("12.34")
+    assert provider.get_quote("AAPL") == QuoteSnapshot(Decimal("12.34"), None)
 
 
 def test_current_price_falls_back_to_previous_close():
@@ -73,7 +99,7 @@ def test_current_price_falls_back_to_previous_close():
         ticker_factory=lambda ticker: FakeTicker({"previousClose": 9.75}, [])
     )
 
-    assert provider.get_current_price("AAPL") == Decimal("9.75")
+    assert provider.get_quote("AAPL") == QuoteSnapshot(Decimal("9.75"), None)
 
 
 def test_historical_series_pairs_dates_with_decimal_closes():
@@ -127,7 +153,7 @@ def test_provider_failure_returns_unavailable_data():
 
     provider = YFinanceMarketDataProvider(ticker_factory=failing_ticker_factory)
 
-    assert provider.get_current_price("AAPL") is None
+    assert provider.get_quote("AAPL") is None
     assert provider.get_historical_series("AAPL", "1y") == ()
 
 

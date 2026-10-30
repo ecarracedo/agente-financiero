@@ -25,9 +25,17 @@
 - [x] 4.4 Replace the hardcoded ticker list in `QuickOrderCard` with the search control and derive broker/category from the instrument type.
 - [x] 4.5 MSW handler, fixture, component tests, and an integration test that searches, picks a symbol, and submits it.
 
+## Phase 5: ARS/USD Separation
+
+- [x] 5.1 Backend: `QuoteSnapshot` (price + currency) in the domain, `get_quote` replaces `get_current_price` on the port and yfinance adapter (one `.info` read, three-letter ASCII code or unknown).
+- [x] 5.2 Carry `currency` through `MarketAnalysis`, `analyze_ticker`, and `MarketAnalysisResponse`; regenerate `frontend/openapi.json` and `src/api/types.ts`.
+- [x] 5.3 Frontend: `QuickOrderCard` shows and submits the quote currency; `TransactionForm` fills its editable currency field from the quote.
+- [x] 5.4 MSW fixture/handler for an ARS listing, plus backend adapter/use-case/API tests and frontend tests for both entry points.
+
 ## Notes
 
 - `frontend/src/lib/datetime.ts` centralizes the local `datetime-local` value used for `occurred_at` by both entry points.
 - `QuickOrderCard` derives its loading state (`symbol !== quotedTicker`) instead of writing state inside the quote effect, which keeps `react-hooks/set-state-in-effect` satisfied.
 - Production bundle builds and the OpenAPI drift check passes; interactive demo-mode verification remains pending.
+- `currency` is required-but-nullable in `MarketAnalysisResponse`, so an unknown quote currency is explicit instead of silently defaulting to dollars on the wire.
 

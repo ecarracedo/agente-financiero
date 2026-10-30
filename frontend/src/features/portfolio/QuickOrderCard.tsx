@@ -31,6 +31,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [asset, setAsset] = useState<TickerSuggestion | null>(null)
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('')
+  const [currency, setCurrency] = useState('USD')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [quotedTicker, setQuotedTicker] = useState<string | null>(null)
@@ -48,7 +49,9 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   })
 
   // Fetch the live market price from yfinance, debounced so typing a symbol
-  // costs one request instead of one per keystroke.
+  // costs one request instead of one per keystroke. The quote currency comes
+  // from the same response, so an Argentine listing records ARS and a US one
+  // records USD instead of assuming dollars.
   useEffect(() => {
     if (!symbol) return
     let active = true
@@ -59,6 +62,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         .then((data) => {
           if (!active) return
           if (data?.current_price) setPrice(data.current_price)
+          setCurrency(data?.currency ?? 'USD')
         })
         .catch(() => {
           // Fall back to manual pricing when the provider is unavailable.
@@ -79,6 +83,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
     if (nextSymbol !== symbol) {
       setAsset(null)
       setPrice('')
+      setCurrency('USD')
     }
     setTicker(next)
   }
@@ -105,7 +110,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         operation_type: orderType,
         quantity,
         unit_price: price,
-        currency: 'USD',
+        currency,
         occurred_at: localDateTimeValue(),
       })
       setSubmitted(true)
@@ -207,7 +212,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
                 className="w-full bg-transparent text-xs font-mono text-white focus:outline-none text-right"
                 placeholder="0.00"
               />
-              <span className="text-[10px] font-mono text-[#869397] ml-1">USD</span>
+              <span className="text-[10px] font-mono text-[#869397] ml-1">{currency}</span>
             </div>
           </div>
         </div>
@@ -219,7 +224,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
           </div>
           <div className="text-right">
             <span className="text-base font-bold font-mono text-white">${total}</span>
-            <span className="text-[10px] font-mono text-[#869397] ml-1">USD</span>
+            <span className="text-[10px] font-mono text-[#869397] ml-1">{currency}</span>
           </div>
         </div>
 

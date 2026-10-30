@@ -60,3 +60,27 @@ The quick order ticket MUST let the user find an instrument by typing free text 
 - THEN the typed symbol is submitted unchanged
 - AND no error is raised for the missing suggestion
 
+
+### Requirement: Transaction currency follows the instrument
+
+Both transaction entry points MUST record a transaction in the currency the instrument is actually quoted in, as reported by the market analysis for that symbol. The currency MUST be visible in the order ticket next to the unit price and the estimated total. When the quote reports no currency, the ticket MUST fall back to US dollars, and the currency field MUST remain editable in the full operation form.
+
+#### Scenario: The quick order ticket records pesos for an Argentine listing
+
+- GIVEN the quick order ticket and a symbol quoted in ARS
+- WHEN the quote returns a current price with its currency
+- THEN the ticket shows that currency beside the price and the estimated total
+- AND the submitted transaction carries that same currency
+
+#### Scenario: The operation form adopts the quote currency
+
+- GIVEN the operation form with its dollar default
+- WHEN the user requests the quote for a symbol quoted in ARS
+- THEN the currency field holds ARS
+- AND the user can still overwrite it before submitting
+
+#### Scenario: An unknown quote currency falls back to dollars
+
+- GIVEN a symbol whose quote reports no currency
+- WHEN the user submits the ticket
+- THEN the transaction is recorded in USD

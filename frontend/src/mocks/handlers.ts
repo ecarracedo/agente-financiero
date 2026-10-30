@@ -9,6 +9,7 @@ import {
   alertCheckClear,
   alertCheckTriggered,
   analysisAAPL,
+  analysisPAMP,
   bibliography,
   portfolioItems,
   splitResult,
@@ -84,6 +85,7 @@ export const handlers = [
   http.get(`${BASE}/api/v1/analysis/:ticker`, ({ params }) => {
     const ticker = String(params.ticker)
     if (ticker === 'ZZZZ') return HttpResponse.json(unknownAnalysis)
+    if (ticker.endsWith('.BA')) return HttpResponse.json(analysisPAMP)
     return HttpResponse.json(analysisAAPL)
   }),
 
