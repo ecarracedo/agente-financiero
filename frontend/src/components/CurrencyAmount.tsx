@@ -61,9 +61,15 @@ export function CurrencyAmount({ amount, currency, variant = 'plain' }: Currency
   const trend = trendOf(amount)
   // The backend already sends the minus for a loss; only a gain needs one added.
   const signed = trend === 'up' ? `+${amount}` : amount
+  const colorClass =
+    trend === 'up'
+      ? 'text-[#46fa9c]'
+      : trend === 'down'
+        ? 'text-[#ffb4ab]'
+        : 'text-[#869397]'
 
   return (
-    <span data-trend={trend}>
+    <span data-trend={trend} className={`font-mono tabular-nums ${colorClass}`}>
       {signed} {currency}
       <span aria-hidden="true"> {trend === 'up' ? '▲' : trend === 'down' ? '▼' : '='}</span>
     </span>

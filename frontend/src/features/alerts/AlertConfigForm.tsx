@@ -21,6 +21,8 @@ export interface AlertConfigFormProps {
   targetPrice: string
   /** Whether a save request is in flight. */
   submitting: boolean
+  /** Per-field validation errors from the backend (422). */
+  fieldErrors?: Record<string, string>
   onIntentChange: (intent: AlertIntent) => void
   onTargetPriceChange: (value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -31,6 +33,7 @@ export function AlertConfigForm({
   intent,
   targetPrice,
   submitting,
+  fieldErrors = {},
   onIntentChange,
   onTargetPriceChange,
   onSubmit,
@@ -43,6 +46,7 @@ export function AlertConfigForm({
         value={intent}
         options={INTENT_OPTIONS}
         onChange={(value) => onIntentChange(value as AlertIntent)}
+        error={fieldErrors.intent}
       />
       <TextField
         id="alert-target"
@@ -50,8 +54,13 @@ export function AlertConfigForm({
         value={targetPrice}
         onChange={onTargetPriceChange}
         inputMode="decimal"
+        error={fieldErrors.target_price}
       />
-      <button type="submit" disabled={submitting}>
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded-lg bg-[#06b6d4] px-4 py-2 text-sm font-semibold text-[#003640] hover:bg-[#4cd7f6] disabled:opacity-50 transition-all shadow-md"
+      >
         {submitting ? 'Saving…' : 'Save alert'}
       </button>
     </form>

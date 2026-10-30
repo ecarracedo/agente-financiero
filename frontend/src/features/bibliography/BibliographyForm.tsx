@@ -31,45 +31,55 @@ export function BibliographyForm({
   onSubmit,
 }: BibliographyFormProps) {
   return (
-    <form onSubmit={onSubmit} noValidate>
-      <TextField
-        id="bibliography-title"
-        label="Title"
-        value={values.title}
-        onChange={(value) => onChange('title', value)}
-      />
-      <TextField
-        id="bibliography-author"
-        label="Author"
-        value={values.author}
-        onChange={(value) => onChange('author', value)}
-      />
-      <TextField
-        id="bibliography-year"
-        label="Year"
-        value={values.year}
-        onChange={(value) => onChange('year', value)}
-        inputMode="numeric"
-      />
-      <TextField
-        id="bibliography-category"
-        label="Category"
-        value={values.category}
-        onChange={(value) => onChange('category', value)}
-      />
-      <TextField
-        id="bibliography-link"
-        label="Link"
-        value={values.link}
-        onChange={(value) => onChange('link', value)}
-      />
-      <TextAreaField
-        id="bibliography-description"
-        label="Description"
-        value={values.description}
-        onChange={(value) => onChange('description', value)}
-      />
-      <button type="submit" disabled={submitting}>
+    <form onSubmit={onSubmit} noValidate className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextField
+          id="bibliography-title"
+          label="Title"
+          value={values.title}
+          onChange={(value) => onChange('title', value)}
+        />
+        <TextField
+          id="bibliography-author"
+          label="Author"
+          value={values.author}
+          onChange={(value) => onChange('author', value)}
+        />
+        <TextField
+          id="bibliography-year"
+          label="Year"
+          value={values.year}
+          onChange={(value) => onChange('year', value)}
+          inputMode="numeric"
+        />
+        <TextField
+          id="bibliography-category"
+          label="Category"
+          value={values.category}
+          onChange={(value) => onChange('category', value)}
+        />
+        <div className="md:col-span-2">
+          <TextField
+            id="bibliography-link"
+            label="Link"
+            value={values.link}
+            onChange={(value) => onChange('link', value)}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <TextAreaField
+            id="bibliography-description"
+            label="Description"
+            value={values.description}
+            onChange={(value) => onChange('description', value)}
+          />
+        </div>
+      </div>
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded-lg bg-[#06b6d4] px-5 py-2.5 text-sm font-semibold text-[#003640] hover:bg-[#4cd7f6] disabled:opacity-50 transition-all shadow-md"
+      >
         {submitting ? 'Adding…' : 'Add resource'}
       </button>
     </form>

@@ -11,7 +11,8 @@ import type { FormEvent } from 'react'
 
 import { describeApiError } from '../../api/errors'
 import { ApiError } from '../../api/http'
-import { ErrorState } from '../../components/AsyncStates'
+import { ErrorState, SuccessState } from '../../components/AsyncStates'
+import { Card } from '../../components/tremor/Card'
 import { CurrencyAmount } from '../../components/CurrencyAmount'
 import { AlertConfigForm } from './AlertConfigForm'
 import type { AlertCheckState } from './AlertStatus'
@@ -33,6 +34,44 @@ export interface AlertsPanelProps {
   onTargetConfigured?: (ticker: string, targetPrice: string) => void
 }
 
+/** Map a FastAPI validation detail to a field-specific message. */
+function fieldErrorFromDetail(detail: unknown, field: string): string | undefined {
+  if (Array.isArray(detail)) {
+    for (const item of detail) {
+      if (item && typeof item === 'object' && 'loc' in item && 'msg' in item) {
+        const loc = (item as { loc: unknown }).loc
+        if (Array.isArray(loc) && loc[loc.length - 1] === field) {
+          return String((item as { msg: unknown }).msg)
+        }
+      }
+    }
+  }
+  if (detail && typeof detail === 'object') {
+    const record = detail as Record<string, unknown>
+    const value = record[field]
+    if (typeof value === 'string') return value
+  }
+  return undefined
+}
+
+/** Read the first validation message from an ApiError detail. */
+function firstDetailMessage(detail: unknown): string | undefined {
+  if (Array.isArray(detail) && detail.length > 0) {
+    const item = detail[0]
+    if (item && typeof item === 'object' && 'msg' in item) {
+      return String((item as { msg: unknown }).msg)
+    }
+  }
+  if (detail && typeof detail === 'object') {
+    const record = detail as Record<string, unknown>
+    for (const key of ['message', 'detail']) {
+      const value = record[key]
+      if (typeof value === 'string') return value
+    }
+  }
+  return undefined
+}
+
 /** Configure and check a target alert for one ticker. */
 export function AlertsPanel({
   ticker,
@@ -47,14 +86,17 @@ export function AlertsPanel({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [checkState, setCheckState] = useState<AlertCheckState>({ kind: 'idle' })
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSaveError(null)
+    setFieldErrors({})
     setSaved(false)
     if (targetPrice.trim() === '') {
       setSaveError('Target price is required.')
+      setFieldErrors({ target_price: 'Target price is required.' })
       return
     }
     setSaving(true)
@@ -75,6 +117,23 @@ export function AlertsPanel({
       setSaved(true)
       onTargetConfigured?.(ticker, targetPrice)
     } catch (caught) {
+      if (caught instanceof ApiError) {
+        const detail = caught.detail
+        const next: Record<string, string> = {}
+        for (const field of ['target_price', 'price', 'broker', 'category', 'intent', 'ticker']) {
+          const message = fieldErrorFromDetail(detail, field)
+          if (message) next[field === 'price' ? 'target_price' : field] = message
+        }
+        if (Object.keys(next).length > 0) {
+          setFieldErrors(next)
+          return
+        }
+        const fallback = firstDetailMessage(detail)
+        if (fallback) {
+          setSaveError(fallback)
+          return
+        }
+      }
       setSaveError(describeApiError(caught))
     } finally {
       setSaving(false)
@@ -111,21 +170,41 @@ export function AlertsPanel({
       : null
 
   return (
-    <section aria-labelledby="alerts-heading">
-      <h3 id="alerts-heading">Target alert</h3>
-      <AlertConfigForm
-        intent={intent}
-        targetPrice={targetPrice}
-        submitting={saving}
-        onIntentChange={setIntent}
-        onTargetPriceChange={setTargetPrice}
-        onSubmit={handleSave}
-      />
-      <button type="button" onClick={handleCheck} disabled={ticker === ''}>
-        Check alert
-      </button>
-      {saved ? <p role="status">Alert saved.</p> : null}
-      {saveError ? <ErrorState message={saveError} /> : null}
+    <Card>
+      <section aria-labelledby="alerts-heading" className="space-y-4">
+        <h3 id="alerts-heading" className="text-base font-semibold text-gray-900 dark:text-gray-50">
+          Target alert
+        </h3>
+        <AlertConfigForm
+          intent={intent}
+          targetPrice={targetPrice}
+          submitting={saving}
+          fieldErrors={fieldErrors}
+          onIntentChange={(value) => {
+            setIntent(value)
+            setSaved(false)
+          }}
+          onTargetPriceChange={(value) => {
+            setTargetPrice(value)
+            setSaved(false)
+            setFieldErrors((current) => {
+              const next = { ...current }
+              delete next.target_price
+              return next
+            })
+          }}
+          onSubmit={handleSave}
+        />
+        <button
+          type="button"
+          onClick={handleCheck}
+          disabled={ticker === ''}
+          className="rounded-lg border border-[#3d494c]/60 bg-[#1c2028] px-4 py-2 text-sm font-semibold text-white hover:bg-[#262a33] hover:text-[#4cd7f6] transition-all disabled:opacity-50"
+        >
+          Check alert
+        </button>
+        {saved ? <SuccessState message="Alert saved." /> : null}
+        {saveError ? <ErrorState message={saveError} /> : null}
       {observedPrice !== null ? (
         <p>
           Current price:{' '}
@@ -137,6 +216,7 @@ export function AlertsPanel({
         </p>
       ) : null}
       <AlertStatus state={checkState} />
-    </section>
+      </section>
+    </Card>
   )
 }

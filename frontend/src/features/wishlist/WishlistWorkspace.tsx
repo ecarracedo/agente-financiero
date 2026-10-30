@@ -10,8 +10,9 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { describeApiError } from '../../api/errors'
-import { ErrorState, LoadingState } from '../../components/AsyncStates'
+import { ErrorState, LoadingState, SuccessState } from '../../components/AsyncStates'
 import { TextField } from '../../components/FormControls'
+import { Card } from '../../components/tremor/Card'
 import { WishlistTable } from './WishlistTable'
 import { useWishlist } from './useWishlist'
 import { wishlistApi } from './wishlistApi'
@@ -53,6 +54,8 @@ export function WishlistWorkspace() {
     event.preventDefault()
     const next = ticker.trim()
     if (next === '') return
+    setMessage(null)
+    setActionError(null)
     await run(async () => {
       await wishlistApi.add(next)
       setTicker('')
@@ -63,49 +66,71 @@ export function WishlistWorkspace() {
   async function handleSaveTarget(target: string) {
     const stored = items.find((item) => item.ticker === target)?.target_price ?? ''
     const value = (drafts[target] ?? stored).trim()
+    setMessage(null)
+    setActionError(null)
     await run(async () => {
       await wishlistApi.setTarget(target, value === '' ? null : value)
       dropDraft(target)
+      setMessage('Target updated.')
     })
   }
 
   async function handleClearTarget(target: string) {
+    setMessage(null)
+    setActionError(null)
     await run(async () => {
       await wishlistApi.setTarget(target, null)
       dropDraft(target)
+      setMessage('Target cleared.')
     })
   }
 
   async function handleRemove(target: string) {
+    setMessage(null)
+    setActionError(null)
     await run(async () => {
       await wishlistApi.remove(target)
       dropDraft(target)
+      setMessage('Ticker removed.')
     })
   }
 
   return (
-    <section aria-labelledby="wishlist-heading">
-      <h2 id="wishlist-heading">Wishlist</h2>
+    <section aria-labelledby="wishlist-heading" className="space-y-4">
+      <h2 id="wishlist-heading" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+        Wishlist
+      </h2>
 
-      <form onSubmit={handleAdd} noValidate>
-        <TextField id="wishlist-ticker" label="Ticker" value={ticker} onChange={setTicker} />
-        <button type="submit">Add ticker</button>
-      </form>
+      <Card>
+        <form onSubmit={handleAdd} noValidate className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[200px] flex-1">
+            <TextField id="wishlist-ticker" label="Ticker" value={ticker} onChange={setTicker} />
+          </div>
+          <button
+            type="submit"
+            className="rounded-lg bg-[#06b6d4] px-4 py-2 text-sm font-semibold text-[#003640] hover:bg-[#4cd7f6] transition-all shadow-md"
+          >
+            Add ticker
+          </button>
+        </form>
+      </Card>
 
       {actionError ? <ErrorState message={actionError} /> : null}
-      {message ? <p role="status">{message}</p> : null}
+      {message ? <SuccessState message={message} /> : null}
 
       {status === 'loading' ? <LoadingState label="Loading wishlist…" /> : null}
       {status === 'error' ? <ErrorState message={describeApiError(error)} /> : null}
       {status === 'ready' ? (
-        <WishlistTable
-          items={items}
-          drafts={drafts}
-          onDraftChange={handleDraftChange}
-          onSaveTarget={handleSaveTarget}
-          onClearTarget={handleClearTarget}
-          onRemove={handleRemove}
-        />
+        <Card>
+          <WishlistTable
+            items={items}
+            drafts={drafts}
+            onDraftChange={handleDraftChange}
+            onSaveTarget={handleSaveTarget}
+            onClearTarget={handleClearTarget}
+            onRemove={handleRemove}
+          />
+        </Card>
       ) : null}
     </section>
   )

@@ -18,7 +18,12 @@
 
 /** Inline loading indicator announced to assistive technology. */
 export function LoadingState({ label = 'Loading…' }: { label?: string }) {
-  return <p role="status">{label}</p>
+  return (
+    <p role="status" className="text-xs font-mono text-[#4cd7f6] flex items-center gap-2 py-2">
+      <span className="w-2 h-2 rounded-full bg-[#4cd7f6] animate-ping" />
+      <span>{label}</span>
+    </p>
+  )
 }
 
 /**
@@ -28,12 +33,16 @@ export function LoadingState({ label = 'Loading…' }: { label?: string }) {
  * a status would report an event that never happened.
  */
 export function EmptyState({ message }: { message: string }) {
-  return <p>{message}</p>
+  return <p className="text-sm text-[#869397] font-mono py-6 text-center">{message}</p>
 }
 
 /** Inline error message announced to assistive technology. */
 export function ErrorState({ message }: { message: string }) {
-  return <p role="alert">{message}</p>
+  return (
+    <p role="alert" className="p-3 rounded-lg bg-red-950/30 border border-red-500/30 text-xs text-[#ffb4ab] font-mono">
+      {message}
+    </p>
+  )
 }
 
 /**
@@ -43,5 +52,9 @@ export function ErrorState({ message }: { message: string }) {
  * user navigates, so a stale message never outlives the action it describes.
  */
 export function SuccessState({ message }: { message: string }) {
-  return <p role="status">{message}</p>
+  return (
+    <p role="status" className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-xs text-[#46fa9c] font-mono">
+      {message}
+    </p>
+  )
 }

@@ -56,17 +56,32 @@ export function WishlistTable({
       key: 'actions',
       header: 'Actions',
       render: (item) => (
-        <>
-          <button type="button" onClick={() => onSaveTarget(item.ticker)}>
-            Save target for {item.ticker}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onSaveTarget(item.ticker)}
+            aria-label={`Save target for ${item.ticker}`}
+            className="rounded-lg bg-[#06b6d4] px-3 py-1.5 text-xs font-semibold text-[#003640] hover:bg-[#4cd7f6] transition-all shadow-xs"
+          >
+            Save target
           </button>
-          <button type="button" onClick={() => onClearTarget(item.ticker)}>
-            Clear target for {item.ticker}
+          <button
+            type="button"
+            onClick={() => onClearTarget(item.ticker)}
+            aria-label={`Clear target for ${item.ticker}`}
+            className="rounded-lg border border-[#3d494c]/60 bg-[#1c2028] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#262a33] hover:text-[#4cd7f6] transition-all"
+          >
+            Clear target
           </button>
-          <button type="button" onClick={() => onRemove(item.ticker)}>
-            Remove {item.ticker}
+          <button
+            type="button"
+            onClick={() => onRemove(item.ticker)}
+            aria-label={`Remove ${item.ticker}`}
+            className="rounded-lg border border-red-500/40 bg-red-950/20 px-3 py-1.5 text-xs font-semibold text-[#ffb4ab] hover:bg-red-900/30 transition-all"
+          >
+            Remove
           </button>
-        </>
+        </div>
       ),
     },
   ]

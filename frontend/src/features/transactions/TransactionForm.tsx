@@ -64,68 +64,74 @@ export function TransactionForm({ onSubmit, fieldErrors = {} }: TransactionFormP
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate aria-label="Record operation">
-      <TextField
-        id="transaction-ticker"
-        label="Ticker"
-        value={ticker}
-        onChange={setTicker}
-        error={fieldErrors.ticker}
-      />
-      <TextField
-        id="transaction-broker"
-        label="Broker"
-        value={broker}
-        onChange={setBroker}
-        error={fieldErrors.broker}
-      />
-      <TextField
-        id="transaction-category"
-        label="Category"
-        value={category}
-        onChange={setCategory}
-        error={fieldErrors.category}
-      />
-      <SelectField
-        id="transaction-operation"
-        label="Operation"
-        value={operationType}
-        options={OPERATION_OPTIONS}
-        onChange={(value) => setOperationType(value === 'SELL' ? 'SELL' : 'BUY')}
-        error={fieldErrors.operation_type}
-      />
-      <TextField
-        id="transaction-quantity"
-        label="Quantity"
-        value={quantity}
-        onChange={setQuantity}
-        inputMode="decimal"
-        error={fieldErrors.quantity}
-      />
-      <TextField
-        id="transaction-unit-price"
-        label="Unit price"
-        value={unitPrice}
-        onChange={setUnitPrice}
-        inputMode="decimal"
-        error={fieldErrors.unit_price}
-      />
-      <TextField
-        id="transaction-currency"
-        label="Currency"
-        value={currency}
-        onChange={setCurrency}
-        error={fieldErrors.currency}
-      />
-      <TextField
-        id="transaction-occurred-at"
-        label="Occurred at"
-        type="datetime-local"
-        value={occurredAt}
-        onChange={setOccurredAt}
-        error={fieldErrors.occurred_at}
-      />
-      <button type="submit" disabled={submitting}>
+    <form onSubmit={handleSubmit} noValidate aria-label="Record operation" className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <TextField
+          id="transaction-ticker"
+          label="Ticker"
+          value={ticker}
+          onChange={setTicker}
+          error={fieldErrors.ticker}
+        />
+        <TextField
+          id="transaction-broker"
+          label="Broker"
+          value={broker}
+          onChange={setBroker}
+          error={fieldErrors.broker}
+        />
+        <TextField
+          id="transaction-category"
+          label="Category"
+          value={category}
+          onChange={setCategory}
+          error={fieldErrors.category}
+        />
+        <SelectField
+          id="transaction-operation"
+          label="Operation"
+          value={operationType}
+          options={OPERATION_OPTIONS}
+          onChange={(value) => setOperationType(value === 'SELL' ? 'SELL' : 'BUY')}
+          error={fieldErrors.operation_type}
+        />
+        <TextField
+          id="transaction-quantity"
+          label="Quantity"
+          value={quantity}
+          onChange={setQuantity}
+          inputMode="decimal"
+          error={fieldErrors.quantity}
+        />
+        <TextField
+          id="transaction-unit-price"
+          label="Unit price"
+          value={unitPrice}
+          onChange={setUnitPrice}
+          inputMode="decimal"
+          error={fieldErrors.unit_price}
+        />
+        <TextField
+          id="transaction-currency"
+          label="Currency"
+          value={currency}
+          onChange={setCurrency}
+          error={fieldErrors.currency}
+        />
+        <TextField
+          id="transaction-occurred-at"
+          label="Occurred at"
+          type="datetime-local"
+          value={occurredAt}
+          onChange={setOccurredAt}
+          error={fieldErrors.occurred_at}
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded-lg bg-[#06b6d4] px-5 py-2.5 text-sm font-semibold text-[#003640] hover:bg-[#4cd7f6] transition-all disabled:opacity-50 shadow-md"
+      >
         {submitting ? 'Recording…' : 'Record operation'}
       </button>
     </form>

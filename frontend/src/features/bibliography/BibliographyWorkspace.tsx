@@ -11,7 +11,8 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { describeApiError } from '../../api/errors'
-import { ErrorState, LoadingState } from '../../components/AsyncStates'
+import { ErrorState, LoadingState, SuccessState } from '../../components/AsyncStates'
+import { Card } from '../../components/tremor/Card'
 import { BibliographyForm } from './BibliographyForm'
 import type { BibliographyFormValues } from './BibliographyForm'
 import { BibliographyTable } from './BibliographyTable'
@@ -96,6 +97,7 @@ export function BibliographyWorkspace() {
     setMessage(null)
     try {
       await bibliographyApi.remove(itemId)
+      setMessage('Resource deleted.')
       setVersion((value) => value + 1)
     } catch (caught) {
       setActionError(describeApiError(caught))
@@ -103,22 +105,30 @@ export function BibliographyWorkspace() {
   }
 
   return (
-    <section aria-labelledby="bibliography-heading">
-      <h2 id="bibliography-heading">Bibliography</h2>
+    <section aria-labelledby="bibliography-heading" className="space-y-4">
+      <h2 id="bibliography-heading" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+        Bibliography
+      </h2>
 
-      <BibliographyForm
-        values={values}
-        submitting={submitting}
-        onChange={handleChange}
-        onSubmit={handleAdd}
-      />
+      <Card>
+        <BibliographyForm
+          values={values}
+          submitting={submitting}
+          onChange={handleChange}
+          onSubmit={handleAdd}
+        />
+      </Card>
 
       {actionError ? <ErrorState message={actionError} /> : null}
-      {message ? <p role="status">{message}</p> : null}
+      {message ? <SuccessState message={message} /> : null}
 
       {status === 'loading' ? <LoadingState label="Loading bibliography…" /> : null}
       {status === 'error' ? <ErrorState message={describeApiError(error)} /> : null}
-      {status === 'ready' ? <BibliographyTable items={items} onDelete={handleDelete} /> : null}
+      {status === 'ready' ? (
+        <Card>
+          <BibliographyTable items={items} onDelete={handleDelete} />
+        </Card>
+      ) : null}
     </section>
   )
 }

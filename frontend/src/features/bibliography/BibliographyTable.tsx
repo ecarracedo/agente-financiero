@@ -38,8 +38,13 @@ export function BibliographyTable({ items, onDelete }: BibliographyTableProps) {
       key: 'actions',
       header: 'Actions',
       render: (item) => (
-        <button type="button" onClick={() => onDelete(item.id)}>
-          Delete {item.title}
+        <button
+          type="button"
+          onClick={() => onDelete(item.id)}
+          aria-label={`Delete ${item.title}`}
+          className="rounded-lg border border-red-500/40 bg-red-950/20 px-3 py-1.5 text-xs font-semibold text-[#ffb4ab] hover:bg-red-900/30 transition-all"
+        >
+          Delete
         </button>
       ),
     },

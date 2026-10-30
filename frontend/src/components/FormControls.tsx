@@ -56,8 +56,10 @@ export function TextField({
   const { descriptionId, errorId } = messageIds(id, description !== undefined, error !== undefined)
 
   return (
-    <div>
-      <label htmlFor={id}>{label}</label>
+    <div className="space-y-1">
+      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-[#bcc9cd] font-mono">
+        {label}
+      </label>
       <input
         id={id}
         type={type}
@@ -66,9 +68,18 @@ export function TextField({
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={error !== undefined ? true : undefined}
         aria-describedby={describedBy(descriptionId, errorId)}
+        className="w-full px-3 py-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/60 text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6] transition-all text-sm"
       />
-      {description !== undefined ? <span id={descriptionId}>{description}</span> : null}
-      {error !== undefined ? <span id={errorId}>{error}</span> : null}
+      {description !== undefined ? (
+        <span id={descriptionId} className="block text-xs text-[#869397]">
+          {description}
+        </span>
+      ) : null}
+      {error !== undefined ? (
+        <span id={errorId} className="block text-xs text-[#ffb4ab] font-mono">
+          {error}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -98,8 +109,10 @@ export function TextAreaField({
   const { descriptionId, errorId } = messageIds(id, description !== undefined, error !== undefined)
 
   return (
-    <div>
-      <label htmlFor={id}>{label}</label>
+    <div className="space-y-1">
+      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-[#bcc9cd] font-mono">
+        {label}
+      </label>
       <textarea
         id={id}
         rows={rows}
@@ -107,9 +120,18 @@ export function TextAreaField({
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={error !== undefined ? true : undefined}
         aria-describedby={describedBy(descriptionId, errorId)}
+        className="w-full px-3 py-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/60 text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6] transition-all text-sm"
       />
-      {description !== undefined ? <span id={descriptionId}>{description}</span> : null}
-      {error !== undefined ? <span id={errorId}>{error}</span> : null}
+      {description !== undefined ? (
+        <span id={descriptionId} className="block text-xs text-[#869397]">
+          {description}
+        </span>
+      ) : null}
+      {error !== undefined ? (
+        <span id={errorId} className="block text-xs text-[#ffb4ab] font-mono">
+          {error}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -144,14 +166,17 @@ export function SelectField({
   const { descriptionId, errorId } = messageIds(id, description !== undefined, error !== undefined)
 
   return (
-    <div>
-      <label htmlFor={id}>{label}</label>
+    <div className="space-y-1">
+      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-[#bcc9cd] font-mono">
+        {label}
+      </label>
       <select
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={error !== undefined ? true : undefined}
         aria-describedby={describedBy(descriptionId, errorId)}
+        className="w-full px-3 py-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/60 text-white focus:outline-none focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6] transition-all text-sm"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -159,8 +184,16 @@ export function SelectField({
           </option>
         ))}
       </select>
-      {description !== undefined ? <span id={descriptionId}>{description}</span> : null}
-      {error !== undefined ? <span id={errorId}>{error}</span> : null}
+      {description !== undefined ? (
+        <span id={descriptionId} className="block text-xs text-[#869397]">
+          {description}
+        </span>
+      ) : null}
+      {error !== undefined ? (
+        <span id={errorId} className="block text-xs text-[#ffb4ab] font-mono">
+          {error}
+        </span>
+      ) : null}
     </div>
   )
 }

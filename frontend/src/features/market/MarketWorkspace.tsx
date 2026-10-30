@@ -88,7 +88,7 @@ export function MarketWorkspace() {
 
   return (
     <section aria-labelledby="market-heading" className="space-y-6">
-      <h2 id="market-heading" className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+      <h2 id="market-heading" className="text-xl font-bold font-headline tracking-tight text-white">
         Market
       </h2>
 
@@ -118,7 +118,7 @@ export function MarketWorkspace() {
             <button
               type="button"
               onClick={handleLoadSearch}
-              className="mb-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="mb-0.5 rounded-lg bg-[#06b6d4] px-4 py-2 text-sm font-semibold text-[#003640] hover:bg-[#4cd7f6] transition-all shadow-md"
             >
               Load ticker
             </button>

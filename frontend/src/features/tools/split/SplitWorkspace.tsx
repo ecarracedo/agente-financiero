@@ -13,6 +13,7 @@ import { describeApiError } from '../../../api/errors'
 import { ErrorState } from '../../../components/AsyncStates'
 import type { SelectOption } from '../../../components/FormControls'
 import { SelectField, TextField } from '../../../components/FormControls'
+import { Card } from '../../../components/tremor/Card'
 import type { SplitProjection } from './splitApi'
 import { splitApi } from './splitApi'
 
@@ -71,57 +72,71 @@ export function SplitWorkspace() {
   }
 
   return (
-    <section aria-labelledby="split-heading">
-      <h2 id="split-heading">Split calculator</h2>
+    <section aria-labelledby="split-heading" className="space-y-4">
+      <h2 id="split-heading" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+        Split calculator
+      </h2>
 
-      <form onSubmit={handleSubmit} noValidate>
-        <TextField
-          id="split-quantity"
-          label="Quantity"
-          value={quantity}
-          onChange={setQuantity}
-          inputMode="decimal"
-        />
-        <TextField
-          id="split-average-price"
-          label="Average price"
-          value={averagePrice}
-          onChange={setAveragePrice}
-          inputMode="decimal"
-        />
-        <SelectField
-          id="split-direction"
-          label="Direction"
-          value={direction}
-          options={DIRECTION_OPTIONS}
-          onChange={(value) => setDirection(value === 'reverse' ? 'reverse' : 'forward')}
-        />
-        <TextField
-          id="split-ratio"
-          label="Ratio"
-          value={ratio}
-          onChange={setRatio}
-          inputMode="numeric"
-        />
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Calculating…' : 'Calculate split'}
-        </button>
-      </form>
+      <Card>
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <TextField
+              id="split-quantity"
+              label="Quantity"
+              value={quantity}
+              onChange={setQuantity}
+              inputMode="decimal"
+            />
+            <TextField
+              id="split-average-price"
+              label="Average price"
+              value={averagePrice}
+              onChange={setAveragePrice}
+              inputMode="decimal"
+            />
+            <SelectField
+              id="split-direction"
+              label="Direction"
+              value={direction}
+              options={DIRECTION_OPTIONS}
+              onChange={(value) => setDirection(value === 'reverse' ? 'reverse' : 'forward')}
+            />
+            <TextField
+              id="split-ratio"
+              label="Ratio"
+              value={ratio}
+              onChange={setRatio}
+              inputMode="numeric"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-lg bg-[#06b6d4] px-5 py-2.5 text-sm font-semibold text-[#003640] hover:bg-[#4cd7f6] disabled:opacity-50 transition-all shadow-md"
+          >
+            {submitting ? 'Calculating…' : 'Calculate split'}
+          </button>
+        </form>
+      </Card>
 
       {error ? <ErrorState message={error} /> : null}
 
       {result ? (
-        <section aria-labelledby="split-result-heading">
-          <h3 id="split-result-heading">Result</h3>
-          <dl>
-            <dt>Quantity</dt>
-            <dd>{result.quantity}</dd>
-            <dt>Average price</dt>
-            <dd>{result.average_price}</dd>
-            <dt>Ratio</dt>
-            <dd>{result.ratio}</dd>
-          </dl>
-        </section>
+        <Card>
+          <section aria-labelledby="split-result-heading" className="space-y-2">
+            <h3 id="split-result-heading" className="text-base font-semibold text-gray-900 dark:text-gray-50">
+              Result
+            </h3>
+            <dl className="grid grid-cols-3 gap-2 text-sm">
+              <dt className="text-gray-500 dark:text-gray-400">Quantity</dt>
+              <dd className="col-span-2 text-gray-900 dark:text-gray-50">{result.quantity}</dd>
+              <dt className="text-gray-500 dark:text-gray-400">Average price</dt>
+              <dd className="col-span-2 text-gray-900 dark:text-gray-50">{result.average_price}</dd>
+              <dt className="text-gray-500 dark:text-gray-400">Ratio</dt>
+              <dd className="col-span-2 text-gray-900 dark:text-gray-50">{result.ratio}</dd>
+            </dl>
+          </section>
+        </Card>
       ) : null}
     </section>
   )

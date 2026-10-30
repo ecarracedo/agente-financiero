@@ -9,7 +9,8 @@ import type { TransactionRequest } from '../../api/client'
 import { api } from '../../api/client'
 import { ApiError } from '../../api/http'
 import { describeApiError } from '../../api/errors'
-import { ErrorState, LoadingState } from '../../components/AsyncStates'
+import { ErrorState, LoadingState, SuccessState } from '../../components/AsyncStates'
+import { Card } from '../../components/tremor/Card'
 import { TextField } from '../../components/FormControls'
 import { TransactionForm } from './TransactionForm'
 import { TransactionHistoryTable } from './TransactionHistoryTable'
@@ -84,36 +85,59 @@ export function TransactionsWorkspace({ onPortfolioChanged }: TransactionsWorksp
   }
 
   return (
-    <section aria-labelledby="transactions-heading">
-      <h2 id="transactions-heading">Transactions</h2>
+    <section aria-labelledby="transactions-heading" className="space-y-6">
+      <h2 id="transactions-heading" className="text-xl font-bold font-headline tracking-tight text-white">
+        Transactions
+      </h2>
 
-      <TransactionForm onSubmit={handleSubmit} />
+      <Card>
+        <h3 className="mb-4 text-base font-semibold font-headline text-white flex items-center gap-2">
+          <span className="material-symbols-outlined text-[20px] text-[#4cd7f6]">add_circle</span>
+          <span>Record Operation</span>
+        </h3>
+        <TransactionForm onSubmit={handleSubmit} />
+      </Card>
+
       {submitError ? <ErrorState message={submitError} /> : null}
-      {successMessage ? <p role="status">{successMessage}</p> : null}
+      {successMessage ? <SuccessState message={successMessage} /> : null}
 
-      <section aria-labelledby="history-heading">
-        <h3 id="history-heading">Transaction history</h3>
-        <form onSubmit={handleViewHistory} noValidate>
-          <TextField
-            id="history-ticker"
-            label="History ticker"
-            value={filterTicker}
-            onChange={setFilterTicker}
-          />
-          <TextField
-            id="history-broker"
-            label="History broker"
-            value={filterBroker}
-            onChange={setFilterBroker}
-          />
-          <button type="submit">View history</button>
-        </form>
-        {status === 'loading' ? <LoadingState label="Loading history…" /> : null}
-        {status === 'error' ? <ErrorState message={describeApiError(error)} /> : null}
-        {status === 'ready' ? (
-          <TransactionHistoryTable transactions={transactions} onDelete={handleDelete} />
-        ) : null}
-      </section>
+      <Card>
+        <section aria-labelledby="history-heading" className="space-y-4">
+          <h3 id="history-heading" className="text-base font-semibold font-headline text-white flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px] text-[#4cd7f6]">history</span>
+            <span>Transaction History</span>
+          </h3>
+          <form onSubmit={handleViewHistory} noValidate className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[180px] flex-1">
+              <TextField
+                id="history-ticker"
+                label="History ticker"
+                value={filterTicker}
+                onChange={setFilterTicker}
+              />
+            </div>
+            <div className="min-w-[180px] flex-1">
+              <TextField
+                id="history-broker"
+                label="History broker"
+                value={filterBroker}
+                onChange={setFilterBroker}
+              />
+            </div>
+            <button
+              type="submit"
+              className="rounded-lg bg-[#262a33] border border-[#3d494c]/60 px-4 py-2 text-sm font-semibold text-white hover:bg-[#31353e] hover:text-[#4cd7f6] transition-all"
+            >
+              View history
+            </button>
+          </form>
+          {status === 'loading' ? <LoadingState label="Loading history…" /> : null}
+          {status === 'error' ? <ErrorState message={describeApiError(error)} /> : null}
+          {status === 'ready' ? (
+            <TransactionHistoryTable transactions={transactions} onDelete={handleDelete} />
+          ) : null}
+        </section>
+      </Card>
     </section>
   )
 }

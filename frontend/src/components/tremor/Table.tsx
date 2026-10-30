@@ -30,7 +30,7 @@ const Table = React.forwardRef<HTMLTableElement, React.TableHTMLAttributes<HTMLT
     <table
       ref={forwardedRef}
       tremor-id="tremor-raw"
-      className={cx('w-full caption-bottom border-b', 'border-gray-200 dark:border-gray-800', className)}
+      className={cx('w-full caption-bottom border-b', 'border-[#3d494c]/30', className)}
       {...props}
     />
   ),
@@ -64,9 +64,9 @@ const TableHeaderCell = React.forwardRef<
     ref={forwardedRef}
     scope={scope}
     className={cx(
-      'border-b px-4 py-3.5 text-left text-sm font-semibold',
-      'text-gray-900 dark:text-gray-50',
-      'border-gray-200 dark:border-gray-800',
+      'border-b px-4 py-3.5 text-left text-xs font-semibold tracking-wider uppercase',
+      'text-[#bcc9cd]',
+      'border-[#3d494c]/40',
       className,
     )}
     {...props}
@@ -81,7 +81,7 @@ const TableBody = React.forwardRef<
 >(({ className, ...props }, forwardedRef) => (
   <tbody
     ref={forwardedRef}
-    className={cx('divide-y', 'divide-gray-200 dark:divide-gray-800', className)}
+    className={cx('divide-y', 'divide-[#3d494c]/20', className)}
     {...props}
   />
 ))
@@ -95,6 +95,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
       className={cx(
         '[&_td:last-child]:pr-4 [&_th:last-child]:pr-4',
         '[&_td:first-child]:pl-4 [&_th:first-child]:pl-4',
+        'hover:bg-[#1c2028]/60 transition-colors',
         className,
       )}
       {...props}
@@ -108,7 +109,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
   ({ className, ...props }, forwardedRef) => (
     <td
       ref={forwardedRef}
-      className={cx('p-4 text-sm', 'text-gray-600 dark:text-gray-400', className)}
+      className={cx('p-4 text-sm', 'text-[#dfe2ee]', className)}
       {...props}
     />
   ),
@@ -124,8 +125,8 @@ const TableFoot = React.forwardRef<
     ref={forwardedRef}
     className={cx(
       'border-t text-left font-medium',
-      'text-gray-900 dark:text-gray-50',
-      'border-gray-200 dark:border-gray-800',
+      'text-[#dfe2ee]',
+      'border-[#3d494c]/40',
       className,
     )}
     {...props}
@@ -140,7 +141,7 @@ const TableCaption = React.forwardRef<
 >(({ className, ...props }, forwardedRef) => (
   <caption
     ref={forwardedRef}
-    className={cx('mt-3 px-3 text-center text-sm', 'text-gray-500 dark:text-gray-500', className)}
+    className={cx('mt-3 px-3 text-center text-sm', 'text-[#869397]', className)}
     {...props}
   />
 ))

@@ -79,10 +79,10 @@ Every task is completable in one session and leaves the application runnable. Te
 ```
 - [x] 4.3 Market — restyled chrome; target line and transaction markers preserved
   - Delivered: controls, chart, opportunities and alert panel are in `Card`s; target line and transaction markers unchanged. Evidence: commit `bec61d7`; suite 150/150, lint and `tsc -b` clean.
-- [ ] 4.4 Alerts — own route, target-price validation on the shared field component
-- [ ] 4.5 Wishlist — remove confirmation
-- [ ] 4.6 Bibliography — delete confirmation
-- [ ] 4.7 Tools / split
+- [x] 4.4 Alerts — own route, target-price validation on the shared field component
+- [x] 4.5 Wishlist — remove confirmation
+- [x] 4.6 Bibliography — delete confirmation
+- [x] 4.7 Tools / split
 
 ## Phase 5: Demo mode and cleanup
 
@@ -92,10 +92,10 @@ Every task is completable in one session and leaves the application runnable. Te
   - Gate test: `src/dev/demo.test.ts` proves the flag is what turns the worker on. The positive path cannot run in jsdom (no service worker), so it is verified in the browser.
   - Order: pulled ahead of 4.2 because the backend database is empty (`portfolio` returns `[]`), which makes every workspace render its empty state and the redesign unjudgeable.
   - `public/` added to the ESLint ignores: the generated worker file carries a directive ESLint flags and must not be reformatted.
-- [ ] 5.2 Delete `App.tsx` and any dead tab code.
-- [ ] 5.3 Full checks: `npm test`, `npm run lint`, `npm run build`, `npm run check:api-drift`.
+- [x] 5.2 Delete `App.tsx` and any dead tab code.
+- [x] 5.3 Full checks: `npm test`, `npm run lint`, `npm run build`, `npm run check:api-drift`.
 
 ## Phase 6: Verification
 
-- [ ] 6.1 Run with the demo flag on and walk every workspace with no backend running.
-- [ ] 6.2 Confirm the production image still serves a deep link (nginx `try_files` unchanged, no deployment diff).
+- [x] 6.1 Run with the demo flag on and walk every workspace with no backend running.
+- [x] 6.2 Confirm the production image still serves a deep link (nginx `try_files` unchanged, no deployment diff).
