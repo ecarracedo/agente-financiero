@@ -68,7 +68,7 @@ export function AssetDistributionCard() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#869397]">
-            <span className="w-2 h-2 rounded-full bg-[#46fa9c] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#46fa9c]" />
             <span>TIEMPO REAL</span>
           </div>
           <span className="text-xs font-mono font-semibold text-white">

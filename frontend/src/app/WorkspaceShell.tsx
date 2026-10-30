@@ -105,7 +105,7 @@ export function WorkspaceShell() {
               <span
                 className={`w-2 h-2 rounded-full ${
                   status === 'ready'
-                    ? 'bg-[#46fa9c] animate-pulse'
+                    ? 'bg-[#46fa9c]'
                     : status === 'unavailable'
                       ? 'bg-[#ffb4ab]'
                       : 'bg-yellow-400'

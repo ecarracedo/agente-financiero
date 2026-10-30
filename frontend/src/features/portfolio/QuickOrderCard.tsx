@@ -173,7 +173,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
             search={marketApi.searchTickers}
             hint={
               fetchingQuote ? (
-                <span className="text-[10px] font-mono text-[#4cd7f6] animate-pulse">
+                <span className="text-[10px] font-mono text-[#4cd7f6]">
                   Cotizando yfinance…
                 </span>
               ) : null
