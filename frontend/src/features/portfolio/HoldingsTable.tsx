@@ -95,15 +95,7 @@ function makeColumns(
       key: 'ticker',
       header: 'Ticker',
       render: (position) => (
-        <div className="flex items-center gap-2.5">
-          <div
-            aria-hidden="true"
-            className="w-7 h-7 rounded-md bg-[#262a33] border border-[#3d494c]/50 flex items-center justify-center font-bold text-xs text-[#4cd7f6] font-mono shrink-0"
-          >
-            {position.ticker.slice(0, 2)}
-          </div>
-          <span className="font-bold text-white font-mono">{position.ticker}</span>
-        </div>
+        <span className="font-bold text-white font-mono">{position.ticker}</span>
       ),
     },
     {
