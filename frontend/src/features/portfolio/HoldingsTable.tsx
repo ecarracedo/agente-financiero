@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 
 import type { PortfolioPosition } from '../../api/client'
 import { api } from '../../api/client'
-import { CurrencyAmount } from '../../components/CurrencyAmount'
 import type { Column } from '../../components/DataTable'
 import { DataTable } from '../../components/DataTable'
 import { marketApi } from '../market/marketApi'
@@ -41,6 +40,29 @@ function TotalCell({ position, currentPrice }: { position: PortfolioPosition; cu
   const total = qty * cur
   const formatted = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return <span className="font-mono text-white">${formatted}</span>
+}
+
+function PriceCell({ amount, currency }: { amount: string; currency: string }) {
+  const num = Number(amount)
+  if (!Number.isFinite(num)) return <span className="font-mono text-[#869397]">—</span>
+  const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return (
+    <span className="font-mono text-white">
+      ${formatted} <span className="text-[#869397]">{currency}</span>
+    </span>
+  )
+}
+
+function CurrentPriceCell({ currentPrice, currency }: { currentPrice: string | null; currency: string }) {
+  if (!currentPrice) return <span className="font-mono text-[#869397]">—</span>
+  const num = Number(currentPrice)
+  if (!Number.isFinite(num)) return <span className="font-mono text-[#869397]">—</span>
+  const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return (
+    <span className="font-mono text-white">
+      ${formatted} <span className="text-[#869397]">{currency}</span>
+    </span>
+  )
 }
 
 function makeColumns(
@@ -94,9 +116,13 @@ function makeColumns(
       key: 'average_price',
       header: 'Precio Promedio',
       align: 'right',
-      render: (position) => (
-        <CurrencyAmount amount={position.average_price} currency={position.currency} />
-      ),
+      render: (position) => <PriceCell amount={position.average_price} currency={position.currency} />,
+    },
+    {
+      key: 'current_price',
+      header: 'Precio Actual',
+      align: 'right',
+      render: (position) => <CurrentPriceCell currentPrice={getQuote(position.ticker).price} currency={position.currency} />,
     },
     {
       key: 'total',
@@ -129,7 +155,7 @@ function makeColumns(
             }}
             className="px-2 py-1 text-xs font-mono rounded bg-[#ff7f8b]/10 text-[#ff7f8b] border border-[#ff7f8b]/30 hover:bg-[#ff7f8b]/20 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {isSelling ? 'Vendiendo...' : 'Vender todo'}
+            {isSelling ? 'Vendiendo...' : 'Vender'}
           </button>
         )
       },
