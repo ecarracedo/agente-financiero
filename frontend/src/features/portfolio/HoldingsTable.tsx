@@ -87,15 +87,6 @@ function makeColumns(
       ),
     },
     {
-      key: 'broker',
-      header: 'Broker',
-      render: (position) => (
-        <span className="px-2 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-xs text-[#bcc9cd] font-mono">
-          {position.broker}
-        </span>
-      ),
-    },
-    {
       key: 'category',
       header: 'Category',
       render: (position) => (
@@ -135,6 +126,15 @@ function makeColumns(
       header: 'Variación',
       align: 'right',
       render: (position) => <VariationCell position={position} currentPrice={getQuote(position.ticker).price} />,
+    },
+    {
+      key: 'broker',
+      header: 'Broker',
+      render: (position) => (
+        <span className="px-2 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-xs text-[#bcc9cd] font-mono">
+          {position.broker}
+        </span>
+      ),
     },
     {
       key: 'actions',
