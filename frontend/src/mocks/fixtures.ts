@@ -157,6 +157,18 @@ export const tickerSearchResults = [
     exchange: 'CCC',
     quote_type: 'Cryptocurrency',
   },
+  {
+    symbol: 'PAM',
+    name: 'Pampa Energía S.A.',
+    exchange: 'NYSE',
+    quote_type: 'Equity',
+  },
+  {
+    symbol: 'PAMP.BA',
+    name: 'Pampa Energía S.A.',
+    exchange: 'Buenos Aires',
+    quote_type: 'Equity',
+  },
 ]
 
 /** MarketAnalysisResponse for a ticker with no current price. */export const unknownAnalysis = {
