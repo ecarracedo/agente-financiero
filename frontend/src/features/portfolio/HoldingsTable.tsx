@@ -66,27 +66,19 @@ function TotalCell({ position, currentPrice }: { position: PortfolioPosition; cu
   )
 }
 
-function PriceCell({ amount, currency }: { amount: string; currency: string }) {
+function PriceCell({ amount }: { amount: string }) {
   const num = Number(amount)
   if (!Number.isFinite(num)) return <span className="font-mono text-xs text-[#869397]">—</span>
   const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return (
-    <span className="font-mono text-xs text-white">
-      ${formatted} <span className="text-[#869397]">{currency}</span>
-    </span>
-  )
+  return <span className="font-mono text-xs text-white">${formatted}</span>
 }
 
-function CurrentPriceCell({ currentPrice, currency }: { currentPrice: string | null; currency: string }) {
+function CurrentPriceCell({ currentPrice }: { currentPrice: string | null }) {
   if (!currentPrice) return <span className="font-mono text-xs text-[#869397]">—</span>
   const num = Number(currentPrice)
   if (!Number.isFinite(num)) return <span className="font-mono text-xs text-[#869397]">—</span>
   const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return (
-    <span className="font-mono text-xs text-white">
-      ${formatted} <span className="text-[#869397]">{currency}</span>
-    </span>
-  )
+  return <span className="font-mono text-xs text-white">${formatted}</span>
 }
 
 function makeColumns(
@@ -123,13 +115,13 @@ function makeColumns(
       key: 'average_price',
       header: 'Precio Promedio',
       align: 'center',
-      render: (position) => <PriceCell amount={position.average_price} currency={position.currency} />,
+      render: (position) => <PriceCell amount={position.average_price} />,
     },
     {
       key: 'current_price',
       header: 'Precio Actual',
       align: 'center',
-      render: (position) => <CurrentPriceCell currentPrice={getQuote(position.ticker).price} currency={position.currency} />,
+      render: (position) => <CurrentPriceCell currentPrice={getQuote(position.ticker).price} />,
     },
     {
       key: 'total',
@@ -152,9 +144,9 @@ function makeColumns(
     {
       key: 'broker',
       header: 'Broker',
-      render: (position) => (
+      render: () => (
         <span className="px-2 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono">
-          {position.broker}
+          ECO
         </span>
       ),
     },
