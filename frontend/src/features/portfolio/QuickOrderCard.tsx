@@ -7,6 +7,7 @@ import { localDateTimeValue } from '../../lib/datetime'
 import { marketApi } from '../market/marketApi'
 
 const BROKERS = ['ECO', 'PPI', 'BINANCE'] as const
+const CATEGORIES = ['Acciones', 'ETF', 'Bono', 'FCI', 'Cripto'] as const
 
 export interface QuickOrderCardProps {
   /** Optional callback invoked when a transaction has been successfully created. */
@@ -32,6 +33,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [ticker, setTicker] = useState('NVDA')
   const [asset, setAsset] = useState<TickerSuggestion | null>(null)
   const [broker, setBroker] = useState<(typeof BROKERS)[number]>('ECO')
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('Acciones')
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('')
   const [priceEdited, setPriceEdited] = useState(false)
@@ -95,6 +97,15 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
     setTicker(next)
   }
 
+  useEffect(() => {
+    if (asset) {
+      const mapped = categoryFor(asset)
+      if (mapped === 'Cripto') setCategory('Cripto')
+      else if (mapped === 'ETF') setCategory('ETF')
+      else setCategory('Acciones')
+    }
+  }, [asset])
+
   async function handleOrder(e: React.FormEvent) {
     e.preventDefault()
     if (submitting) return
@@ -104,8 +115,6 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
       setError('Por favor complete activo, cantidad y precio.')
       return
     }
-
-    const category = categoryFor(asset)
 
     setSubmitting(true)
     try {
@@ -187,22 +196,41 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="quick-order-broker" className="text-[10px] font-mono text-[#869397] uppercase">
-            Broker
-          </label>
-          <select
-            id="quick-order-broker"
-            value={broker}
-            onChange={(e) => setBroker(e.target.value as (typeof BROKERS)[number])}
-            className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none"
-          >
-            {BROKERS.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="quick-order-broker" className="text-[10px] font-mono text-[#869397] uppercase">
+              Broker
+            </label>
+            <select
+              id="quick-order-broker"
+              value={broker}
+              onChange={(e) => setBroker(e.target.value as (typeof BROKERS)[number])}
+              className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none"
+            >
+              {BROKERS.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="quick-order-category" className="text-[10px] font-mono text-[#869397] uppercase">
+              Tipo
+            </label>
+            <select
+              id="quick-order-category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value as (typeof CATEGORIES)[number])}
+              className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
