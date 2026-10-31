@@ -15,7 +15,7 @@
 ## Phase 3: Verification & Docker Validation
 
 - [x] 3.1 Verify complete frontend test suite (`npm test`), `tsc -b`, and ESLint.
-- [ ] 3.2 Verify interactive execution in demo mode and build production bundle (`npm run build`).
+- [x] 3.2 Verify interactive execution in demo mode and build production bundle (`npm run build`).
 
 ## Phase 4: Asset Search
 
