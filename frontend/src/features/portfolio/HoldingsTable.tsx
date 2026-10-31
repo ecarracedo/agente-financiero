@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 
 import type { PortfolioPosition } from '../../api/client'
+import { api } from '../../api/client'
 import { CurrencyAmount } from '../../components/CurrencyAmount'
 import type { Column } from '../../components/DataTable'
 import { DataTable } from '../../components/DataTable'
@@ -42,7 +43,11 @@ function TotalCell({ position, currentPrice }: { position: PortfolioPosition; cu
   return <span className="font-mono text-white">${formatted}</span>
 }
 
-function makeColumns(getQuote: (ticker: string) => QuoteState): Column<PortfolioPosition>[] {
+function makeColumns(
+  getQuote: (ticker: string) => QuoteState,
+  onSellAll: (position: PortfolioPosition, price: string) => void,
+  sellingTicker: string | null,
+): Column<PortfolioPosition>[] {
   return [
     {
       key: 'ticker',
@@ -105,18 +110,44 @@ function makeColumns(getQuote: (ticker: string) => QuoteState): Column<Portfolio
       align: 'right',
       render: (position) => <VariationCell position={position} currentPrice={getQuote(position.ticker).price} />,
     },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (position) => {
+        const quote = getQuote(position.ticker)
+        const canSell = quote.status === 'ready' && quote.price
+        const isSelling = sellingTicker === position.ticker
+        return (
+          <button
+            type="button"
+            disabled={!canSell || isSelling}
+            onClick={() => {
+              if (quote.price) {
+                onSellAll(position, quote.price)
+              }
+            }}
+            className="px-2 py-1 text-xs font-mono rounded bg-[#ff7f8b]/10 text-[#ff7f8b] border border-[#ff7f8b]/30 hover:bg-[#ff7f8b]/20 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isSelling ? 'Vendiendo...' : 'Vender todo'}
+          </button>
+        )
+      },
+    },
   ]
 }
 
 export interface HoldingsTableProps {
   positions: PortfolioPosition[]
+  onPositionsChange?: () => void
 }
 
 /**
  * Holdings table for the portfolio workspace.
  */
-export function HoldingsTable({ positions }: HoldingsTableProps) {
+export function HoldingsTable({ positions, onPositionsChange }: HoldingsTableProps) {
   const [quotes, setQuotes] = useState<Record<string, QuoteState>>({})
+  const [sellingTicker, setSellingTicker] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -147,10 +178,31 @@ export function HoldingsTable({ positions }: HoldingsTableProps) {
 
   const getQuote = (ticker: string) => quotes[ticker] ?? { price: null, status: 'loading' as const }
 
+  const handleSellAll = async (position: PortfolioPosition, price: string) => {
+    try {
+      setSellingTicker(position.ticker)
+      await api.createTransaction({
+        ticker: position.ticker,
+        broker: position.broker,
+        category: position.category,
+        operation_type: 'SELL',
+        quantity: position.quantity,
+        unit_price: price,
+        currency: position.currency,
+        occurred_at: new Date().toISOString(),
+      } as any)
+      onPositionsChange?.()
+    } catch (error) {
+      console.error('Failed to sell position', error)
+    } finally {
+      setSellingTicker(null)
+    }
+  }
+
   return (
     <DataTable
       caption="Holdings"
-      columns={makeColumns(getQuote)}
+      columns={makeColumns(getQuote, handleSellAll, sellingTicker)}
       rows={positions}
       getRowKey={(position, index) =>
         `${position.ticker}-${position.broker}-${position.category}-${index}`

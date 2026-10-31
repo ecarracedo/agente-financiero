@@ -25,7 +25,7 @@ export interface PortfolioWorkspaceProps {
 /** Render the institutional portfolio dashboard. */
 export function PortfolioWorkspace({ refreshToken = 0 }: PortfolioWorkspaceProps) {
   const [internalVersion, setInternalVersion] = useState(0)
-  const { status, data, error } = usePortfolio(refreshToken + internalVersion)
+  const { status, data, error, reload } = usePortfolio(refreshToken + internalVersion)
 
   return (
     <section aria-labelledby="portfolio-heading" className="space-y-6">
@@ -64,7 +64,7 @@ export function PortfolioWorkspace({ refreshToken = 0 }: PortfolioWorkspaceProps
                 </span>
               </div>
             </div>
-            <HoldingsTable positions={data.positions} />
+            <HoldingsTable positions={data.positions} onPositionsChange={reload} />
           </Card>
 
           {/* Bottom Grid: Exposure Warning + Recent Executions */}
