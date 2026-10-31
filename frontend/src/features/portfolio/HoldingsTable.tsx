@@ -32,6 +32,26 @@ function VariationCell({ position, currentPrice }: { position: PortfolioPosition
   )
 }
 
+function PnLCell({ position, currentPrice }: { position: PortfolioPosition; currentPrice: string | null }) {
+  if (!currentPrice) return <span className="font-mono text-[#869397]">—</span>
+  const qty = Number(position.quantity)
+  const avg = Number(position.average_price)
+  const cur = Number(currentPrice)
+  if (!Number.isFinite(qty) || !Number.isFinite(avg) || !Number.isFinite(cur)) {
+    return <span className="font-mono text-[#869397]">—</span>
+  }
+  const pnl = (cur - avg) * qty
+  const isPositive = pnl >= 0
+  const formatted = Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return (
+    <span className={`font-mono ${isPositive ? 'text-[#46fa9c]' : 'text-[#ff7f8b]'}`}>
+      {isPositive ? '+' : '-'}${formatted}
+    </span>
+  )
+}
+
+
+
 function TotalCell({ position, currentPrice }: { position: PortfolioPosition; currentPrice: string | null }) {
   if (!currentPrice) return <span className="font-mono text-[#869397]">—</span>
   const qty = Number(position.quantity)
@@ -98,7 +118,7 @@ function makeColumns(
     {
       key: 'quantity',
       header: 'Cantidad',
-      align: 'right',
+      align: 'center',
       render: (position) => (
         <span className="font-mono text-white">{position.quantity}</span>
       ),
@@ -106,26 +126,32 @@ function makeColumns(
     {
       key: 'average_price',
       header: 'Precio Promedio',
-      align: 'right',
+      align: 'center',
       render: (position) => <PriceCell amount={position.average_price} currency={position.currency} />,
     },
     {
       key: 'current_price',
       header: 'Precio Actual',
-      align: 'right',
+      align: 'center',
       render: (position) => <CurrentPriceCell currentPrice={getQuote(position.ticker).price} currency={position.currency} />,
     },
     {
       key: 'total',
       header: 'Total',
-      align: 'right',
+      align: 'center',
       render: (position) => <TotalCell position={position} currentPrice={getQuote(position.ticker).price} />,
     },
     {
       key: 'variation',
       header: 'Variación',
-      align: 'right',
+      align: 'center',
       render: (position) => <VariationCell position={position} currentPrice={getQuote(position.ticker).price} />,
+    },
+    {
+      key: 'pnl',
+      header: 'P&L',
+      align: 'center',
+      render: (position) => <PnLCell position={position} currentPrice={getQuote(position.ticker).price} />,
     },
     {
       key: 'broker',

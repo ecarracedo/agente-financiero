@@ -30,7 +30,7 @@ import {
 } from './tremor/Table'
 
 /** Horizontal alignment of a column and its cells. */
-export type ColumnAlign = 'left' | 'right'
+export type ColumnAlign = 'left' | 'right' | 'center'
 
 export interface Column<T> {
   /** Stable identity for the column. */
@@ -60,7 +60,9 @@ export interface DataTableProps<T> {
  * column has to override it rather than add to it.
  */
 function alignClass(align: ColumnAlign): string {
-  return align === 'right' ? 'text-right' : 'text-left'
+  if (align === 'right') return 'text-right'
+  if (align === 'center') return 'text-center'
+  return 'text-left'
 }
 
 /** Render rows as a semantic table, or an empty state when there is no data. */
@@ -85,9 +87,9 @@ export function DataTable<T>({
               <TableHeaderCell
                 key={column.key}
                 data-align={column.align ?? 'left'}
-                className={alignClass(column.align ?? 'left')}
+                className={`${alignClass(column.align ?? 'left')} !text-center`}
               >
-                {column.header}
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#869397]">{column.header}</span>
               </TableHeaderCell>
             ))}
           </TableRow>
