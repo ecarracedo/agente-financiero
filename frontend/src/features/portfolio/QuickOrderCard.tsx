@@ -201,7 +201,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
           </div>
           <div className="flex flex-col gap-1">
             <label htmlFor="quick-order-price" className="text-[10px] font-mono text-[#869397] uppercase">
-              Precio / Acción
+              Precio
             </label>
             <div className="flex items-center justify-between bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30">
               <input
@@ -220,7 +220,6 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         <div className="flex items-center justify-between bg-[#1c2028]/80 px-3 py-2 rounded-lg border border-[#3d494c]/20">
           <div className="flex flex-col">
             <span className="text-[10px] font-mono text-[#869397] uppercase">Monto Total Estimado</span>
-            <span className="text-xs text-[#bcc9cd]">Comisión FIX: $0.00</span>
           </div>
           <div className="text-right">
             <span className="text-base font-bold font-mono text-white">${total}</span>
