@@ -62,7 +62,7 @@ export const handlers = [
   http.post(`${BASE}/api/v1/transactions`, async ({ request }) => {
     const body = (await request.json()) as TransactionSummary
     // The contract answers with the resulting position, or null.
-    const position = portfolioItems.find((item) => item.ticker === body.ticker) ?? null
+    const position = (portfolioItems as PortfolioPosition[]).find((item) => item.ticker === body.ticker) ?? null
     return HttpResponse.json<PortfolioPosition | null>(position, { status: 201 })
   }),
   http.delete(`${BASE}/api/v1/transactions/:transaction_id`, () =>

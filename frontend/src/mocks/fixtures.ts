@@ -8,24 +8,7 @@
  */
 
 /** PortfolioPositionResponse */
-export const portfolioItems = [
-  {
-    ticker: 'AAPL',
-    broker: 'IBKR',
-    category: 'Stock',
-    quantity: '10',
-    average_price: '150.25',
-    currency: 'USD',
-  },
-  {
-    ticker: 'MSFT',
-    broker: 'IBKR',
-    category: 'Stock',
-    quantity: '5',
-    average_price: '280.00',
-    currency: 'USD',
-  },
-]
+export const portfolioItems = []
 
 /**
  * CurrencyValuationResponse.
