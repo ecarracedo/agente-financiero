@@ -218,9 +218,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         </div>
 
         <div className="flex items-center justify-between bg-[#1c2028]/80 px-3 py-2 rounded-lg border border-[#3d494c]/20">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-mono text-[#869397] uppercase">Monto Total Estimado</span>
-          </div>
+          <span className="text-[10px] font-mono text-[#869397] uppercase">Total</span>
           <div className="text-right">
             <span className="text-base font-bold font-mono text-white">${total}</span>
             <span className="text-[10px] font-mono text-[#869397] ml-1">{currency}</span>
