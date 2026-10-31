@@ -6,6 +6,8 @@ import { TickerSearch } from '../../components/TickerSearch'
 import { localDateTimeValue } from '../../lib/datetime'
 import { marketApi } from '../market/marketApi'
 
+const BROKERS = ['ECO', 'PPI', 'BINANCE'] as const
+
 export interface QuickOrderCardProps {
   /** Optional callback invoked when a transaction has been successfully created. */
   onTransactionCreated?: () => void
@@ -29,6 +31,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [orderType, setOrderType] = useState<'BUY' | 'SELL'>('BUY')
   const [ticker, setTicker] = useState('NVDA')
   const [asset, setAsset] = useState<TickerSuggestion | null>(null)
+  const [broker, setBroker] = useState<(typeof BROKERS)[number]>('ECO')
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('')
   const [priceEdited, setPriceEdited] = useState(false)
@@ -101,7 +104,6 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
     }
 
     const category = categoryFor(asset)
-    const broker = category === 'Cripto' ? 'Binance' : 'IBKR'
 
     setSubmitting(true)
     try {
@@ -181,6 +183,24 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
               ) : null
             }
           />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="quick-order-broker" className="text-[10px] font-mono text-[#869397] uppercase">
+            Broker
+          </label>
+          <select
+            id="quick-order-broker"
+            value={broker}
+            onChange={(e) => setBroker(e.target.value as (typeof BROKERS)[number])}
+            className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none"
+          >
+            {BROKERS.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
