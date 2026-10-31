@@ -31,6 +31,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [asset, setAsset] = useState<TickerSuggestion | null>(null)
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('')
+  const [priceEdited, setPriceEdited] = useState(false)
   const [currency, setCurrency] = useState('USD')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -61,7 +62,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         .getAnalysis(symbol, '1mo')
         .then((data) => {
           if (!active) return
-          if (data?.current_price) setPrice(data.current_price)
+          if (data?.current_price && !priceEdited) setPrice(data.current_price)
           setCurrency(data?.currency ?? 'USD')
         })
         .catch(() => {
@@ -83,6 +84,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
     if (nextSymbol !== symbol) {
       setAsset(null)
       setPrice('')
+      setPriceEdited(false)
       setCurrency('USD')
     }
     setTicker(next)
@@ -196,7 +198,6 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
                 className="w-full bg-transparent text-xs font-mono text-white focus:outline-none"
                 placeholder="0"
               />
-              <span className="text-[10px] font-mono text-[#869397] ml-1">SHS</span>
             </div>
           </div>
           <div className="flex flex-col gap-1">
@@ -208,7 +209,10 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
                 id="quick-order-price"
                 type="text"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => {
+                  setPriceEdited(true)
+                  setPrice(e.target.value)
+                }}
                 className="w-full bg-transparent text-xs font-mono text-white focus:outline-none text-right"
                 placeholder="0.00"
               />
