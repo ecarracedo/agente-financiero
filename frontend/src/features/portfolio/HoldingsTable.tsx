@@ -59,7 +59,11 @@ function TotalCell({ position, currentPrice }: { position: PortfolioPosition; cu
   if (!Number.isFinite(qty) || !Number.isFinite(cur)) return <span className="font-mono text-xs text-[#869397]">—</span>
   const total = qty * cur
   const formatted = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return <span className="font-mono text-xs text-white">${formatted}</span>
+  return (
+    <span className="font-mono text-xs text-white">
+      ${formatted} <span className="text-[#869397]">{position.currency}</span>
+    </span>
+  )
 }
 
 function PriceCell({ amount, currency }: { amount: string; currency: string }) {

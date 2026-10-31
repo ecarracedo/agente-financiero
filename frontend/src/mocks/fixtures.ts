@@ -8,7 +8,16 @@
  */
 
 /** PortfolioPositionResponse */
-export const portfolioItems = []
+export const portfolioItems = [
+  {
+    ticker: 'AAPL',
+    broker: 'ECO',
+    category: 'Stock',
+    quantity: '10',
+    average_price: '150.25',
+    currency: 'USD',
+  },
+]
 
 /**
  * CurrencyValuationResponse.
