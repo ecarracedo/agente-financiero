@@ -153,19 +153,19 @@ export function AssetDistributionCard() {
                 className="bg-[#1c2028]/60 p-3 rounded-lg flex flex-col gap-1 border border-[#3d494c]/15"
               >
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-[#dfe2ee]">
-                    <span className={`w-2 h-2 rounded-full ${asset.dotBg}`} />
+                  <span className="flex items-center gap-1.5 text-[9px] font-mono uppercase text-[#dfe2ee]">
+                    <span className={`w-1.5 h-1.5 rounded-full ${asset.dotBg}`} />
                     {asset.name}
                   </span>
-                  <span className={`text-xs font-mono font-bold ${asset.badgeColor}`}>
+                  <span className={`text-[10px] font-mono font-bold ${asset.badgeColor}`}>
                     {asset.percentage}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-sm font-bold font-mono text-white">{asset.amount}</span>
-                  <span className="text-[10px] font-mono text-[#46fa9c]">{asset.delta}</span>
+                  <span className="text-xs font-bold font-mono text-white">{asset.amount}</span>
+                  <span className="text-[9px] font-mono text-[#46fa9c]">{asset.delta}</span>
                 </div>
-                <span className="text-[10px] text-[#869397]">{asset.subtitle}</span>
+                <span className="text-[9px] text-[#869397]">{asset.subtitle}</span>
               </div>
             ))}
           </div>
