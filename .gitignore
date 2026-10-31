@@ -30,6 +30,7 @@ venv/
 finance.db
 finance.db-journal
 *.sqlite3
+.env
 
 # Excel / Data
 Inversiones 2025.xlsx
@@ -45,8 +46,22 @@ Inversiones 2025.xlsx
 ehthumbs.db
 Thumbs.db
 
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.env
+*.tsbuildinfo
+
+# Docker / Compose
+compose.override.yaml
+
 # IDEs
 .vscode/
 .idea/
 .agent/
+.atl/
 verify/
+
+# Tailwind toolchain test probe (transient)
+.tw-probe-*/

@@ -1,0 +1,167 @@
+"""Tests for persistent, configurable portfolio target alerts."""
+
+from decimal import Decimal
+
+import pytest
+from sqlalchemy.orm import sessionmaker
+
+from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
+from backend.app.application.alerts import TargetAlertUseCases
+from backend.app.domain.alerts import AlertIntent
+from backend.app.domain.portfolio import PortfolioPosition
+
+
+def alert_use_cases(session):
+    """Create target-alert use cases backed by the isolated test database."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    return TargetAlertUseCases(
+        lambda: SqlAlchemyPortfolioUnitOfWork(session_factory)
+    )
+
+
+def seed_position(session):
+    """Persist a portfolio position for target-alert tests."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        unit_of_work.portfolio.save_position(
+            PortfolioPosition(
+                ticker="AAPL",
+                broker="Broker A",
+                category="Acciones",
+                quantity=Decimal("2"),
+                average_price=Decimal("10"),
+                currency="USD",
+            )
+        )
+        unit_of_work.commit()
+
+
+def test_buy_alert_persists_intent_and_does_not_repeat(session):
+    """A configured buy alert reports one downward crossing without repeats."""
+    seed_position(session)
+    use_cases = alert_use_cases(session)
+    use_cases.configure_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("10"), AlertIntent.BUY
+    )
+
+    assert use_cases.evaluate_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("11")
+    ) is None
+    event = use_cases.evaluate_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("10")
+    )
+    repeated = use_cases.evaluate_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("9")
+    )
+
+    assert event is not None
+    assert event.intent is AlertIntent.BUY
+    assert event.message == "Precio objetivo de compra alcanzado."
+    assert repeated is None
+
+
+def test_sell_alert_only_triggers_on_upward_crossing(session):
+    """A sell target triggers upward but not downward."""
+    seed_position(session)
+    use_cases = alert_use_cases(session)
+    use_cases.configure_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("10"), AlertIntent.SELL
+    )
+
+    assert use_cases.evaluate_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("9")
+    ) is None
+    event = use_cases.evaluate_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("10")
+    )
+
+    assert event is not None
+    assert event.intent is AlertIntent.SELL
+    assert event.message == "Precio objetivo de venta alcanzado."
+
+
+def test_unconfigured_alert_does_not_emit_event(session):
+    """A holding without configured alert intent produces no alert."""
+    seed_position(session)
+    use_cases = alert_use_cases(session)
+
+    assert use_cases.evaluate_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("10")
+    ) is None
+
+
+def test_wishlist_alert_adds_a_ticker_absent_from_the_wishlist(session):
+    """An alert on an unknown ticker adds it to the wishlist and stores the alert."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    use_cases = alert_use_cases(session)
+
+    use_cases.configure_wishlist_alert("NVDA", Decimal("500"), AlertIntent.BUY)
+
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        tickers = [record.ticker for record in unit_of_work.resources.list_wishlist()]
+        settings = unit_of_work.resources.get_wishlist_alert("NVDA")
+
+    assert tickers == ["NVDA"]
+    assert settings is not None
+    assert settings.target_price == Decimal("500")
+    assert settings.intent is AlertIntent.BUY
+
+
+def test_wishlist_alert_updates_an_existing_entry_without_duplicating_it(session):
+    """An alert on an existing wishlist entry updates it in place."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        unit_of_work.resources.add_wishlist_item("AAPL")
+        unit_of_work.commit()
+
+    use_cases = alert_use_cases(session)
+    use_cases.configure_wishlist_alert("AAPL", Decimal("10"), AlertIntent.STOP_LOSS)
+
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        tickers = [record.ticker for record in unit_of_work.resources.list_wishlist()]
+        settings = unit_of_work.resources.get_wishlist_alert("AAPL")
+
+    assert tickers == ["AAPL"]
+    assert settings is not None
+    assert settings.target_price == Decimal("10")
+    assert settings.intent is AlertIntent.STOP_LOSS
+
+
+def test_wishlist_buy_alert_persists_crossing_state(session):
+    """A wishlist alert stores its intent and suppresses repeated crossings."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        unit_of_work.resources.add_wishlist_item("AAPL")
+        unit_of_work.commit()
+
+    use_cases = alert_use_cases(session)
+    use_cases.configure_wishlist_alert("AAPL", Decimal("10"), AlertIntent.BUY)
+
+    assert use_cases.evaluate_wishlist_alert("AAPL", Decimal("11")) is None
+    event = use_cases.evaluate_wishlist_alert("AAPL", Decimal("10"))
+    repeated = use_cases.evaluate_wishlist_alert("AAPL", Decimal("9"))
+
+    assert event is not None
+    assert event.intent is AlertIntent.BUY
+    assert repeated is None
+
+
+@pytest.mark.parametrize(
+    ("ticker", "message"),
+    [
+        ("   ", "ticker is required"),
+        ("A" * 33, "ticker must be at most 32 characters"),
+    ],
+)
+def test_wishlist_alert_rejects_an_invalid_ticker_without_persisting(
+    session, ticker, message
+):
+    """An invalid ticker is refused instead of creating an unusable wishlist row."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    use_cases = alert_use_cases(session)
+
+    with pytest.raises(ValueError, match=message):
+        use_cases.configure_wishlist_alert(ticker, Decimal("500"), AlertIntent.BUY)
+
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        assert unit_of_work.resources.list_wishlist() == []

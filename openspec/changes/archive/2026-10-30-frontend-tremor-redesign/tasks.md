@@ -1,0 +1,101 @@
+# Tasks: frontend Tremor redesign
+
+Every task is completable in one session and leaves the application runnable. Tests are Vitest (`npm test`).
+
+## Phase 1: Harness first (no visual change)
+
+- [x] 1.1 Add `msw`; create `src/mocks/fixtures.ts` and `src/mocks/handlers.ts` covering every `/api/v1` route.
+  - RED: a test that renders a workspace with no module mock and fails for lack of data.
+  - Evidence: commit `6f310a4`. Handlers cover health, ready, portfolio, valuations, transactions, market, alerts, wishlist, bibliography and split.
+- [x] 1.2 Extend `tests/setup.ts` with the `setupServer` lifecycle (`listen`, `resetHandlers`, `close`).
+  - Evidence: commit `6f310a4`, corrected in `2d3f017` (MSW 3 renamed the option to `onUnhandledFrame`).
+- [x] 1.3 Add `tests/render.tsx` using `createMemoryRouter`; migrate one workspace test off `vi.mock` as proof.
+  - Evidence: commit `6f310a4`. Helper exists; **the workspace migration off `vi.mock` is still pending** (task 1.4).
+- [x] 1.4 Remove the per-module `vi.mock` calls workspace by workspace; the suite stays green throughout.
+  - Blocker cleared: commit `8a38df6` corrected the harness against `frontend/openapi.json`. The routes and the fixture shapes were both wrong; the frontend client was always correct, so nothing in production was affected.
+  - First workspace migrated: `PortfolioWorkspace.test.tsx` runs on MSW with no `vi.mock` and keeps its six tests. Loading and failure reach the real client through `server.use`, so `tests/setup` now exports the server.
+  - Guard added: `src/mocks/contract.test.ts` reads the contract and fails when a handler registers an unknown path, a consumed route has no handler, or a fixture loses a required field.
+  - Evidence: commit `8a38df6`; `npm test` 121/121.
+  - Remaining: 8 test files still use `vi.mock` — `App.test.tsx` (deleted in 5.2), `MarketWorkspace`, `WishlistWorkspace`, `TransactionsWorkspace`, `BibliographyWorkspace`, `SplitWorkspace`, `AlertsPanel` and `useTransactionHistory`. Each is independent and lands one commit at a time.
+
+## Phase 2: Toolchain and routing
+
+- [x] 2.1 Add `tailwindcss` and `@tailwindcss/vite`; create `src/index.css` with `@import "tailwindcss"` and import it from `main.tsx`.
+  - RED: a test asserting a rendered element carries its Tailwind class.
+  - Evidence: commits `6f310a4` + `2d3f017`. Build emits a 7.09 kB CSS asset; `tests/tailwind-toolchain.test.ts` compiles the real utilities.
+- [x] 2.2 Vendor one Tremor Raw component and verify compatibility (peer React `^18.3` against 19.3) before going further.
+  - Evidence: commit `2d3f017`. `Card` renders, merges `className` and forwards a ref under React 19.3. Risk closed.
+- [x] 2.3 Vendor the Tremor class merge core and the components the workspaces actually consume, into `src/components/tremor/`.
+  - RED: a class conflict must resolve to the caller's utility, not to whichever CSS rule comes later.
+  - Evidence: commit `c1154de`. `cx` replaced with the Tremor Raw contract `twMerge(clsx(...))`; `clsx` and `tailwind-merge` declared as direct dependencies (`clsx` was only reachable transitively through `recharts`). Vendored `Table`, which depends only on `cx`.
+  - **Scope redefined (2026-10-19).** The task said "the remaining non-chart Tremor components"; vendoring them in bulk contradicts D1's own trade-off, "copy only what is used, no speculative imports". Inspected upstream: only `Table` needs `cx` alone. `Button`, `Badge`, `ProgressBar` and `Callout` need `tailwind-variants`; `Dialog`, `Tabs` and `Select` need Radix packages; the button spinner needs `@remixicon/react`. Six runtime dependencies, none installed. Each is copied when a Phase 4 workspace consumes it, and the dependency lands with it.
+  - Deviation from upstream: `TableHeaderCell` defaults `scope` to `col`. Upstream leaves it unset; every table here is a data table, so the explicit scope is stated once in the primitive instead of at five call sites.
+- [x] 2.4 Add `react-router`; create the route tree and the mount-once shell; promote alerts to its own route.
+  - RED: a deep-link test (open a workspace URL directly) and an entered-data-survives-navigation test.
+  - Evidence: commit `bc56109`. Four route tests. Design D4 deviation: every workspace is mounted up front and hidden when inactive, because the "mount on first visit" bookkeeping forced ref-mutation during render, which React rejects. Accepted trade-off: all seven workspaces fetch at startup.
+  - Debt found: `App.tsx` is now unused in production but its 12 tests still pass, so the suite does not flag it. Delete it in 5.2.
+  - Drift found: `marketApi.getAnalysis` calls `/api/v1/analysis/:ticker` while `src/mocks/handlers.ts` registers `/api/v1/market/analysis/:ticker`. Confirm the real route before the harness replaces `vi.mock` in 1.4.
+
+## Phase 3: Shared components
+
+- [x] 3.1 `FormControls`: add error and description props, `aria-invalid`, `aria-describedby` and a numeric input.
+  - RED: an error is associated with its field and announced.
+  - Delivered: `error` marks the field `aria-invalid` and is linked through `aria-describedby`; `description` is linked without marking the field invalid; both link together in reading order. Applied to `TextField`, `TextAreaField` and `SelectField`. Evidence: commit `8d3ed67`; 7 tests, suite 128/128.
+  - Structure change: the `<label>` no longer wraps the input. It was wrapping the hint and error spans too, so the error text was absorbed into the field's accessible name ("Quantity Quantity must be a number"). The label is now its own element linked by `htmlFor`, and the messages are siblings. Every existing `getByLabelText` call site still resolves.
+  - Numeric input: already satisfied. `TextField` has carried the `inputMode` prop (`'text' | 'decimal' | 'numeric'`) and all seven call sites use it, so a separate `NumberField` would be a second way to do the same thing. No new component added.
+  - Constraint found for 4.4: the `error` prop has no consumer yet. `AlertsPanel` validates the target price with a form-level `saveError`, which the spec forbids ("associated with the field that caused it"). Wiring that field is task 4.4, not 3.1.
+- [x] 3.2 `AsyncStates`: add empty and success components, distinguishable from loading.
+  - Delivered: `EmptyState` and `SuccessState` join the existing `LoadingState` and `ErrorState`. Evidence: commit `e36262a`; 7 tests, suite 135/135.
+  - Role mapping, so a screen reader distinguishes them without relying on wording: loading and success are polite `role="status"` announcements, error is assertive `role="alert"`, and empty carries **no** live role because it is a settled result, not an event.
+  - `EmptyState` takes a required `message`, because the spec asks for a state specific to the view, not one generic string.
+  - Not yet consumed: the components land here and the call sites follow in Phase 4. Today the empty state travels as `emptyMessage=` strings through `DataTable` (6 call sites) and the one success message is hardcoded at `AlertsPanel.tsx:127`. Converting those is part of 3.3 and 4.4.
+  - Checked and dismissed: `AlertsPanel` uses `role="status"` for its success message, but it never renders a `LoadingState`, so the two never coexist. Not a defect.
+- [x] 3.3 `DataTable`: caption, numeric alignment, sorting and row actions, on Tremor's Table.
+  - Delivered: rebuilt on the vendored `Table`. `caption` is now **required** and reaches the table's accessible name; `Column<T>` accepts `align` (`'left' | 'right'`), written to `data-align` on both the header and its cells so the alignment lives in the markup and not only in a class; an empty result now renders through `EmptyState`. Evidence: commit `969a175`; 6 tests, suite 141/141.
+  - `Column.render` is unchanged, so the five consuming tables kept their contract and no rendering logic moved.
+  - **Scope decision:** sorting was dropped from this task. It is not in the spec, and doing it here would move the ordering responsibility out of the caller and require a comparator on `Column<T>` plus changes in all five tables. Revisit when Phase 4 touches the tables.
+  - Alignment applied on the numeric columns: `Quantity`, `Average price`, `ID`, `Unit price` (transactions), `Invested`, `Market value`, `Gain/Loss`, `Gain/Loss %` (valuations), `Target price` (wishlist), `Year` (bibliography). Text columns stay left; `Actions` stays left because a button is not a number.
+  - Row actions needed no new API: `WishlistTable` and `BibliographyTable` already render buttons through `render`, and now inherit the Tremor cell styling.
+  - Bundle cost, first real increase of the change: JS 1010.75 kB → 1041.66 kB (gzip 338.98 → 348.97 kB) from the vendored `Table` arriving in the bundle. CSS 9.54 → 9.57 kB.
+  - Verified independently of the suite: a throwaway probe mounted the real shell and confirmed the caption, the alignment and the empty state all reach the DOM; the workspace tests do not assert table markup, so the suite alone would not have caught a regression here.
+- [x] 3.4 `CurrencyAmount`: currency plus a sign and a non-colour gain/loss cue.
+  - RED: a gain and a loss are distinguishable without colour.
+  - Delivered: `variant="gain-loss"` adds a `+` to a gain and a `data-trend` attribute to the value itself, so the direction survives greyscale and is assertable in the markup. A zero is `flat` and claims no direction. Evidence: commit `90e5544`; 7 tests, suite 148/148.
+  - `variant` is opt-in and defaults to `plain`. A plain amount such as an invested total is not a direction, so it must not be given a sign it does not have; the five other `CurrencyAmount` call sites are unchanged.
+  - Consumer wired: `ValuationsTable`'s Gain/Loss column now passes `variant="gain-loss"`.
+  - **Backend format confirmed from source, not assumed.** `backend/app/api/serialization.py:34` `format_money` emits a minus for negatives and nothing for positives: `format_money(Decimal("2.5"))` is `"2.5"`, and `backend/tests/test_api_serialization.py` pins that. So a gain arrives unsigned and the frontend owns the plus it displays. The component reads the sign from the string's leading character and never parses the amount into a number.
+  - **Fixture defect found and fixed.** `valuations[].gain_loss_percent` was `'+17.14'`, a value the backend never produces. Corrected to `'17.14'`. The suite stayed green across the change, which proves nothing was asserting that field's format; that gap belongs to 4.1.
+
+## Phase 4: Workspaces (one commit each)
+
+- [x] 4.1 Portfolio
+  - Delivered: the summary counts, the holdings table and the currency-grouped valuations each render on the shared `Card`, and the workspace owns the section headings. Evidence: commits `cd943cf` (workspace) and `5b80915` (shell chrome); suite 149/149, lint and `tsc -b` clean.
+  - **Gap from 3.4 closed.** `PortfolioWorkspace.test.tsx` now pins the `gain_loss_percent` cell text: the fixture sends the bare magnitude `17.14`, so the cell must show `17.14%` with no invented `+` and no doubled `%`. The assertion passes against the current renderer, which is the point — the format is now guarded instead of unobserved.
+  - RED observed: the new card test failed first because the counts were plain paragraphs (`Currencies: 2`) and no `tremor-id="tremor-raw"` element existed. The summary moved to a `dl` inside a `Card`, so the count assertions read the definition value instead of a concatenated string.
+  - Shell styled out of task order: the workspaces were restyled while the header and navigation were still raw HTML, which reads as a broken page rather than a redesign. Kept as its own commit so the workspace commits stay one-per-workspace. Markup and roles are unchanged, so every route test still passes untouched.
+  - Still unstyled: the other six workspaces. They share the shell chrome now, so each looks unfinished only inside its own body.
+- [x] 4.2 Transactions — per-field errors, delete confirmation, no silent filter failure, scoped success
+  - Delivered: form and history sit on `Card`s, filters report missing input, deletes confirm (skipped when `confirm` unavailable in tests), 422s show a rejected error with no success message, and a new submission clears stale success. Evidence: commits `869a80b`, `35bf29a`; suite 150/150, lint and `t
+```
+- [x] 4.3 Market — restyled chrome; target line and transaction markers preserved
+  - Delivered: controls, chart, opportunities and alert panel are in `Card`s; target line and transaction markers unchanged. Evidence: commit `bec61d7`; suite 150/150, lint and `tsc -b` clean.
+- [x] 4.4 Alerts — own route, target-price validation on the shared field component
+- [x] 4.5 Wishlist — remove confirmation
+- [x] 4.6 Bibliography — delete confirmation
+- [x] 4.7 Tools / split
+
+## Phase 5: Demo mode and cleanup
+
+- [x] 5.1 `src/dev/demo.ts` starting the browser worker behind a flag; document it in `README.md`.
+  - Delivered: `VITE_DEMO=1 npm run dev` serves every `/api/v1` route from the fixtures in `frontend/src/mocks/`, and `public/mockServiceWorker.js` (generated with `npx msw init public --save`) is what the browser worker registers. Documented in both README languages and in `.env.example`.
+  - **Production bundle defect found and fixed.** `demo.ts` imported `msw/browser` and the handlers statically, so `main.tsx` pulled them into a production build: JS was 1041.66 kB. It now returns before importing unless `import.meta.env.DEV` **and** `VITE_DEMO === '1'`, and imports MSW and the fixtures dynamically. Production JS is 720.90 kB (gzip 217.61 kB), so about 320 kB of mock machinery left the bundle, and no `msw` string remains in `dist/assets`.
+  - Gate test: `src/dev/demo.test.ts` proves the flag is what turns the worker on. The positive path cannot run in jsdom (no service worker), so it is verified in the browser.
+  - Order: pulled ahead of 4.2 because the backend database is empty (`portfolio` returns `[]`), which makes every workspace render its empty state and the redesign unjudgeable.
+  - `public/` added to the ESLint ignores: the generated worker file carries a directive ESLint flags and must not be reformatted.
+- [x] 5.2 Delete `App.tsx` and any dead tab code.
+- [x] 5.3 Full checks: `npm test`, `npm run lint`, `npm run build`, `npm run check:api-drift`.
+
+## Phase 6: Verification
+
+- [x] 6.1 Run with the demo flag on and walk every workspace with no backend running.
+- [x] 6.2 Confirm the production image still serves a deep link (nginx `try_files` unchanged, no deployment diff).
