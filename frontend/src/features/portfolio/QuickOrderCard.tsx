@@ -65,7 +65,9 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         .getAnalysis(symbol, '1mo')
         .then((data) => {
           if (!active) return
-          if (data?.current_price && !priceEdited) setPrice(data.current_price)
+          if (data?.current_price) {
+            setPrice((prev) => (priceEdited ? prev : data.current_price ?? prev))
+          }
           setCurrency(data?.currency ?? 'USD')
         })
         .catch(() => {

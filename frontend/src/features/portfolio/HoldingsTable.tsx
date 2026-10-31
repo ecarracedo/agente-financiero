@@ -194,20 +194,24 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
     const tickers = Array.from(new Set(positions.map((p) => p.ticker)))
 
     for (const ticker of tickers) {
-      if (quotes[ticker]?.status === 'ready') continue
-      setQuotes((prev) => ({ ...prev, [ticker]: { price: null, status: 'loading' } }))
       marketApi
         .getAnalysis(ticker, '1mo')
         .then((data) => {
           if (!active) return
-          setQuotes((prev) => ({
-            ...prev,
-            [ticker]: { price: data?.current_price ?? null, status: 'ready' },
-          }))
+          setQuotes((prev) => {
+            if (prev[ticker]?.status === 'ready') return prev
+            return {
+              ...prev,
+              [ticker]: { price: data?.current_price ?? null, status: 'ready' },
+            }
+          })
         })
         .catch(() => {
           if (!active) return
-          setQuotes((prev) => ({ ...prev, [ticker]: { price: null, status: 'error' } }))
+          setQuotes((prev) => {
+            if (prev[ticker]?.status === 'ready' || prev[ticker]?.status === 'error') return prev
+            return { ...prev, [ticker]: { price: null, status: 'error' } }
+          })
         })
     }
 
@@ -230,7 +234,7 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
         unit_price: price,
         currency: position.currency,
         occurred_at: new Date().toISOString(),
-      } as any)
+      })
       onPositionsChange?.()
     } catch (error) {
       console.error('Failed to sell position', error)
