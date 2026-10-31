@@ -11,6 +11,7 @@
 ## 4. Documentación
 - **README.md**: Actualizar SIEMPRE tras cambios importantes en instalación, uso o configuración.
 - **CHANGELOG**: 
+  - SIEMPRE actualizar `CHANGELOG.md` con los cambios realizados antes de hacer merge a `main`. Agregar bajo `[Unreleased]` o crear nueva versión.
   - Al hacer merge de `dev` a `main`, registrar nuevos features y bugfixes en `CHANGELOG.md` (y `CHANGELOG_es.md` si aplica).
 ## 5. Flujo de Trabajo (Git)
 - **Auto-Merge**: Cuando se realizan cambios en `dev` y se solicita merge a `main`, realizar el merge automáticamente sin esperar confirmación final si los tests pasan. Se recomienda realizar el merge localmente y luego subir los cambios a github. Luego pasar a `dev` para continuar con el desarrollo.
