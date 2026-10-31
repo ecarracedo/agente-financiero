@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Portfolio Positions**: Added Total and Variación columns to positions table with live quotes; added P&L column.
+- **Quick Order**: Added broker selector (ECO, PPI, BINANCE) and asset type selector (Acciones, ETF, Bono, FCI, Cripto). Allow manual price editing. Removed SHS label.
+- **Holdings Management**: Added "Vender" button to sell entire position at current price. Positions start empty in demo.
+
+### Changed
+- **Currency Handling**: Currency now follows the instrument's quote currency (ARS for .BA, USD for others). Fallback to USD if unavailable.
+- **UI Polish**: Removed constant pulsing/loading effects. Narrowed sidebar and shrunk typography. Reordered columns (Broker after Variación). Hid currency suffix in Precio Promedio/Precio Actual. Total shows currency only as indicator. Removed ticker abbreviation badge.
+- **Quick Order Labels**: "Precio / Acción" → "Precio", "Monto Total Estimado" → "Total", removed "Comisión FIX".
+
+### Fixed
+- **Demo**: Fixed ticker search in demo mode, added Pampa tickers to fixtures.
+- **Lint/Build**: Resolved React hooks and TypeScript issues.
+
+### Added
+- **Demo Script**: Added `scripts/start-demo.sh` to run frontend in demo mode.
+
 ## [1.2.0] - 2025-12-18
 
 ### Added
