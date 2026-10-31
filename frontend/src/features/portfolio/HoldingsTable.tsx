@@ -16,16 +16,16 @@ type QuoteState = {
 }
 
 function VariationCell({ position, currentPrice }: { position: PortfolioPosition; currentPrice: string | null }) {
-  if (!currentPrice) return <span className="font-mono text-[#869397]">—</span>
+  if (!currentPrice) return <span className="font-mono text-xs text-[#869397]">—</span>
   const avg = Number(position.average_price)
   const cur = Number(currentPrice)
   if (!Number.isFinite(avg) || avg === 0 || !Number.isFinite(cur)) {
-    return <span className="font-mono text-[#869397]">—</span>
+    return <span className="font-mono text-xs text-[#869397]">—</span>
   }
   const pct = ((cur - avg) / avg) * 100
   const isPositive = pct >= 0
   return (
-    <span className={`font-mono ${isPositive ? 'text-[#46fa9c]' : 'text-[#ff7f8b]'}`}>
+    <span className={`font-mono text-xs ${isPositive ? 'text-[#46fa9c]' : 'text-[#ff7f8b]'}`}>
       {isPositive ? '+' : ''}
       {pct.toFixed(2)}%
     </span>
@@ -33,18 +33,18 @@ function VariationCell({ position, currentPrice }: { position: PortfolioPosition
 }
 
 function PnLCell({ position, currentPrice }: { position: PortfolioPosition; currentPrice: string | null }) {
-  if (!currentPrice) return <span className="font-mono text-[#869397]">—</span>
+  if (!currentPrice) return <span className="font-mono text-xs text-[#869397]">—</span>
   const qty = Number(position.quantity)
   const avg = Number(position.average_price)
   const cur = Number(currentPrice)
   if (!Number.isFinite(qty) || !Number.isFinite(avg) || !Number.isFinite(cur)) {
-    return <span className="font-mono text-[#869397]">—</span>
+    return <span className="font-mono text-xs text-[#869397]">—</span>
   }
   const pnl = (cur - avg) * qty
   const isPositive = pnl >= 0
   const formatted = Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return (
-    <span className={`font-mono ${isPositive ? 'text-[#46fa9c]' : 'text-[#ff7f8b]'}`}>
+    <span className={`font-mono text-xs ${isPositive ? 'text-[#46fa9c]' : 'text-[#ff7f8b]'}`}>
       {isPositive ? '+' : '-'}${formatted}
     </span>
   )
@@ -53,33 +53,33 @@ function PnLCell({ position, currentPrice }: { position: PortfolioPosition; curr
 
 
 function TotalCell({ position, currentPrice }: { position: PortfolioPosition; currentPrice: string | null }) {
-  if (!currentPrice) return <span className="font-mono text-[#869397]">—</span>
+  if (!currentPrice) return <span className="font-mono text-xs text-[#869397]">—</span>
   const qty = Number(position.quantity)
   const cur = Number(currentPrice)
-  if (!Number.isFinite(qty) || !Number.isFinite(cur)) return <span className="font-mono text-[#869397]">—</span>
+  if (!Number.isFinite(qty) || !Number.isFinite(cur)) return <span className="font-mono text-xs text-[#869397]">—</span>
   const total = qty * cur
   const formatted = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return <span className="font-mono text-white">${formatted}</span>
+  return <span className="font-mono text-xs text-white">${formatted}</span>
 }
 
 function PriceCell({ amount, currency }: { amount: string; currency: string }) {
   const num = Number(amount)
-  if (!Number.isFinite(num)) return <span className="font-mono text-[#869397]">—</span>
+  if (!Number.isFinite(num)) return <span className="font-mono text-xs text-[#869397]">—</span>
   const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return (
-    <span className="font-mono text-white">
+    <span className="font-mono text-xs text-white">
       ${formatted} <span className="text-[#869397]">{currency}</span>
     </span>
   )
 }
 
 function CurrentPriceCell({ currentPrice, currency }: { currentPrice: string | null; currency: string }) {
-  if (!currentPrice) return <span className="font-mono text-[#869397]">—</span>
+  if (!currentPrice) return <span className="font-mono text-xs text-[#869397]">—</span>
   const num = Number(currentPrice)
-  if (!Number.isFinite(num)) return <span className="font-mono text-[#869397]">—</span>
+  if (!Number.isFinite(num)) return <span className="font-mono text-xs text-[#869397]">—</span>
   const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return (
-    <span className="font-mono text-white">
+    <span className="font-mono text-xs text-white">
       ${formatted} <span className="text-[#869397]">{currency}</span>
     </span>
   )
@@ -95,14 +95,14 @@ function makeColumns(
       key: 'ticker',
       header: 'Ticker',
       render: (position) => (
-        <span className="font-bold text-white font-mono">{position.ticker}</span>
+        <span className="font-bold text-xs text-white font-mono">{position.ticker}</span>
       ),
     },
     {
       key: 'category',
       header: 'Category',
       render: (position) => (
-        <span className="px-2 py-0.5 rounded bg-[#4cd7f6]/10 text-xs font-medium text-[#4cd7f6]">
+        <span className="px-2 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6]">
           {position.category}
         </span>
       ),
@@ -112,7 +112,7 @@ function makeColumns(
       header: 'Cantidad',
       align: 'center',
       render: (position) => (
-        <span className="font-mono text-white">{position.quantity}</span>
+        <span className="font-mono text-xs text-white">{position.quantity}</span>
       ),
     },
     {
@@ -149,7 +149,7 @@ function makeColumns(
       key: 'broker',
       header: 'Broker',
       render: (position) => (
-        <span className="px-2 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-xs text-[#bcc9cd] font-mono">
+        <span className="px-2 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono">
           {position.broker}
         </span>
       ),
