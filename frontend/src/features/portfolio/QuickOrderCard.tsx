@@ -18,11 +18,14 @@ export interface QuickOrderCardProps {
 const QUOTE_DEBOUNCE_MS = 400
 
 /** Map a provider instrument type onto the portfolio category vocabulary. */
-function categoryFor(asset: TickerSuggestion | null): string {
-  const type = asset?.quote_type.toLowerCase() ?? ''
+function categoryFor(asset: TickerSuggestion): (typeof CATEGORIES)[number] {
+  const type = asset.quote_type.toLowerCase()
   if (type.includes('crypto') || type.includes('currency')) return 'Cripto'
   if (type.includes('etf')) return 'ETF'
-  return 'Stock'
+  if (asset.symbol.toUpperCase().endsWith('.BA') || asset.exchange === 'Buenos Aires') {
+    return 'CEDEAR'
+  }
+  return 'Acciones'
 }
 
 /**
@@ -31,7 +34,6 @@ function categoryFor(asset: TickerSuggestion | null): string {
 export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [orderType, setOrderType] = useState<'BUY' | 'SELL'>('BUY')
   const [ticker, setTicker] = useState('NVDA')
-  const [asset, setAsset] = useState<TickerSuggestion | null>(null)
   const [broker, setBroker] = useState<(typeof BROKERS)[number]>('ECO')
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('Acciones')
   const [quantity, setQuantity] = useState('10')
@@ -89,7 +91,6 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   function handleTickerChange(next: string) {
     const nextSymbol = next.trim().toUpperCase()
     if (nextSymbol !== symbol) {
-      setAsset(null)
       setPrice('')
       setPriceEdited(false)
       setCurrency('USD')
@@ -97,20 +98,10 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
     setTicker(next)
   }
 
-  useEffect(() => {
-    if (!asset) return
-    const mapped = categoryFor(asset)
-    const sym = asset.symbol.toUpperCase()
-    let next: (typeof CATEGORIES)[number] = 'Acciones'
-    if (mapped === 'Cripto') next = 'Cripto'
-    else if (mapped === 'ETF') next = 'ETF'
-    else if (sym.endsWith('.BA') || asset.exchange === 'Buenos Aires') {
-      next = 'CEDEAR'
-    }
-    queueMicrotask(() => {
-      setCategory((prev) => (prev === next ? prev : next))
-    })
-  }, [asset])
+  /** Applies a selected suggestion's inferred category to the order form. */
+  function handleAssetSelect(asset: TickerSuggestion) {
+    setCategory(categoryFor(asset))
+  }
 
   async function handleOrder(e: React.FormEvent) {
     e.preventDefault()
@@ -190,7 +181,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
             label="Activo / Ticker"
             value={ticker}
             onChange={handleTickerChange}
-            onSelect={setAsset}
+            onSelect={handleAssetSelect}
             search={marketApi.searchTickers}
             hint={
               fetchingQuote ? (

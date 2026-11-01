@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/portfolio/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Portfolio Position
+         * @description Update broker or category for an existing position.
+         */
+        put: operations["update_portfolio_position_api_v1_portfolio__ticker__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transactions": {
         parameters: {
             query?: never;
@@ -534,6 +554,13 @@ export interface components {
             /** Currency */
             currency: string;
         };
+        /** PortfolioPositionUpdateRequest */
+        PortfolioPositionUpdateRequest: {
+            /** Broker */
+            broker?: string | null;
+            /** Category */
+            category?: string | null;
+        };
         /**
          * PositionAlertCheckRequest
          * @description Identify a broker/category position whose alert should be evaluated.
@@ -742,6 +769,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortfolioPositionResponse"][];
+                };
+            };
+        };
+    };
+    update_portfolio_position_api_v1_portfolio__ticker__put: {
+        parameters: {
+            query: {
+                broker: string;
+                category: string;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioPositionUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioPositionResponse"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

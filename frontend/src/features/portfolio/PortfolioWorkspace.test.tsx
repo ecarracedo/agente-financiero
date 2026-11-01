@@ -19,18 +19,18 @@ import { renderWithRouter } from '../../../tests/render'
  * client is real.
  */
 describe('PortfolioWorkspace', () => {
-  it('renders holdings with quantity, average price, and their currency', async () => {
+  it('renders holdings with quantity and average price without a currency suffix', async () => {
     renderWithRouter({ initialEntries: ['/portfolio'] })
 
-    // Both fixture positions share the IBKR broker, so the assertions are
+    // Both fixture positions share the ECO broker, so the assertions are
     // scoped to one row: the point is that the fields belong to the same holding.
     const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
     const row = within(tickerCell.closest('tr') as HTMLElement)
 
-    expect(row.getByRole('cell', { name: 'IBKR' })).toBeInTheDocument()
-    expect(row.getByRole('cell', { name: 'Stock' })).toBeInTheDocument()
+    expect(row.getAllByRole('combobox')[0]).toHaveValue('Acciones')
+    expect(row.getAllByRole('combobox')[1]).toHaveValue('ECO')
     expect(row.getByRole('cell', { name: '10' })).toBeInTheDocument()
-    expect(row.getByRole('cell', { name: '150.25 USD' })).toBeInTheDocument()
+    expect(row.getByRole('cell', { name: '$150.25' })).toBeInTheDocument()
   })
 
   it('renders each currency as a separate valuation group, never summed together', async () => {
@@ -123,7 +123,7 @@ describe('PortfolioWorkspace', () => {
 
     // The unit price is autocompleted from the quote before the order is sent.
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('190.00')
+      expect(screen.getByLabelText('Precio')).toHaveValue('190.00')
     })
 
     // Submit quick order
@@ -165,13 +165,25 @@ describe('PortfolioWorkspace', () => {
     expect(combobox).toHaveValue('AAPL')
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('190.00')
+      expect(screen.getByLabelText('Precio')).toHaveValue('190.00')
     })
 
     fireEvent.click(screen.getByRole('button', { name: /registrar transacción/i }))
 
     expect(await screen.findByText('¡Transacción Registrada!')).toBeInTheDocument()
     expect(posted).toMatchObject({ ticker: 'AAPL', unit_price: '190.00' })
+  })
+
+  it('sets the order category when a suggested crypto asset is selected', async () => {
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+    await screen.findByRole('heading', { name: /posiciones en cartera/i })
+
+    fireEvent.change(screen.getByRole('combobox', { name: /activo/i }), {
+      target: { value: 'bitcoin' },
+    })
+    fireEvent.click(await screen.findByRole('option', { name: /BTC-USD/ }))
+
+    expect(screen.getByLabelText('Tipo')).toHaveValue('Cripto')
   })
 
   it('records an Argentine listing in pesos instead of dollars', async () => {
@@ -192,7 +204,7 @@ describe('PortfolioWorkspace', () => {
 
     // The quote supplies the price and the currency the ticket will record.
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('4802.50')
+      expect(screen.getByLabelText('Precio')).toHaveValue('4802.50')
     })
     expect(screen.getAllByText('ARS')).toHaveLength(2)
 
