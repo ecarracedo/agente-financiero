@@ -25,7 +25,7 @@ const ROUTE_ICONS: Record<string, string> = {
  */
 export function WorkspaceShell() {
   const location = useLocation()
-  const [status, setStatus] = useState<BackendStatus>('loading')
+  const [, setStatus] = useState<BackendStatus>('loading')
 
   const requestedPath = location.pathname.replace(/^\//, '').split('/')[0]
   const activePath = requestedPath === '' ? DEFAULT_WORKSPACE : requestedPath
@@ -48,7 +48,7 @@ export function WorkspaceShell() {
   return (
     <div className="min-h-screen bg-[#0f131c] text-[#dfe2ee] font-sans">
       {/* Left Navigation Rail (Obsidian Sidebar) */}
-      <aside className="fixed left-0 top-0 bottom-0 w-56 bg-[#181c24] border-r border-[#3d494c]/30 z-50 flex flex-col justify-between">
+      <aside className="fixed left-0 top-0 bottom-0 w-48 bg-[#181c24] border-r border-[#3d494c]/30 z-50 flex flex-col justify-between">
         <div className="flex flex-col">
           {/* Logo / Branding */}
           <div className="h-16 px-4 flex items-center gap-2.5 border-b border-[#3d494c]/20 bg-[#0a0e16]/60">
@@ -98,37 +98,11 @@ export function WorkspaceShell() {
           </nav>
         </div>
 
-        {/* Engine / API Status Box */}
-        <div className="p-2 m-2 rounded-lg bg-[#1c2028]/80 border border-[#3d494c]/30">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  status === 'ready'
-                    ? 'bg-[#46fa9c]'
-                    : status === 'unavailable'
-                      ? 'bg-[#ffb4ab]'
-                      : 'bg-yellow-400'
-                }`}
-              />
-              <span
-                role="status"
-                className="text-[10px] uppercase font-mono font-semibold text-[#bcc9cd]"
-              >
-                Backend: {status}
-              </span>
-            </div>
-            <span className="text-[9px] font-mono text-[#869397]">FIX</span>
-          </div>
-          <div className="flex items-center justify-between text-[9px] font-mono text-[#869397]">
-            <span>Engine v0.1.0</span>
-            <span className="text-[#4cd7f6]">Obsidian Dark</span>
-          </div>
-        </div>
+        <div />
       </aside>
 
       {/* Main Container Area */}
-      <div className="pl-56 flex flex-col min-h-screen">
+      <div className="pl-48 flex flex-col min-h-screen">
         {/* Top Header */}
         <header className="sticky top-0 z-40 h-16 bg-[#0f131c]/85 backdrop-blur-xl border-b border-[#3d494c]/30 flex items-center justify-between px-8">
           <div className="flex items-center gap-4 overflow-hidden">
