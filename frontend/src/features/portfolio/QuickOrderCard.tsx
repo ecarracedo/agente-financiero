@@ -7,7 +7,7 @@ import { localDateTimeValue } from '../../lib/datetime'
 import { marketApi } from '../market/marketApi'
 
 const BROKERS = ['ECO', 'PPI', 'BINANCE'] as const
-const CATEGORIES = ['Acciones', 'CEDEAR', 'ETF', 'Bono', 'FCI', 'Cripto'] as const
+const CATEGORIES = ['Acciones', 'Cedear', 'ETF', 'Bono', 'FCI', 'Cripto'] as const
 
 export interface QuickOrderCardProps {
   /** Optional callback invoked when a transaction has been successfully created. */
@@ -105,7 +105,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
     if (mapped === 'Cripto') next = 'Cripto'
     else if (mapped === 'ETF') next = 'ETF'
     else if (sym.endsWith('.BA') || asset.exchange === 'Buenos Aires') {
-      next = 'CEDEAR'
+      next = 'Cedear'
     }
     queueMicrotask(() => {
       setCategory((prev) => (prev === next ? prev : next))
@@ -231,7 +231,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
               className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none"
             >
               {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
+                <option key={c} value={c} className="bg-[#181c24] text-white">
                   {c}
                 </option>
               ))}

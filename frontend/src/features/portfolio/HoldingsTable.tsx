@@ -11,7 +11,7 @@ import { DataTable } from '../../components/DataTable'
 import { marketApi } from '../market/marketApi'
 
 const BROKERS = ['ECO', 'PPI', 'BINANCE']
-const CATEGORIES = ['Acciones', 'CEDEAR', 'ETF', 'Bono', 'FCI', 'Cripto']
+const CATEGORIES = ['Acciones', 'Cedear', 'ETF', 'Bono', 'FCI', 'Cripto']
 
 type QuoteState = {
   price: string | null
@@ -100,15 +100,19 @@ function makeColumns(
     },
     {
       key: 'category',
-      header: 'Category',
+      header: 'Activo',
       render: (position) => (
         <select
           value={position.category}
-          onChange={(e) => onUpdate(position, { category: e.target.value })}
+          onChange={(e) => {
+            e.stopPropagation()
+            onUpdate(position, { category: e.target.value })
+          }}
+          onClick={(e) => e.stopPropagation()}
           className="px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6] border border-[#4cd7f6]/30"
         >
           {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
+            <option key={c} value={c} className="bg-[#181c24] text-[#dfe2ee]">
               {c}
             </option>
           ))}
@@ -159,11 +163,15 @@ function makeColumns(
       render: (position) => (
         <select
           value={position.broker}
-          onChange={(e) => onUpdate(position, { broker: e.target.value })}
+          onChange={(e) => {
+            e.stopPropagation()
+            onUpdate(position, { broker: e.target.value })
+          }}
+          onClick={(e) => e.stopPropagation()}
           className="px-1.5 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono"
         >
           {BROKERS.map((b) => (
-            <option key={b} value={b}>
+            <option key={b} value={b} className="bg-[#181c24] text-[#dfe2ee]">
               {b}
             </option>
           ))}
