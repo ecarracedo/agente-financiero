@@ -125,13 +125,13 @@ function makeColumns(
     },
     {
       key: 'average_price',
-      header: 'Precio Promedio',
+      header: 'Ponderado',
       align: 'center',
       render: (position) => <PriceCell amount={position.average_price} />,
     },
     {
       key: 'current_price',
-      header: 'Precio Actual',
+      header: 'Actual',
       align: 'center',
       render: (position) => <CurrentPriceCell currentPrice={getQuote(position.ticker).price} />,
     },
