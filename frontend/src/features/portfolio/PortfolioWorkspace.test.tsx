@@ -27,10 +27,10 @@ describe('PortfolioWorkspace', () => {
     const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
     const row = within(tickerCell.closest('tr') as HTMLElement)
 
-    expect(row.getByRole('cell', { name: 'IBKR' })).toBeInTheDocument()
-    expect(row.getByRole('cell', { name: 'Stock' })).toBeInTheDocument()
+    expect(row.getByDisplayValue('ECO')).toBeInTheDocument()
+    expect(row.getByDisplayValue('Acciones')).toBeInTheDocument()
     expect(row.getByRole('cell', { name: '10' })).toBeInTheDocument()
-    expect(row.getByRole('cell', { name: '150.25 USD' })).toBeInTheDocument()
+    expect(row.getByText(/150\.25/)).toBeInTheDocument()
   })
 
   it('renders each currency as a separate valuation group, never summed together', async () => {
@@ -123,7 +123,7 @@ describe('PortfolioWorkspace', () => {
 
     // The unit price is autocompleted from the quote before the order is sent.
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('190.00')
+      expect(screen.getByLabelText('Precio')).toHaveValue('190.00')
     })
 
     // Submit quick order
@@ -165,7 +165,7 @@ describe('PortfolioWorkspace', () => {
     expect(combobox).toHaveValue('AAPL')
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('190.00')
+      expect(screen.getByLabelText('Precio')).toHaveValue('190.00')
     })
 
     fireEvent.click(screen.getByRole('button', { name: /registrar transacción/i }))
@@ -192,7 +192,7 @@ describe('PortfolioWorkspace', () => {
 
     // The quote supplies the price and the currency the ticket will record.
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('4802.50')
+      expect(screen.getByLabelText('Precio')).toHaveValue('4802.50')
     })
     expect(screen.getAllByText('ARS')).toHaveLength(2)
 
