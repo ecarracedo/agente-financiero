@@ -10,6 +10,9 @@ import type { Column } from '../../components/DataTable'
 import { DataTable } from '../../components/DataTable'
 import { marketApi } from '../market/marketApi'
 
+const BROKERS = ['ECO', 'PPI', 'BINANCE']
+const CATEGORIES = ['Acciones', 'CEDEAR', 'ETF', 'Bono', 'FCI', 'Cripto']
+
 type QuoteState = {
   price: string | null
   status: 'loading' | 'ready' | 'error'
@@ -85,6 +88,7 @@ function makeColumns(
   getQuote: (ticker: string) => QuoteState,
   onSellAll: (position: PortfolioPosition, price: string) => void,
   sellingTicker: string | null,
+  onUpdate: (position: PortfolioPosition, payload: { broker?: string; category?: string }) => void,
 ): Column<PortfolioPosition>[] {
   return [
     {
@@ -98,9 +102,17 @@ function makeColumns(
       key: 'category',
       header: 'Category',
       render: (position) => (
-        <span className="px-2 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6]">
-          {position.category}
-        </span>
+        <select
+          value={position.category}
+          onChange={(e) => onUpdate(position, { category: e.target.value })}
+          className="px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6] border border-[#4cd7f6]/30"
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       ),
     },
     {
@@ -113,13 +125,13 @@ function makeColumns(
     },
     {
       key: 'average_price',
-      header: 'Precio Promedio',
+      header: 'Ponderado',
       align: 'center',
       render: (position) => <PriceCell amount={position.average_price} />,
     },
     {
       key: 'current_price',
-      header: 'Precio Actual',
+      header: 'Actual',
       align: 'center',
       render: (position) => <CurrentPriceCell currentPrice={getQuote(position.ticker).price} />,
     },
@@ -144,10 +156,18 @@ function makeColumns(
     {
       key: 'broker',
       header: 'Broker',
-      render: () => (
-        <span className="px-2 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono">
-          ECO
-        </span>
+      render: (position) => (
+        <select
+          value={position.broker}
+          onChange={(e) => onUpdate(position, { broker: e.target.value })}
+          className="px-1.5 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono"
+        >
+          {BROKERS.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
       ),
     },
     {
@@ -243,10 +263,23 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
     }
   }
 
+  const handleUpdate = async (position: PortfolioPosition, payload: { broker?: string; category?: string }) => {
+    try {
+      await api.updatePortfolioPosition(
+        position.ticker,
+        { broker: position.broker, category: position.category },
+        payload,
+      )
+      onPositionsChange?.()
+    } catch (error) {
+      console.error('Failed to update position', error)
+    }
+  }
+
   return (
     <DataTable
       caption="Holdings"
-      columns={makeColumns(getQuote, handleSellAll, sellingTicker)}
+      columns={makeColumns(getQuote, handleSellAll, sellingTicker, handleUpdate)}
       rows={positions}
       getRowKey={(position, index) =>
         `${position.ticker}-${position.broker}-${position.category}-${index}`

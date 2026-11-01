@@ -11,7 +11,7 @@ export function RecentExecutionsCard() {
       details: '4 accs',
       time: 'Hoy, 14:32:10 FIX',
       amount: '$3,500.80',
-      status: 'EJECUTADA',
+      status: '',
       isBuy: true,
     },
     {
@@ -20,7 +20,7 @@ export function RecentExecutionsCard() {
       details: '0.05 BTC',
       time: 'Ayer, 18:04:19 FIX',
       amount: '$3,210.00',
-      status: 'EJECUTADA',
+      status: '',
       isBuy: true,
     },
     {
@@ -29,7 +29,7 @@ export function RecentExecutionsCard() {
       details: '10 accs',
       time: '24 Feb, 10:15:02',
       amount: '$4,155.00',
-      status: 'EJECUTADA',
+      status: '',
       isBuy: false,
     },
   ]
@@ -39,7 +39,7 @@ export function RecentExecutionsCard() {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[#4cd7f6] text-[20px]">history</span>
-          <h3 className="text-base font-semibold text-white font-headline">Últimas Ejecuciones</h3>
+          <h3 className="text-base font-semibold text-white font-headline">Últimas Transacciones</h3>
         </div>
         <NavLink
           to="/transactions"
@@ -74,7 +74,7 @@ export function RecentExecutionsCard() {
             </div>
             <div className="flex flex-col text-right">
               <span className="text-xs font-mono font-semibold text-white">{exec.amount}</span>
-              <span className="text-[10px] font-mono text-[#46fa9c] font-medium">{exec.status}</span>
+              {exec.status ? <span className="text-[10px] font-mono text-[#46fa9c] font-medium">{exec.status}</span> : null}
             </div>
           </div>
         ))}

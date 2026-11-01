@@ -16,6 +16,7 @@ from backend.app.api.schemas import (
     MutationResponse,
     PortfolioAlertRequest,
     PortfolioPositionResponse,
+    PortfolioPositionUpdateRequest,
     PositionAlertCheckRequest,
     SplitProjectionRequest,
     SplitProjectionResponse,
@@ -78,6 +79,31 @@ def _canonical_ticker(raw: str) -> str:
 def list_portfolio(request: Request) -> list[PortfolioPosition]:
     """Return current portfolio positions without presentation-layer coupling."""
     return _services(request).portfolio.list_positions()
+
+
+@router.put(
+    "/portfolio/{ticker}",
+    response_model=PortfolioPositionResponse | None,
+    tags=["portfolio"],
+)
+def update_portfolio_position(
+    ticker: TickerPath,
+    payload: PortfolioPositionUpdateRequest,
+    request: Request,
+    broker: str = Query(min_length=1, max_length=120),
+    category: str = Query(min_length=1, max_length=60),
+):
+    """Update broker or category for an existing position."""
+    updated = _services(request).portfolio.update_position(
+        ticker=_canonical_ticker(ticker),
+        broker=broker,
+        category=category,
+        new_broker=payload.broker,
+        new_category=payload.category,
+    )
+    if updated is None:
+        raise HTTPException(status_code=404, detail="position not found")
+    return updated
 
 
 @router.post(

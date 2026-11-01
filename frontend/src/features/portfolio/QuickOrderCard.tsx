@@ -7,7 +7,7 @@ import { localDateTimeValue } from '../../lib/datetime'
 import { marketApi } from '../market/marketApi'
 
 const BROKERS = ['ECO', 'PPI', 'BINANCE'] as const
-const CATEGORIES = ['Acciones', 'ETF', 'Bono', 'FCI', 'Cripto'] as const
+const CATEGORIES = ['Acciones', 'CEDEAR', 'ETF', 'Bono', 'FCI', 'Cripto'] as const
 
 export interface QuickOrderCardProps {
   /** Optional callback invoked when a transaction has been successfully created. */
@@ -100,9 +100,12 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   useEffect(() => {
     if (asset) {
       const mapped = categoryFor(asset)
+      const sym = asset.symbol.toUpperCase()
       if (mapped === 'Cripto') setCategory('Cripto')
       else if (mapped === 'ETF') setCategory('ETF')
-      else setCategory('Acciones')
+      else if (sym.endsWith('.BA') || asset.exchange === 'Buenos Aires') {
+        setCategory('CEDEAR')
+      } else setCategory('Acciones')
     }
   }, [asset])
 

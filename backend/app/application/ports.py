@@ -40,6 +40,14 @@ class PortfolioRepositoryPort(Protocol):
     def save_position(self, position: PortfolioPosition) -> None: ...
 
     def delete_position(self, ticker: str, broker: str, category: str) -> None: ...
+    def update_position(
+        self,
+        ticker: str,
+        broker: str,
+        category: str,
+        new_broker: str | None = None,
+        new_category: str | None = None,
+    ) -> PortfolioPosition | None: ...
 
     def set_position_alert(
         self, ticker: str, broker: str, category: str, settings: TargetAlertSettings

@@ -53,6 +53,18 @@ export const api = {
   ready: (): Promise<ReadyResponse> => request<ReadyResponse>('/ready'),
   listPortfolio: (): Promise<PortfolioPosition[]> =>
     request<PortfolioPosition[]>('/api/v1/portfolio'),
+  updatePortfolioPosition: (
+    ticker: string,
+    params: { broker: string; category: string },
+    payload: { broker?: string; category?: string },
+  ): Promise<PortfolioPosition | null> => {
+    const query = new URLSearchParams({ broker: params.broker, category: params.category })
+    return request<PortfolioPosition | null>(`/api/v1/portfolio/${ticker}?${query.toString()}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+  },
   /**
    * Fetch currency-grouped valuations.
    *
