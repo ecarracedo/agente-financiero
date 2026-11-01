@@ -175,3 +175,20 @@ class PortfolioUseCases:
                 repository.save_position(position)
             unit_of_work.commit()
             return True
+
+    def update_position(
+        self,
+        *,
+        ticker: str,
+        broker: str,
+        category: str,
+        new_broker: str | None = None,
+        new_category: str | None = None,
+    ) -> PortfolioPosition | None:
+        """Update broker/category of an existing position."""
+        with self._unit_of_work_factory() as unit_of_work:
+            position = unit_of_work.portfolio.update_position(
+                ticker, broker, category, new_broker, new_category
+            )
+            unit_of_work.commit()
+            return position

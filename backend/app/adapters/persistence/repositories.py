@@ -98,6 +98,36 @@ class SqlAlchemyPortfolioRepository:
         if record is not None:
             self._session.delete(record)
 
+    def update_position(
+        self,
+        ticker: str,
+        broker: str,
+        category: str,
+        new_broker: str | None = None,
+        new_category: str | None = None,
+    ) -> PortfolioPosition | None:
+        """Update broker/category for an existing position."""
+        statement = select(PortfolioPositionRecord).where(
+            PortfolioPositionRecord.ticker == ticker.strip().upper(),
+            PortfolioPositionRecord.broker == broker.strip(),
+            PortfolioPositionRecord.category == category,
+        )
+        record = self._session.scalar(statement)
+        if record is None:
+            return None
+        if new_broker is not None:
+            record.broker = new_broker.strip()
+        if new_category is not None:
+            record.category = new_category
+        return PortfolioPosition(
+            ticker=record.ticker,
+            broker=record.broker,
+            category=record.category,
+            quantity=record.quantity,
+            average_price=record.average_price,
+            currency=record.currency,
+        )
+
     def set_position_alert(
         self,
         ticker: str,

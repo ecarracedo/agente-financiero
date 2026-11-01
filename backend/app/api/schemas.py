@@ -111,6 +111,11 @@ class PortfolioPositionResponse(BaseModel):
     currency: str
 
 
+class PortfolioPositionUpdateRequest(BaseModel):
+    broker: str | None = None
+    category: str | None = None
+
+
 class TransactionSummaryResponse(BaseModel):
     """Expose one transaction with canonical string amounts."""
 
