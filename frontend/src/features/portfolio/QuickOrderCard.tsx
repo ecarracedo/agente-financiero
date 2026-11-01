@@ -98,15 +98,18 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   }
 
   useEffect(() => {
-    if (asset) {
-      const mapped = categoryFor(asset)
-      const sym = asset.symbol.toUpperCase()
-      if (mapped === 'Cripto') setCategory('Cripto')
-      else if (mapped === 'ETF') setCategory('ETF')
-      else if (sym.endsWith('.BA') || asset.exchange === 'Buenos Aires') {
-        setCategory('CEDEAR')
-      } else setCategory('Acciones')
+    if (!asset) return
+    const mapped = categoryFor(asset)
+    const sym = asset.symbol.toUpperCase()
+    let next: (typeof CATEGORIES)[number] = 'Acciones'
+    if (mapped === 'Cripto') next = 'Cripto'
+    else if (mapped === 'ETF') next = 'ETF'
+    else if (sym.endsWith('.BA') || asset.exchange === 'Buenos Aires') {
+      next = 'CEDEAR'
     }
+    queueMicrotask(() => {
+      setCategory((prev) => (prev === next ? prev : next))
+    })
   }, [asset])
 
   async function handleOrder(e: React.FormEvent) {
