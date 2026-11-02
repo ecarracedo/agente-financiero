@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 
-import { portfolioItems } from '../../mocks/fixtures'
+import { analysisAAPL, portfolioItems } from '../../mocks/fixtures'
 import { server } from '../../../tests/setup'
 import { renderWithRouter } from '../../../tests/render'
 
@@ -100,6 +100,34 @@ describe('PortfolioWorkspace', () => {
     renderWithRouter({ initialEntries: ['/portfolio'] })
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
+  })
+
+  it('refreshes quotes when the manual refresh button is used', async () => {
+    let quoteCalls = 0
+    server.use(
+      http.get('*/api/v1/analysis/:ticker', () => {
+        quoteCalls++
+        const price = quoteCalls === 1 ? '190.00' : '205.00'
+        return HttpResponse.json({ ...analysisAAPL, current_price: price })
+      }),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+    await screen.findByRole('heading', { name: /posiciones en cartera/i })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('$190.00').length).toBeGreaterThan(0)
+    })
+
+    const callsBeforeRefresh = quoteCalls
+    fireEvent.click(screen.getByRole('button', { name: /actualizar/i }))
+
+    await waitFor(() => {
+      expect(quoteCalls).toBeGreaterThan(callsBeforeRefresh)
+    })
+    await waitFor(() => {
+      expect(screen.getAllByText('$205.00').length).toBeGreaterThan(0)
+    })
   })
 
   it('executes a transaction from QuickOrderCard and triggers portfolio refresh', async () => {

@@ -223,6 +223,7 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
   const [quotes, setQuotes] = useState<Record<string, QuoteState>>({})
   const [sellingTicker, setSellingTicker] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
 
   const refreshMinutes = useSyncExternalStore(
     subscribeRefreshMinutes,
@@ -243,6 +244,7 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
             ...prev,
             [ticker]: { price: data?.current_price ?? null, status: 'ready' },
           }))
+          setUpdatedAt(new Date())
         })
         .catch(() => {
           if (!active) return
@@ -309,6 +311,14 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
           />
           <span className="text-[#3d494c]">·</span>
           cada {refreshMinutes} {refreshMinutes === 1 ? 'minuto' : 'minutos'}
+          {updatedAt ? (
+            <>
+              <span className="text-[#3d494c]">·</span>
+              <span data-testid="quotes-updated-at">
+                actualizado {updatedAt.toLocaleTimeString('es-AR')}
+              </span>
+            </>
+          ) : null}
         </span>
         <button
           type="button"

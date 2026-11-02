@@ -33,8 +33,11 @@ export const marketApi = {
     api.listTransactions(ticker, broker),
   listWishlist: (): Promise<WishlistItem[]> => request<WishlistItem[]>('/api/v1/wishlist'),
   getAnalysis: (ticker: string, period: MarketPeriod): Promise<MarketAnalysis> =>
+    // `no-store` keeps the browser HTTP cache out of the picture: these are live
+    // quotes, and a cached body would make a refresh look like a no-op.
     request<MarketAnalysis>(
       `/api/v1/analysis/${encodeURIComponent(ticker)}?period=${encodeURIComponent(period)}`,
+      { cache: 'no-store' },
     ),
   searchTickers: (query: string, limit = 8): Promise<TickerMatch[]> =>
     request<TickerMatch[]>(
