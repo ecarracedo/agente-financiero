@@ -170,29 +170,55 @@
           "transactions"
         ],
         "summary": "List Transactions",
-        "description": "Return chronological transaction history for a ticker and broker.",
+        "description": "Return transaction history, or the newest operations across every asset.\n\nSupplying both `ticker` and `broker` returns that asset's chronological\nhistory, which is what a position drill-down needs. Supplying neither\nreturns the most recent operations across the whole portfolio, newest\nfirst, so a dashboard can show recent activity without naming a ticker.",
         "operationId": "list_transactions_api_v1_transactions_get",
         "parameters": [
           {
             "name": "ticker",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 32,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Ticker"
             }
           },
           {
             "name": "broker",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 120,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Broker"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
             }
           }
         ],

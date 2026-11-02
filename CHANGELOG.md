@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Portfolio Positions**: Added Total and Variación columns to positions table with live quotes; added P&L column.
 - **Quick Order**: Added broker selector (ECO, PPI, BINANCE) and asset type selector (Acciones, ETF, Bono, FCI, Cripto). Allow manual price editing. Removed SHS label.
 - **Holdings Management**: Added "Vender" button to sell entire position at current price. Positions start empty in demo.
+- **Editable Positions**: Broker and asset type are editable inline and are applied optimistically, reverting if the update fails.
+- **Portfolio Catalog**: Brokers and asset types are configurable from the settings workspace and persisted locally.
+- **Holdings Filters**: Filter holdings by ticker, asset type and broker, with a result counter and a clear action.
+- **Recent Transactions**: "Últimas Transacciones" now lists the last three recorded operations instead of demo data.
+- **Transactions API**: `GET /api/v1/transactions` accepts an optional `limit` and, when no ticker is given, returns the newest operations across the portfolio.
 
 ### Changed
 - **Currency Handling**: Currency now follows the instrument's quote currency (ARS for .BA, USD for others). Fallback to USD if unavailable.

@@ -146,6 +146,27 @@ describe('PortfolioWorkspace', () => {
     expect(await screen.findByRole('cell', { name: 'AAPL' })).toBeInTheDocument()
   })
 
+  it('shows only the last three transactions in the recent transactions card', async () => {
+    const recent = [
+      { id: 5, ticker: 'NVDA', broker: 'ECO', category: 'Acciones', operation_type: 'BUY', quantity: '4', unit_price: '875.20', currency: 'USD', occurred_at: '2024-03-04T14:32:10' },
+      { id: 4, ticker: 'BTC', broker: 'BINANCE', category: 'Cripto', operation_type: 'BUY', quantity: '0.05', unit_price: '64200.00', currency: 'USD', occurred_at: '2024-03-03T18:04:19' },
+      { id: 3, ticker: 'MSFT', broker: 'ECO', category: 'Acciones', operation_type: 'SELL', quantity: '10', unit_price: '415.50', currency: 'USD', occurred_at: '2024-02-24T10:15:02' },
+      { id: 2, ticker: 'KO', broker: 'ECO', category: 'Acciones', operation_type: 'BUY', quantity: '3', unit_price: '60.00', currency: 'USD', occurred_at: '2024-02-20T11:00:00' },
+      { id: 1, ticker: 'PAMP.BA', broker: 'PPI', category: 'Cedear', operation_type: 'SELL', quantity: '2', unit_price: '4802.50', currency: 'ARS', occurred_at: '2024-02-19T09:30:00' },
+    ]
+    server.use(
+      http.get('*/api/v1/transactions', () => HttpResponse.json(recent)),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const card = await screen.findByRole('region', { name: /últimas transacciones/i })
+    await within(card).findByText(/NVDA/)
+    expect(within(card).getAllByText(/u\.$/)).toHaveLength(3)
+    expect(within(card).queryByText(/KO/)).not.toBeInTheDocument()
+    expect(within(card).queryByText(/PAMP\.BA/)).not.toBeInTheDocument()
+  })
+
   it('executes a transaction from QuickOrderCard and triggers portfolio refresh', async () => {
     let portfolioFetchCount = 0
     let posted: Record<string, unknown> | null = null

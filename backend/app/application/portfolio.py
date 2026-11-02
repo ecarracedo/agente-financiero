@@ -3,8 +3,9 @@
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from typing import Iterable
 
-from backend.app.application.ports import PortfolioUnitOfWorkFactory
+from backend.app.application.ports import PortfolioUnitOfWorkFactory, TransactionRecordPort
 from backend.app.domain.portfolio import PortfolioPosition, apply_purchase, apply_sale
 
 
@@ -120,20 +121,31 @@ class PortfolioUseCases:
         """Return chronologically ordered transaction summaries."""
         with self._unit_of_work_factory() as unit_of_work:
             records = unit_of_work.portfolio.list_transactions(ticker, broker)
-            return [
-                TransactionSummary(
-                    id=record.id,
-                    ticker=record.ticker,
-                    broker=record.broker,
-                    category=record.category,
-                    operation_type=record.operation_type,
-                    quantity=record.quantity,
-                    unit_price=record.unit_price,
-                    currency=record.currency,
-                    occurred_at=record.occurred_at,
-                )
-                for record in records
-            ]
+            return self._summarize(records)
+
+    def list_recent_transactions(self, limit: int) -> list[TransactionSummary]:
+        """Return the newest transactions across every asset, most recent first."""
+        with self._unit_of_work_factory() as unit_of_work:
+            records = unit_of_work.portfolio.list_recent_transactions(limit)
+            return self._summarize(records)
+
+    @staticmethod
+    def _summarize(records: Iterable[TransactionRecordPort]) -> list[TransactionSummary]:
+        """Map persistence records onto read-only transaction summaries."""
+        return [
+            TransactionSummary(
+                id=record.id,
+                ticker=record.ticker,
+                broker=record.broker,
+                category=record.category,
+                operation_type=record.operation_type,
+                quantity=record.quantity,
+                unit_price=record.unit_price,
+                currency=record.currency,
+                occurred_at=record.occurred_at,
+            )
+            for record in records
+        ]
 
     def delete_transaction(self, transaction_id: int) -> bool:
         """Delete a transaction and rebuild its position from remaining history."""

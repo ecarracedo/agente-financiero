@@ -106,6 +106,30 @@ def test_transaction_endpoints_record_history_and_reject_oversale(api_client):
     assert history.json()[1]["unit_price"] == "15"
 
 
+def test_recent_transactions_endpoint_returns_newest_first_across_assets(api_client):
+    """Listing without a ticker returns the newest operations across the portfolio."""
+    client, _ = api_client
+
+    client.post("/api/v1/transactions", json=operation("AAPL", "BUY", 2, 10, 1))
+    client.post(
+        "/api/v1/transactions",
+        json={**operation("MSFT", "BUY", 1, 20, 2), "broker": "Broker B"},
+    )
+    client.post("/api/v1/transactions", json=operation("AAPL", "SELL", 1, 15, 3))
+
+    recent = client.get("/api/v1/transactions", params={"limit": 2})
+    limited = client.get("/api/v1/transactions")
+    partial = client.get("/api/v1/transactions", params={"ticker": "AAPL"})
+
+    assert recent.status_code == 200
+    assert [(row["ticker"], row["operation_type"]) for row in recent.json()] == [
+        ("AAPL", "SELL"),
+        ("MSFT", "BUY"),
+    ]
+    assert len(limited.json()) == 3
+    assert partial.status_code == 422
+
+
 def test_delete_transaction_endpoint_rebuilds_position(api_client):
     """Deleting a sale replays remaining history and restores the holding."""
     client, _ = api_client

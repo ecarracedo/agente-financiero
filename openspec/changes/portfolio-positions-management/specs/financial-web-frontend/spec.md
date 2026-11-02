@@ -131,6 +131,30 @@ The holdings table MUST let the user narrow the displayed positions by ticker, a
 - WHEN the table renders
 - THEN it shows that there are no results for the applied filters
 
+### Requirement: Recent transactions card
+
+"Últimas Transacciones" MUST list the last three transactions actually recorded in the portfolio, newest first, instead of demo data.
+
+- The card MUST request the recent transactions from the API, not hold a hardcoded list.
+- The card MUST render at most three operations.
+- Each row MUST show the operation type, the ticker, the quantity, the moment, the total amount with its currency, the broker and the asset type.
+- The card MUST show a loading state while the request is in flight, an error message when it fails, and an empty message when no transaction exists.
+- The card MUST reload when a transaction is recorded from the portfolio workspace.
+
+#### Scenario: Three most recent operations
+
+- GIVEN a portfolio with five recorded transactions
+- WHEN the portfolio workspace renders
+- THEN the card shows three rows
+- AND the rows are the three most recent operations, newest first
+
+#### Scenario: Empty portfolio history
+
+- GIVEN a portfolio with no recorded transactions
+- WHEN the card renders
+- THEN it shows that there are no transactions
+- AND no row is rendered
+
 ## MODIFIED Requirements
 
 ### Requirement: Portfolio starts without seeded positions

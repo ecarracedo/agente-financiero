@@ -132,14 +132,27 @@ def record_transaction(
     tags=["transactions"],
 )
 def list_transactions(
-    ticker: TickerQuery,
     request: Request,
-    broker: str = Query(min_length=1, max_length=120),
+    ticker: TickerQuery | None = None,
+    broker: str | None = Query(default=None, min_length=1, max_length=120),
+    limit: int = Query(default=50, ge=1, le=200),
 ) -> list:
-    """Return chronological transaction history for a ticker and broker."""
-    return _services(request).portfolio.list_history(
-        _canonical_ticker(ticker), broker
-    )
+    """Return transaction history, or the newest operations across every asset.
+
+    Supplying both `ticker` and `broker` returns that asset's chronological
+    history, which is what a position drill-down needs. Supplying neither
+    returns the most recent operations across the whole portfolio, newest
+    first, so a dashboard can show recent activity without naming a ticker.
+    """
+    portfolio = _services(request).portfolio
+    if ticker is None and broker is None:
+        return portfolio.list_recent_transactions(limit)
+    if ticker is None or broker is None:
+        raise HTTPException(
+            status_code=422,
+            detail="ticker and broker must be provided together",
+        )
+    return portfolio.list_history(_canonical_ticker(ticker), broker)
 
 
 @router.delete(

@@ -46,8 +46,15 @@
 - [x] 7.2 Show a filter-specific empty state and a clear-filters action.
 - [x] 7.3 Cover the filters with a view test.
 
-## 8. Verification
+## 8. Recent transactions
 
-- [x] 8.1 Backend suite passes.
-- [x] 8.2 Frontend suite passes.
-- [x] 8.3 Frontend lint and typecheck are clean.
+- [x] 8.1 Let `GET /api/v1/transactions` list the newest operations across the portfolio with an optional `limit`.
+- [x] 8.2 Replace the hardcoded card data with the API response, capped at three rows.
+- [x] 8.3 Cover loading, error, empty and capped-list states.
+- [x] 8.4 Reload the card when a transaction is recorded.
+
+## 9. Verification
+
+- [x] 9.1 Backend suite passes.
+- [x] 9.2 Frontend suite passes.
+- [x] 9.3 Frontend lint and typecheck are clean.

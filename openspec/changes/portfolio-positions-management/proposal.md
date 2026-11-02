@@ -28,7 +28,7 @@ The portfolio view ships with hardcoded demo positions, so users cannot see thei
 
 ### Modified Capabilities
 - `financial-web-frontend`: the portfolio positions table requires Total, Variación and P&L columns from live quotes, inline editing of broker and asset type, a configurable broker/asset-type catalog in the settings workspace, automatic quote refresh with a visible countdown, a sell action per position, and an empty initial state.
-- `financial-domain-api`: `PUT /api/v1/portfolio/{ticker}` updates a position's broker or asset type without touching its quantity, weighted average price, or currency.
+- `financial-domain-api`: `PUT /api/v1/portfolio/{ticker}` updates a position's broker or asset type without touching its quantity, weighted average price, or currency, and `GET /api/v1/transactions` can list the newest operations across the portfolio when no ticker is given.
 
 ## Approach
 
@@ -40,6 +40,7 @@ Derive Total, Variación and P&L on the client from `quantity`, `average_price` 
 |------|--------|-------------|
 | `frontend/src/features/portfolio/HoldingsTable.tsx` | Modified | Total, Variación and P&L columns; editable broker/asset type; sell action; quote refresh with countdown |
 | `frontend/src/features/settings/SettingsPage.tsx` | New | Refresh interval, broker catalog and asset-type catalog |
+| `frontend/src/features/portfolio/RecentExecutionsCard.tsx` | Modified | Last three real transactions from the API instead of demo data |
 | `frontend/src/features/portfolio/QuickOrderCard.tsx` | Modified | Read broker and asset-type selectors from the configurable catalog |
 | `frontend/src/features/portfolio/PortfolioWorkspace.tsx` | Modified | Remove demo positions; empty state; manual add flow; pass quotes |
 | `frontend/src/features/portfolio/AutoRefreshTimer.tsx` | New | Countdown to the next automatic quote refresh |
