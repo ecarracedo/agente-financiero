@@ -127,12 +127,15 @@ export function WorkspaceShell() {
             <button
               type="button"
               onClick={() => setSidebarVisible((v) => !v)}
-              className="p-2 rounded-lg text-[#bcc9cd] hover:text-white hover:bg-[#1c2028] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#bcc9cd] hover:text-white hover:bg-[#1c2028] transition-colors border border-[#3d494c]/40"
               title={sidebarVisible ? 'Ocultar menú' : 'Mostrar menú'}
               aria-label={sidebarVisible ? 'Ocultar menú lateral' : 'Mostrar menú lateral'}
             >
-              <span className="material-symbols-outlined text-[20px]">
+              <span className="material-symbols-outlined text-[18px]">
                 {sidebarVisible ? 'menu_open' : 'menu'}
+              </span>
+              <span className="text-xs font-mono hidden sm:inline">
+                {sidebarVisible ? 'Ocultar' : 'Menú'}
               </span>
             </button>
             <div className="hidden xl:flex items-center gap-3 py-1 px-3 rounded-lg bg-[#0a0e16]/60 border border-[#3d494c]/20">
