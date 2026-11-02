@@ -45,49 +45,53 @@ function parseList(raw: string | null, fallback: string[]): string[] {
 }
 
 /**
- * Return the stored broker list.
+ * Cached read for one storage key.
  *
- * The snapshot is cached so `useSyncExternalStore` receives the same array
- * identity between renders; a fresh array on every call would loop forever.
+ * `useSyncExternalStore` requires the same array identity between renders, so
+ * the parsed value is memoized. The memo is keyed by the raw stored text, not
+ * by "have we read yet": if the value in `localStorage` changes by any other
+ * path (another tab, a cleared storage, a test), the next read sees it instead
+ * of serving a stale catalog forever.
  */
-let brokersSnapshot: string[] | null = null
+interface CatalogCache {
+  /** Raw stored text the parsed list was derived from. */
+  raw: string | null
+  /** Parsed list, stable while `raw` does not change. */
+  values: string[]
+}
+
+/** Memoized reads, keyed by storage key. */
+const catalogCache = new Map<string, CatalogCache>()
+
+/** Return the parsed catalog stored under `key`, reusing the memo when possible. */
+function readCached(key: string, fallback: string[]): string[] {
+  const raw = window.localStorage.getItem(key)
+  const cached = catalogCache.get(key)
+  if (cached && cached.raw === raw) return cached.values
+  const values = parseList(raw, fallback)
+  catalogCache.set(key, { raw, values })
+  return values
+}
 
 /** Return the broker catalog. */
 export function readBrokers(): string[] {
-  if (brokersSnapshot === null) {
-    brokersSnapshot = parseList(
-      window.localStorage.getItem(BROKERS_STORAGE_KEY),
-      DEFAULT_BROKERS,
-    )
-  }
-  return brokersSnapshot
+  return readCached(BROKERS_STORAGE_KEY, DEFAULT_BROKERS)
 }
-
-/** Return the asset-type catalog, cached for the same reason as `readBrokers`. */
-let categoriesSnapshot: string[] | null = null
 
 /** Return the asset-type catalog. */
 export function readCategories(): string[] {
-  if (categoriesSnapshot === null) {
-    categoriesSnapshot = parseList(
-      window.localStorage.getItem(CATEGORIES_STORAGE_KEY),
-      DEFAULT_CATEGORIES,
-    )
-  }
-  return categoriesSnapshot
+  return readCached(CATEGORIES_STORAGE_KEY, DEFAULT_CATEGORIES)
 }
 
 /** Persist the broker catalog and notify mounted listeners. */
 export function writeBrokers(brokers: string[]): void {
   window.localStorage.setItem(BROKERS_STORAGE_KEY, JSON.stringify(brokers))
-  brokersSnapshot = null
   window.dispatchEvent(new Event(CHANGE_EVENT))
 }
 
 /** Persist the asset-type catalog and notify mounted listeners. */
 export function writeCategories(categories: string[]): void {
   window.localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories))
-  categoriesSnapshot = null
   window.dispatchEvent(new Event(CHANGE_EVENT))
 }
 

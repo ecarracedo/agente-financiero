@@ -15,5 +15,10 @@ import { handlers } from '../src/mocks/handlers'
 export const server = setupServer(...handlers)
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
-afterEach(() => server.resetHandlers())
+afterEach(() => {
+  server.resetHandlers()
+  // Preferences live in `localStorage`; leaking them between tests would let one
+  // test's catalog decide what another test renders.
+  window.localStorage.clear()
+})
 afterAll(() => server.close())

@@ -25,6 +25,18 @@ function positionKey(position: PortfolioPosition): string {
   return `${position.ticker}|${position.broker}|${position.category}`
 }
 
+/**
+ * Return `values` with `current` guaranteed to be present.
+ *
+ * A stored position can hold a broker or asset type the catalog no longer
+ * offers: the catalog is user-editable and older rows predate it. A `<select>`
+ * whose `value` matches no `option` renders empty, so the current value is
+ * prepended instead of silently disappearing.
+ */
+function withCurrent(values: string[], current: string): string[] {
+  return values.includes(current) ? values : [current, ...values]
+}
+
 type QuoteState = {
   price: string | null
   status: 'loading' | 'ready' | 'error'
@@ -116,23 +128,26 @@ function makeColumns(
     {
       key: 'category',
       header: 'Activo',
-      render: (position) => (
-        <select
-          value={drafts[positionKey(position)]?.category ?? position.category}
-          onChange={(e) => {
-            e.stopPropagation()
-            onUpdate(position, { category: e.target.value })
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6] border border-[#4cd7f6]/30"
-        >
-          {categories.map((c) => (
-            <option key={c} value={c} className="bg-[#181c24] text-[#dfe2ee]">
-              {c}
-            </option>
-          ))}
-        </select>
-      ),
+      render: (position) => {
+        const selected = drafts[positionKey(position)]?.category ?? position.category
+        return (
+          <select
+            value={selected}
+            onChange={(e) => {
+              e.stopPropagation()
+              onUpdate(position, { category: e.target.value })
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6] border border-[#4cd7f6]/30"
+          >
+            {withCurrent(categories, selected).map((c) => (
+              <option key={c} value={c} className="bg-[#181c24] text-[#dfe2ee]">
+                {c}
+              </option>
+            ))}
+          </select>
+        )
+      },
     },
     {
       key: 'quantity',
@@ -175,23 +190,26 @@ function makeColumns(
     {
       key: 'broker',
       header: 'Broker',
-      render: (position) => (
-        <select
-          value={drafts[positionKey(position)]?.broker ?? position.broker}
-          onChange={(e) => {
-            e.stopPropagation()
-            onUpdate(position, { broker: e.target.value })
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="px-1.5 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono"
-        >
-          {brokers.map((b) => (
-            <option key={b} value={b} className="bg-[#181c24] text-[#dfe2ee]">
-              {b}
-            </option>
-          ))}
-        </select>
-      ),
+      render: (position) => {
+        const selected = drafts[positionKey(position)]?.broker ?? position.broker
+        return (
+          <select
+            value={selected}
+            onChange={(e) => {
+              e.stopPropagation()
+              onUpdate(position, { broker: e.target.value })
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="px-1.5 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono"
+          >
+            {withCurrent(brokers, selected).map((b) => (
+              <option key={b} value={b} className="bg-[#181c24] text-[#dfe2ee]">
+                {b}
+              </option>
+            ))}
+          </select>
+        )
+      },
     },
     {
       key: 'actions',

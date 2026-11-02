@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quick Order Labels**: "Precio / Acción" → "Precio", "Monto Total Estimado" → "Total", removed "Comisión FIX".
 
 ### Fixed
+- **Positions Table**: A broker or asset type that is no longer in the catalog now stays visible in its selector instead of leaving the control blank.
+- **Portfolio Catalog**: The catalog memo now notices a `localStorage` change made by another path, so an edited catalog is never served stale.
 - **Demo**: Fixed ticker search in demo mode, added Pampa tickers to fixtures.
 - **Lint/Build**: Resolved React hooks and TypeScript issues.
 

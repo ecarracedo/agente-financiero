@@ -2,7 +2,8 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 
-import { analysisAAPL, portfolioItems } from '../../mocks/fixtures'
+import { analysisAAPL, portfolioItems, unknownAnalysis } from '../../mocks/fixtures'
+import { CATEGORIES_STORAGE_KEY } from '../settings/catalogSettings'
 import { server } from '../../../tests/setup'
 import { renderWithRouter } from '../../../tests/render'
 
@@ -128,6 +129,91 @@ describe('PortfolioWorkspace', () => {
     await waitFor(() => {
       expect(screen.getAllByText('$205.00').length).toBeGreaterThan(0)
     })
+  })
+
+  it('reverts the broker selector when the update request fails', async () => {
+    server.use(
+      http.put('*/api/v1/portfolio/:ticker', () =>
+        HttpResponse.json({ detail: 'boom' }, { status: 500 }),
+      ),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
+    const brokerSelect = row.getByDisplayValue('ECO')
+
+    fireEvent.change(brokerSelect, { target: { value: 'PPI' } })
+
+    // Optimistic first: the control must not wait for the round-trip.
+    expect(row.getByDisplayValue('PPI')).toBeInTheDocument()
+    // Then the failure puts back the broker the backend still holds.
+    await waitFor(() => {
+      expect(row.getByDisplayValue('ECO')).toBeInTheDocument()
+    })
+  })
+
+  it('sells the whole position at the current quote', async () => {
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.post('*/api/v1/transactions', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json(null, { status: 201 })
+      }),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
+    const sellButton = row.getByRole('button', { name: /vender/i })
+
+    await waitFor(() => expect(sellButton).toBeEnabled())
+    fireEvent.click(sellButton)
+
+    await waitFor(() => {
+      expect(posted).toMatchObject({
+        ticker: 'AAPL',
+        broker: 'ECO',
+        category: 'Acciones',
+        operation_type: 'SELL',
+        quantity: '10',
+        unit_price: '190.00',
+        currency: 'USD',
+      })
+    })
+  })
+
+  it('disables the sell action while the quote is unknown', async () => {
+    server.use(
+      http.get('*/api/v1/analysis/:ticker', () => HttpResponse.json(unknownAnalysis)),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
+
+    await waitFor(() => {
+      expect(row.getByRole('button', { name: /vender/i })).toBeDisabled()
+    })
+  })
+
+  it('keeps a position value that is missing from the catalog selected', async () => {
+    // The catalog no longer offers "Acciones", but the stored position still
+    // holds it. The row must keep showing it instead of rendering a blank
+    // selector, which is what a `value` with no matching `option` produces.
+    window.localStorage.setItem(
+      CATEGORIES_STORAGE_KEY,
+      JSON.stringify(['Cedear', 'ETF']),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
+    expect(row.getByDisplayValue('Acciones')).toBeInTheDocument()
   })
 
   it('filters holdings by ticker, asset type and broker', async () => {

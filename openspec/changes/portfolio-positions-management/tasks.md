@@ -53,8 +53,17 @@
 - [x] 8.3 Cover loading, error, empty and capped-list states.
 - [x] 8.4 Reload the card when a transaction is recorded.
 
-## 9. Verification
+## 9. Gaps found after the first pass
 
-- [x] 9.1 Backend suite passes.
-- [x] 9.2 Frontend suite passes.
-- [x] 9.3 Frontend lint and typecheck are clean.
+- [x] 9.1 Keep a stored broker or asset type visible when the catalog no longer offers it.
+- [x] 9.2 Invalidate the catalog memo when `localStorage` changes by another path.
+- [x] 9.3 Cover the optimistic revert when the position update fails.
+- [x] 9.4 Cover the sell action and its disabled state while the quote is unknown.
+- [x] 9.5 Cover the settings workspace: defaults, add, remove, duplicate, corrupted storage and the refresh interval.
+- [x] 9.6 Cover the countdown: remaining time, one call per interval, configured length.
+
+## 10. Verification
+
+- [x] 10.1 Backend suite passes.
+- [x] 10.2 Frontend suite passes.
+- [x] 10.3 Frontend lint and typecheck are clean.

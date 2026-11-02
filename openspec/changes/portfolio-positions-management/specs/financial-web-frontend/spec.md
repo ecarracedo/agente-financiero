@@ -9,6 +9,7 @@
 - The broker and asset-type cells MUST be editable selectors.
 - Selecting a new value MUST show the new value immediately, before the reload finishes.
 - If the update fails, the control MUST revert to the value the backend still holds.
+- A stored value that the catalog no longer offers MUST stay visible and selected, instead of rendering an empty selector.
 - The asset-type column MUST be titled "Activo".
 
 #### Scenario: Change a position asset type
@@ -17,6 +18,14 @@
 - WHEN the user selects "Cedear" in the row's selector
 - THEN the selector shows "Cedear" immediately
 - AND the position is persisted with that asset type
+
+#### Scenario: Stored value missing from the catalog
+
+- GIVEN a catalog that no longer contains "Acciones"
+- AND a position whose stored asset type is "Acciones"
+- WHEN the row is rendered
+- THEN the selector shows "Acciones"
+- AND no broker or asset-type selector is left blank
 
 #### Scenario: Failed update reverts the control
 

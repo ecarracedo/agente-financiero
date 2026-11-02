@@ -17,6 +17,10 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
 - **Últimas Transacciones**: La tarjeta muestra las últimas tres operaciones registradas en lugar de datos de ejemplo.
 - **API de Transacciones**: `GET /api/v1/transactions` acepta un `limit` opcional y, sin ticker, devuelve las operaciones más recientes de toda la cartera.
 
+### Corregido
+- **Tabla de Posiciones**: Un broker o tipo de activo que ya no está en el catálogo se sigue mostrando en su selector en lugar de dejar el control vacío.
+- **Catálogo de Cartera**: El memo del catálogo detecta cambios hechos en `localStorage` por otra vía, así que nunca sirve un catálogo viejo.
+
 ## [1.2.0] - 2025-12-18
 
 ### Agregado
