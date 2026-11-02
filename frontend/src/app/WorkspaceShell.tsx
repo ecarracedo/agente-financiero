@@ -27,6 +27,21 @@ const ROUTE_ICONS: Record<string, string> = {
 export function WorkspaceShell() {
   const location = useLocation()
   const [, setStatus] = useState<BackendStatus>('loading')
+  const [sidebarVisible, setSidebarVisible] = useState(() => {
+    try {
+      return localStorage.getItem('obsidian.sidebar.visible') !== 'false'
+    } catch {
+      return true
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('obsidian.sidebar.visible', String(sidebarVisible))
+    } catch {
+      // ignore
+    }
+  }, [sidebarVisible])
 
   const requestedPath = location.pathname.replace(/^\//, '').split('/')[0]
   const activePath = requestedPath === '' ? DEFAULT_WORKSPACE : requestedPath
@@ -49,6 +64,7 @@ export function WorkspaceShell() {
   return (
     <div className="min-h-screen bg-[#0f131c] text-[#dfe2ee] font-sans">
       {/* Left Navigation Rail (Obsidian Sidebar) */}
+      {sidebarVisible ? (
       <aside className="fixed left-0 top-0 bottom-0 w-48 bg-[#181c24] border-r border-[#3d494c]/30 z-50 flex flex-col justify-between">
         <div className="flex flex-col">
           {/* Logo / Branding */}
@@ -101,12 +117,24 @@ export function WorkspaceShell() {
 
         <div />
       </aside>
+      ) : null}
 
       {/* Main Container Area */}
-      <div className="pl-48 flex flex-col min-h-screen">
+      <div className={`flex flex-col min-h-screen transition-all duration-200 ${sidebarVisible ? 'pl-48' : 'pl-0'}`}>
         {/* Top Header */}
         <header className="sticky top-0 z-40 h-16 bg-[#0f131c]/85 backdrop-blur-xl border-b border-[#3d494c]/30 flex items-center justify-between px-8">
           <div className="flex items-center gap-4 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setSidebarVisible((v) => !v)}
+              className="p-2 rounded-lg text-[#bcc9cd] hover:text-white hover:bg-[#1c2028] transition-colors"
+              title={sidebarVisible ? 'Ocultar menú' : 'Mostrar menú'}
+              aria-label={sidebarVisible ? 'Ocultar menú lateral' : 'Mostrar menú lateral'}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {sidebarVisible ? 'menu_open' : 'menu'}
+              </span>
+            </button>
             <div className="hidden xl:flex items-center gap-3 py-1 px-3 rounded-lg bg-[#0a0e16]/60 border border-[#3d494c]/20">
               <div className="flex items-center gap-1.5 text-xs font-mono">
                 <span className="text-[#869397]">SPX</span>
