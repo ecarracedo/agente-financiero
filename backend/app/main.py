@@ -11,6 +11,8 @@ from backend.app.adapters.persistence.database import (
     create_database_engine,
 )
 from backend.app.adapters.market_data import YFinanceMarketDataProvider
+from backend.app.adapters.composite_market_data import CompositeMarketDataProvider
+from backend.app.adapters.ppi_market_data import PpiMarketDataProvider
 from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
 from backend.app.api.routes import router as api_router
 from backend.app.api.services import ApplicationServices
@@ -51,7 +53,13 @@ def create_app(
             sessionmaker(bind=engine_provider())
         )
 
-    provider = market_data_provider or YFinanceMarketDataProvider()
+    yfinance = YFinanceMarketDataProvider()
+    ppi = PpiMarketDataProvider()
+    provider = market_data_provider or CompositeMarketDataProvider(
+        ppi_provider=ppi,
+        yfinance_factory=yfinance._create_ticker,
+        search_factory=yfinance._create_search,
+    )
     portfolio_use_cases = PortfolioUseCases(unit_of_work_factory)
     application.state.services = ApplicationServices(
         portfolio=portfolio_use_cases,
