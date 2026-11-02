@@ -14,6 +14,7 @@ import {
   readRefreshMinutes,
   subscribeRefreshMinutes,
 } from '../settings/refreshInterval'
+import { AutoRefreshTimer } from './AutoRefreshTimer'
 
 const BROKERS = ['ECO', 'PPI', 'BINANCE']
 const CATEGORIES = ['Acciones', 'Cedear', 'ETF', 'Bono', 'FCI', 'Cripto']
@@ -257,14 +258,6 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
     }
   }, [positions, refreshKey])
 
-  useEffect(() => {
-    const id = window.setInterval(
-      () => setRefreshKey((key) => key + 1),
-      refreshMinutes * 60_000,
-    )
-    return () => window.clearInterval(id)
-  }, [refreshMinutes])
-
   const getQuote = (ticker: string) => quotes[ticker] ?? { price: null, status: 'loading' as const }
 
   const handleSellAll = async (position: PortfolioPosition, price: string) => {
@@ -304,9 +297,18 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-4 px-1">
-        <span className="text-[11px] text-[#869397] font-mono">
-          Precios actualizados cada {refreshMinutes}{' '}
-          {refreshMinutes === 1 ? 'minuto' : 'minutos'}
+        <span className="flex items-center gap-1.5 text-[11px] text-[#869397] font-mono">
+          <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+            schedule
+          </span>
+          Próxima actualización en
+          <AutoRefreshTimer
+            key={`${refreshMinutes}-${refreshKey}`}
+            minutes={refreshMinutes}
+            onElapsed={() => setRefreshKey((key) => key + 1)}
+          />
+          <span className="text-[#3d494c]">·</span>
+          cada {refreshMinutes} {refreshMinutes === 1 ? 'minuto' : 'minutos'}
         </span>
         <button
           type="button"
