@@ -47,6 +47,14 @@ export type TransactionCreatedResponse =
 export type MutationResponse =
   paths['/api/v1/transactions/{transaction_id}']['delete']['responses'][200]['content']['application/json']
 
+/** Ticker alias list response from `GET /api/v1/ticker-aliases`. */
+export type TickerAliasResponse =
+  paths['/api/v1/ticker-aliases']['get']['responses'][200]['content']['application/json'][number]
+
+/** Body for creating a ticker alias. */
+export type TickerAliasCreateRequest =
+  paths['/api/v1/ticker-aliases']['post']['requestBody']['content']['application/json']
+
 /** Typed convenience wrappers over the backend contract. */
 export const api = {
   health: (): Promise<HealthResponse> => request<HealthResponse>('/health'),
@@ -94,6 +102,18 @@ export const api = {
     }),
   deleteTransaction: (transactionId: number): Promise<MutationResponse> =>
     request<MutationResponse>(`/api/v1/transactions/${transactionId}`, {
+      method: 'DELETE',
+    }),
+  listTickerAliases: (): Promise<TickerAliasResponse[]> =>
+    request<TickerAliasResponse[]>('/api/v1/ticker-aliases'),
+  createTickerAlias: (payload: TickerAliasCreateRequest): Promise<TickerAliasResponse> =>
+    request<TickerAliasResponse>('/api/v1/ticker-aliases', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+  deleteTickerAlias: (aliasId: number): Promise<MutationResponse> =>
+    request<MutationResponse>(`/api/v1/ticker-aliases/${aliasId}`, {
       method: 'DELETE',
     }),
 }

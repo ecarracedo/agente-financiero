@@ -921,6 +921,115 @@
         }
       }
     },
+    "/api/v1/ticker-aliases": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "List Ticker Aliases",
+        "description": "Return user-defined ticker aliases.",
+        "operationId": "list_ticker_aliases_api_v1_ticker_aliases_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TickerAliasResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Ticker Aliases Api V1 Ticker Aliases Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Add Ticker Alias",
+        "description": "Create a ticker alias.",
+        "operationId": "add_ticker_alias_api_v1_ticker_aliases_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TickerAliasCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TickerAliasResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ticker-aliases/{alias_id}": {
+      "delete": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Delete Ticker Alias",
+        "description": "Delete a ticker alias.",
+        "operationId": "delete_ticker_alias_api_v1_ticker_aliases__alias_id__delete",
+        "parameters": [
+          {
+            "name": "alias_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Alias Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/splits": {
       "post": {
         "tags": [
@@ -1649,6 +1758,59 @@
         ],
         "title": "TargetAlertEventResponse",
         "description": "Expose one intent-specific target crossing notification."
+      },
+      "TickerAliasCreateRequest": {
+        "properties": {
+          "broker_ticker": {
+            "type": "string",
+            "title": "Broker Ticker"
+          },
+          "official_name": {
+            "type": "string",
+            "title": "Official Name"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "default": "ppi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "broker_ticker",
+          "official_name"
+        ],
+        "title": "TickerAliasCreateRequest",
+        "description": "Body for creating a ticker alias."
+      },
+      "TickerAliasResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "broker_ticker": {
+            "type": "string",
+            "title": "Broker Ticker"
+          },
+          "official_name": {
+            "type": "string",
+            "title": "Official Name"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "broker_ticker",
+          "official_name",
+          "provider"
+        ],
+        "title": "TickerAliasResponse",
+        "description": "Expose a user-defined ticker alias."
       },
       "TickerMatchResponse": {
         "properties": {

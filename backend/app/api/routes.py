@@ -20,6 +20,8 @@ from backend.app.api.schemas import (
     PositionAlertCheckRequest,
     SplitProjectionRequest,
     SplitProjectionResponse,
+    TickerAliasCreateRequest,
+    TickerAliasResponse,
     TickerMatchResponse,
     TransactionRequest,
     TransactionSummaryResponse,
@@ -376,6 +378,47 @@ def delete_bibliography_item(item_id: int, request: Request) -> dict[str, bool]:
     deleted = _services(request).resources.delete_bibliography_item(item_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="bibliography item not found")
+    return {"deleted": True}
+
+
+@router.get(
+    "/ticker-aliases",
+    response_model=list[TickerAliasResponse],
+    tags=["market"],
+)
+def list_ticker_aliases(request: Request) -> list:
+    """Return user-defined ticker aliases."""
+    return _services(request).resources.list_ticker_aliases()
+
+
+@router.post(
+    "/ticker-aliases",
+    response_model=TickerAliasResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["market"],
+)
+def add_ticker_alias(
+    payload: TickerAliasCreateRequest, request: Request
+) -> TickerAliasResponse:
+    """Create a ticker alias."""
+    result = _services(request).resources.add_ticker_alias(
+        payload.broker_ticker, payload.official_name, payload.provider
+    )
+    _services(request).analytics.invalidate_ppi_cache()
+    return result
+
+
+@router.delete(
+    "/ticker-aliases/{alias_id}",
+    response_model=MutationResponse,
+    tags=["market"],
+)
+def delete_ticker_alias(alias_id: int, request: Request) -> dict[str, bool]:
+    """Delete a ticker alias."""
+    deleted = _services(request).resources.remove_ticker_alias(alias_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="ticker alias not found")
+    _services(request).analytics.invalidate_ppi_cache()
     return {"deleted": True}
 
 

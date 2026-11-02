@@ -6,8 +6,10 @@
  * without a backend round-trip.
  */
 
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 
+import { api } from '../../api/client'
+import type { TickerAliasResponse } from '../../api/client'
 import {
   readBrokers,
   readCategories,
@@ -115,6 +117,56 @@ export function SettingsPage() {
   const brokers = useSyncExternalStore(subscribeCatalog, readBrokers, readBrokers)
   const categories = useSyncExternalStore(subscribeCatalog, readCategories, readCategories)
 
+  const [aliases, setAliases] = useState<TickerAliasResponse[]>([])
+  const [aliasBroker, setAliasBroker] = useState('')
+  const [aliasOfficial, setAliasOfficial] = useState('')
+  const [aliasLoading, setAliasLoading] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    api
+      .listTickerAliases()
+      .then((data) => {
+        if (active) setAliases(data)
+      })
+      .catch(() => {
+        // ignore
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  async function addAlias() {
+    const broker = aliasBroker.trim().toUpperCase()
+    const official = aliasOfficial.trim()
+    if (!broker || !official) return
+    setAliasLoading(true)
+    try {
+      const created = await api.createTickerAlias({
+        broker_ticker: broker,
+        official_name: official,
+        provider: 'ppi',
+      })
+      setAliases((prev) => [...prev, created])
+      setAliasBroker('')
+      setAliasOfficial('')
+    } catch {
+      // ignore
+    } finally {
+      setAliasLoading(false)
+    }
+  }
+
+  async function removeAlias(id: number) {
+    try {
+      await api.deleteTickerAlias(id)
+      setAliases((prev) => prev.filter((a) => a.id !== id))
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <section aria-labelledby="settings-heading" className="space-y-6">
       <header>
@@ -174,6 +226,71 @@ export function SettingsPage() {
             onChange={writeCategories}
             placeholder="Ej.: Obligación Negociable"
           />
+        </div>
+      </div>
+
+      <div className="bg-[#181c24]/80 backdrop-blur-md rounded-xl border border-[#3d494c]/30 overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#3d494c]/20">
+          <h2 className="text-sm font-semibold text-white">Alias de activos (Bonos/FCI)</h2>
+          <p className="text-xs text-[#869397] mt-1">
+            Vincula un ticker de broker con el nombre oficial del proveedor de datos (PPI).
+            Ej.: AL.DIVER.A → Allaria Diversificado Clase A
+          </p>
+        </div>
+        <div className="px-6 py-4 flex flex-col gap-4">
+          <ul className="flex flex-col gap-2">
+            {aliases.map((alias) => (
+              <li
+                key={alias.id}
+                className="flex items-center justify-between gap-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 px-3 py-2 text-xs font-mono text-[#bcc9cd]"
+              >
+                <span>
+                  <span className="text-[#4cd7f6]">{alias.broker_ticker}</span>
+                  <span className="text-[#869397] mx-2">→</span>
+                  {alias.official_name}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Quitar alias ${alias.broker_ticker}`}
+                  onClick={() => removeAlias(alias.id)}
+                  className="text-[#869397] hover:text-[#ff7f8b] transition-colors"
+                >
+                  <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+                    close
+                  </span>
+                </button>
+              </li>
+            ))}
+            {aliases.length === 0 ? (
+              <li className="text-xs text-[#869397]">Sin alias configurados.</li>
+            ) : null}
+          </ul>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={aliasBroker}
+              onChange={(e) => setAliasBroker(e.target.value)}
+              placeholder="Ticker broker (ej.: DEL.RR.NAT.A)"
+              aria-label="Ticker broker para alias"
+              className="bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/40 text-sm text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6]"
+            />
+            <input
+              type="text"
+              value={aliasOfficial}
+              onChange={(e) => setAliasOfficial(e.target.value)}
+              placeholder="Nombre oficial PPI"
+              aria-label="Nombre oficial PPI para alias"
+              className="bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/40 text-sm text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6]"
+            />
+            <button
+              type="button"
+              onClick={addAlias}
+              disabled={aliasLoading || !aliasBroker.trim() || !aliasOfficial.trim()}
+              className="px-3 py-1.5 rounded-lg bg-[#4cd7f6]/10 border border-[#4cd7f6]/30 text-xs font-mono text-[#4cd7f6] hover:bg-[#4cd7f6]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Agregar
+            </button>
+          </div>
         </div>
       </div>
     </section>

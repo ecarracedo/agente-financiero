@@ -451,7 +451,7 @@ def test_a0003_migration_adds_and_removes_unique_source_ids(tmp_path):
         "bibliography_items",
     ]
 
-    command.upgrade(config, "head")
+    command.upgrade(config, "a0003_migration_source_ids")
 
     engine = create_engine(f"sqlite:///{database_path}")
     inspector = inspect(engine)
@@ -465,7 +465,7 @@ def test_a0003_migration_adds_and_removes_unique_source_ids(tmp_path):
         ]
         assert unique_indexes, f"missing unique source_id index on {table}"
 
-    command.downgrade(config, "-1")
+    command.downgrade(config, "a0002_target_alerts")
 
     inspector = inspect(engine)
     for table in tables:

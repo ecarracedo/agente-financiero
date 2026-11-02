@@ -206,6 +206,25 @@ class BibliographyItemResponse(BaseModel):
     description: str | None
 
 
+class TickerAliasResponse(BaseModel):
+    """Expose a user-defined ticker alias."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    broker_ticker: str
+    official_name: str
+    provider: str
+
+
+class TickerAliasCreateRequest(BaseModel):
+    """Body for creating a ticker alias."""
+
+    broker_ticker: str
+    official_name: str
+    provider: str = "ppi"
+
+
 class TargetAlertEventResponse(BaseModel):
     """Expose one intent-specific target crossing notification."""
 

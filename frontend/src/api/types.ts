@@ -341,6 +341,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ticker-aliases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Ticker Aliases
+         * @description Return user-defined ticker aliases.
+         */
+        get: operations["list_ticker_aliases_api_v1_ticker_aliases_get"];
+        put?: never;
+        /**
+         * Add Ticker Alias
+         * @description Create a ticker alias.
+         */
+        post: operations["add_ticker_alias_api_v1_ticker_aliases_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ticker-aliases/{alias_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Ticker Alias
+         * @description Delete a ticker alias.
+         */
+        delete: operations["delete_ticker_alias_api_v1_ticker_aliases__alias_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/splits": {
         parameters: {
             query?: never;
@@ -623,6 +667,35 @@ export interface components {
             intent: components["schemas"]["AlertIntent"];
             /** Message */
             message: string;
+        };
+        /**
+         * TickerAliasCreateRequest
+         * @description Body for creating a ticker alias.
+         */
+        TickerAliasCreateRequest: {
+            /** Broker Ticker */
+            broker_ticker: string;
+            /** Official Name */
+            official_name: string;
+            /**
+             * Provider
+             * @default ppi
+             */
+            provider: string;
+        };
+        /**
+         * TickerAliasResponse
+         * @description Expose a user-defined ticker alias.
+         */
+        TickerAliasResponse: {
+            /** Id */
+            id: number;
+            /** Broker Ticker */
+            broker_ticker: string;
+            /** Official Name */
+            official_name: string;
+            /** Provider */
+            provider: string;
         };
         /**
          * TickerMatchResponse
@@ -1314,6 +1387,90 @@ export interface operations {
             header?: never;
             path: {
                 item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_ticker_aliases_api_v1_ticker_aliases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TickerAliasResponse"][];
+                };
+            };
+        };
+    };
+    add_ticker_alias_api_v1_ticker_aliases_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TickerAliasCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TickerAliasResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_ticker_alias_api_v1_ticker_aliases__alias_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alias_id: number;
             };
             cookie?: never;
         };

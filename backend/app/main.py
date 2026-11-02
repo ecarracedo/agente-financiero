@@ -54,7 +54,24 @@ def create_app(
         )
 
     yfinance = YFinanceMarketDataProvider()
-    ppi = PpiMarketDataProvider()
+
+    def _load_ppi_aliases() -> dict[str, str]:
+        """Load user-defined FCI aliases from the database."""
+        from backend.app.adapters.persistence.database import create_database_engine
+        from sqlalchemy.orm import sessionmaker
+        from backend.app.adapters.persistence.repositories import SqlAlchemyResourceRepository
+        engine = database_engine if database_engine is not None else _default_database_engine()
+        session = sessionmaker(bind=engine)()
+        try:
+            repo = SqlAlchemyResourceRepository(session)
+            aliases = {}
+            for record in repo.list_ticker_aliases():
+                aliases[record.broker_ticker] = record.official_name
+            return aliases
+        finally:
+            session.close()
+
+    ppi = PpiMarketDataProvider(aliases_provider=_load_ppi_aliases)
     provider = market_data_provider or CompositeMarketDataProvider(
         ppi_provider=ppi,
         yfinance_factory=yfinance._create_ticker,

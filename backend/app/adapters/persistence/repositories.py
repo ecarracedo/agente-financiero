@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from backend.app.adapters.persistence.models import (
     BibliographyRecord,
     PortfolioPositionRecord,
+    TickerAliasRecord,
     TransactionRecord,
     WishlistRecord,
 )
@@ -361,6 +362,32 @@ class SqlAlchemyResourceRepository:
     def remove_bibliography_item(self, item_id: int) -> bool:
         """Remove a bibliography resource and report whether it existed."""
         record = self._session.get(BibliographyRecord, item_id)
+        if record is None:
+            return False
+        self._session.delete(record)
+        return True
+
+    def list_ticker_aliases(self) -> list[TickerAliasRecord]:
+        """Return all ticker aliases ordered by broker ticker."""
+        statement = select(TickerAliasRecord).order_by(TickerAliasRecord.broker_ticker)
+        return list(self._session.scalars(statement))
+
+    def add_ticker_alias(
+        self, broker_ticker: str, official_name: str, provider: str = "ppi"
+    ) -> TickerAliasRecord:
+        """Add a ticker alias and return the persisted record."""
+        record = TickerAliasRecord(
+            broker_ticker=broker_ticker.strip().upper(),
+            official_name=official_name.strip(),
+            provider=provider.strip().lower(),
+        )
+        self._session.add(record)
+        self._session.flush()
+        return record
+
+    def remove_ticker_alias(self, alias_id: int) -> bool:
+        """Remove a ticker alias and report whether it existed."""
+        record = self._session.get(TickerAliasRecord, alias_id)
         if record is None:
             return False
         self._session.delete(record)

@@ -36,6 +36,7 @@ PPI_CURRENCY_MAP = {
 # Default FCI alias mapping: broker symbol -> official PPI fund name
 DEFAULT_FCI_ALIASES: dict[str, str] = {
     "AL.DIVER.A": "Allaria Diversificado Clase A",
+    "DEL.RR.NAT.A": "Delta Recursos Naturales Clase A",
 }
 
 
@@ -56,13 +57,27 @@ class PpiMarketDataProvider:
     def __init__(
         self,
         fci_aliases: dict[str, str] | None = None,
+        aliases_provider=None,
         timeout_seconds: int = 15,
     ) -> None:
-        self._fci_aliases = {k.upper(): v for k, v in (fci_aliases or DEFAULT_FCI_ALIASES).items()}
+        self._default_aliases = {k.upper(): v for k, v in (fci_aliases or DEFAULT_FCI_ALIASES).items()}
+        self._aliases_provider = aliases_provider
         self._timeout = timeout_seconds
         self._cache: dict[str, QuoteSnapshot] | None = None
         self._cache_date: date | None = None
         self._search_index: list[TickerMatch] | None = None
+
+    def _get_aliases(self) -> dict[str, str]:
+        """Return the current alias map, merging defaults with DB-stored aliases."""
+        aliases = dict(self._default_aliases)
+        if self._aliases_provider is not None:
+            try:
+                db_aliases = self._aliases_provider()
+                for broker_ticker, official_name in db_aliases.items():
+                    aliases[broker_ticker.upper()] = official_name
+            except Exception:
+                pass
+        return aliases
 
     def _is_cache_valid(self) -> bool:
         """Return True if cache exists and is from today."""
@@ -183,7 +198,8 @@ class PpiMarketDataProvider:
                                             quote_type="Mutual Fund",
                                         )
                                     )
-                                    for alias, canonical in self._fci_aliases.items():
+                                    aliases = self._get_aliases()
+                                    for alias, canonical in aliases.items():
                                         if canonical == name:
                                             new_cache[normalize_ticker(alias)] = QuoteSnapshot(
                                                 price=price, currency=currency
@@ -226,6 +242,15 @@ class PpiMarketDataProvider:
             self._refresh_cache()
             return True
         return self._refresh_cache()
+
+    def invalidate_cache(self) -> None:
+        """Force the cache to be rebuilt on next access.
+
+        Call this when aliases change so the new mappings take effect immediately.
+        """
+        self._cache = None
+        self._cache_date = None
+        self._search_index = None
 
     def get_quote(self, ticker: str) -> QuoteSnapshot | None:
         """Return current price for a bond ticker or mapped FCI alias."""

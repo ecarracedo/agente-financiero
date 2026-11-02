@@ -127,6 +127,44 @@ class ResourceUseCases:
                 unit_of_work.commit()
             return removed
 
+    def list_ticker_aliases(self) -> list[dict]:
+        """List persisted ticker aliases."""
+        with self._unit_of_work_factory() as unit_of_work:
+            records = unit_of_work.resources.list_ticker_aliases()
+            return [
+                {
+                    "id": record.id,
+                    "broker_ticker": record.broker_ticker,
+                    "official_name": record.official_name,
+                    "provider": record.provider,
+                }
+                for record in records
+            ]
+
+    def add_ticker_alias(
+        self, broker_ticker: str, official_name: str, provider: str = "ppi"
+    ) -> dict:
+        """Persist a ticker alias and return its data."""
+        with self._unit_of_work_factory() as unit_of_work:
+            record = unit_of_work.resources.add_ticker_alias(
+                broker_ticker, official_name, provider
+            )
+            unit_of_work.commit()
+            return {
+                "id": record.id,
+                "broker_ticker": record.broker_ticker,
+                "official_name": record.official_name,
+                "provider": record.provider,
+            }
+
+    def remove_ticker_alias(self, alias_id: int) -> bool:
+        """Delete a ticker alias and commit when it existed."""
+        with self._unit_of_work_factory() as unit_of_work:
+            removed = unit_of_work.resources.remove_ticker_alias(alias_id)
+            if removed:
+                unit_of_work.commit()
+            return removed
+
     def calculate_split(
         self,
         quantity: Decimal,

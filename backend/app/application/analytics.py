@@ -58,6 +58,12 @@ class PortfolioAnalyticsUseCases:
             return ()
         return tuple(self._market_data.search_symbols(trimmed, limit))
 
+    def invalidate_ppi_cache(self) -> None:
+        """Invalidate the PPI provider cache so new aliases take effect."""
+        ppi = getattr(self._market_data, "_ppi", None)
+        if ppi is not None and hasattr(ppi, "invalidate_cache"):
+            ppi.invalidate_cache()
+
     def analyze_ticker(
         self, ticker: str, period: str = DEFAULT_ANALYSIS_PERIOD
     ) -> MarketAnalysis:

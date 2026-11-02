@@ -92,3 +92,18 @@ class BibliographyRecord(Base):
     link: Mapped[str | None] = mapped_column(String(2000))
     description: Mapped[str | None] = mapped_column(Text)
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
+
+
+class TickerAliasRecord(Base):
+    """Persist a user-defined mapping from a broker ticker to an official name."""
+
+    __tablename__ = "ticker_aliases"
+    __table_args__ = (
+        UniqueConstraint("broker_ticker", name="uq_ticker_alias_broker_ticker"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    broker_ticker: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    official_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False, default="ppi")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)

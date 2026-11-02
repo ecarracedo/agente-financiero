@@ -124,6 +124,15 @@ class BibliographyRecordPort(Protocol):
     description: str | None
 
 
+class TickerAliasRecordPort(Protocol):
+    """Read-only ticker alias fields exposed to application use cases."""
+
+    id: int
+    broker_ticker: str
+    official_name: str
+    provider: str
+
+
 class ResourceRepositoryPort(Protocol):
     """Target-alert operations for wishlist resources."""
 
@@ -151,6 +160,14 @@ class ResourceRepositoryPort(Protocol):
     def list_bibliography(self) -> Sequence[BibliographyRecordPort]: ...
 
     def remove_bibliography_item(self, item_id: int) -> bool: ...
+
+    def list_ticker_aliases(self) -> Sequence[TickerAliasRecordPort]: ...
+
+    def add_ticker_alias(
+        self, broker_ticker: str, official_name: str, provider: str = "ppi"
+    ) -> TickerAliasRecordPort: ...
+
+    def remove_ticker_alias(self, alias_id: int) -> bool: ...
 
     def set_wishlist_alert(
         self, ticker: str, settings: TargetAlertSettings
