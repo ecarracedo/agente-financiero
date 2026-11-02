@@ -164,6 +164,10 @@ class PpiMarketDataProvider:
                             try:
                                 price = Decimal(str(price_raw))
                                 if price.is_finite() and price > 0:
+                                    # PPI reports FCI prices per 1000 cuotapartes
+                                    # (e.g. 0.1826 means 182.60 per cuotaparte).
+                                    # Multiply by 1000 to get the real cuotaparte value.
+                                    price = price * Decimal("1000")
                                     currency = _to_currency(currency_raw)
                                     key = normalize_ticker(name)
                                     new_cache[key] = QuoteSnapshot(price=price, currency=currency)

@@ -94,10 +94,10 @@ class TestPpiMarketDataProvider:
         assert al30d.price == Decimal("53.52")
         assert al30d.currency == "USD"
 
-        # FCI by official name
+        # FCI by official name (price is per 1000 cuotapartes in PPI, multiplied by 1000)
         allaria = provider.get_quote("Allaria Diversificado Clase A")
         assert allaria is not None
-        assert allaria.price == Decimal("0.182601916")
+        assert allaria.price == Decimal("182.601916")
         assert allaria.currency == "ARS"
 
     def test_alias_resolution_for_fci(self, monkeypatch):
@@ -118,7 +118,7 @@ class TestPpiMarketDataProvider:
         # Query by alias
         quote = provider.get_quote("AL.DIVER.A")
         assert quote is not None
-        assert quote.price == Decimal("0.182601916")
+        assert quote.price == Decimal("182.601916")
         assert quote.currency == "ARS"
 
     def test_cache_validity_same_day(self, monkeypatch):
