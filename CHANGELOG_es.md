@@ -5,6 +5,22 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Agregado
+- **Posiciones en Cartera**: Columnas Total y Variación con cotizaciones en vivo, más columna de P&L.
+- **Registrar Transacción**: Selectores de broker y tipo de activo; precio editable manualmente.
+- **Gestión de Tenencias**: Botón "Vender" para vender la posición completa al precio actual. La cartera inicia vacía en modo demo.
+- **Edición de Posiciones**: Broker y tipo de activo editables en línea, con aplicación optimista y reversión si falla la actualización.
+- **Catálogo de Cartera**: Brokers y tipos de activo configurables desde Configuración y persistidos localmente.
+- **Filtros de Tenencias**: Filtrado por ticker, tipo de activo y broker, con contador de resultados y acción para limpiar.
+- **Últimas Transacciones**: La tarjeta muestra las últimas tres operaciones registradas en lugar de datos de ejemplo.
+- **API de Transacciones**: `GET /api/v1/transactions` acepta un `limit` opcional y, sin ticker, devuelve las operaciones más recientes de toda la cartera.
+
+### Corregido
+- **Tabla de Posiciones**: Un broker o tipo de activo que ya no está en el catálogo se sigue mostrando en su selector en lugar de dejar el control vacío.
+- **Catálogo de Cartera**: El memo del catálogo detecta cambios hechos en `localStorage` por otra vía, así que nunca sirve un catálogo viejo.
+
 ## [1.2.0] - 2025-12-18
 
 ### Agregado

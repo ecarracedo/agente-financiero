@@ -223,6 +223,15 @@ class SqlAlchemyPortfolioRepository:
         )
         return list(self._session.scalars(statement))
 
+    def list_recent_transactions(self, limit: int) -> list[TransactionRecord]:
+        """Return the newest operations across every asset, most recent first."""
+        statement = (
+            select(TransactionRecord)
+            .order_by(TransactionRecord.occurred_at.desc(), TransactionRecord.id.desc())
+            .limit(limit)
+        )
+        return list(self._session.scalars(statement))
+
     def get_transaction(self, transaction_id: int) -> TransactionRecord | None:
         """Load one transaction by its database identifier."""
         return self._session.get(TransactionRecord, transaction_id)

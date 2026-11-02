@@ -2,7 +2,8 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 
-import { portfolioItems } from '../../mocks/fixtures'
+import { analysisAAPL, portfolioItems, unknownAnalysis } from '../../mocks/fixtures'
+import { CATEGORIES_STORAGE_KEY } from '../settings/catalogSettings'
 import { server } from '../../../tests/setup'
 import { renderWithRouter } from '../../../tests/render'
 
@@ -27,10 +28,10 @@ describe('PortfolioWorkspace', () => {
     const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
     const row = within(tickerCell.closest('tr') as HTMLElement)
 
-    expect(row.getByRole('cell', { name: 'IBKR' })).toBeInTheDocument()
-    expect(row.getByRole('cell', { name: 'Stock' })).toBeInTheDocument()
+    expect(row.getByDisplayValue('ECO')).toBeInTheDocument()
+    expect(row.getByDisplayValue('Acciones')).toBeInTheDocument()
     expect(row.getByRole('cell', { name: '10' })).toBeInTheDocument()
-    expect(row.getByRole('cell', { name: '150.25 USD' })).toBeInTheDocument()
+    expect(row.getByText(/150\.25/)).toBeInTheDocument()
   })
 
   it('renders each currency as a separate valuation group, never summed together', async () => {
@@ -102,6 +103,156 @@ describe('PortfolioWorkspace', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument()
   })
 
+  it('refreshes quotes when the manual refresh button is used', async () => {
+    let quoteCalls = 0
+    server.use(
+      http.get('*/api/v1/analysis/:ticker', () => {
+        quoteCalls++
+        const price = quoteCalls === 1 ? '190.00' : '205.00'
+        return HttpResponse.json({ ...analysisAAPL, current_price: price })
+      }),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+    await screen.findByRole('heading', { name: /posiciones en cartera/i })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('$190.00').length).toBeGreaterThan(0)
+    })
+
+    const callsBeforeRefresh = quoteCalls
+    fireEvent.click(screen.getByRole('button', { name: /actualizar/i }))
+
+    await waitFor(() => {
+      expect(quoteCalls).toBeGreaterThan(callsBeforeRefresh)
+    })
+    await waitFor(() => {
+      expect(screen.getAllByText('$205.00').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('reverts the broker selector when the update request fails', async () => {
+    server.use(
+      http.put('*/api/v1/portfolio/:ticker', () =>
+        HttpResponse.json({ detail: 'boom' }, { status: 500 }),
+      ),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
+    const brokerSelect = row.getByDisplayValue('ECO')
+
+    fireEvent.change(brokerSelect, { target: { value: 'PPI' } })
+
+    // Optimistic first: the control must not wait for the round-trip.
+    expect(row.getByDisplayValue('PPI')).toBeInTheDocument()
+    // Then the failure puts back the broker the backend still holds.
+    await waitFor(() => {
+      expect(row.getByDisplayValue('ECO')).toBeInTheDocument()
+    })
+  })
+
+  it('sells the whole position at the current quote', async () => {
+    let posted: Record<string, unknown> | null = null
+    server.use(
+      http.post('*/api/v1/transactions', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json(null, { status: 201 })
+      }),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
+    const sellButton = row.getByRole('button', { name: /vender/i })
+
+    await waitFor(() => expect(sellButton).toBeEnabled())
+    fireEvent.click(sellButton)
+
+    await waitFor(() => {
+      expect(posted).toMatchObject({
+        ticker: 'AAPL',
+        broker: 'ECO',
+        category: 'Acciones',
+        operation_type: 'SELL',
+        quantity: '10',
+        unit_price: '190.00',
+        currency: 'USD',
+      })
+    })
+  })
+
+  it('disables the sell action while the quote is unknown', async () => {
+    server.use(
+      http.get('*/api/v1/analysis/:ticker', () => HttpResponse.json(unknownAnalysis)),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
+
+    await waitFor(() => {
+      expect(row.getByRole('button', { name: /vender/i })).toBeDisabled()
+    })
+  })
+
+  it('keeps a position value that is missing from the catalog selected', async () => {
+    // The catalog no longer offers "Acciones", but the stored position still
+    // holds it. The row must keep showing it instead of rendering a blank
+    // selector, which is what a `value` with no matching `option` produces.
+    window.localStorage.setItem(
+      CATEGORIES_STORAGE_KEY,
+      JSON.stringify(['Cedear', 'ETF']),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const tickerCell = await screen.findByRole('cell', { name: 'AAPL' })
+    const row = within(tickerCell.closest('tr') as HTMLElement)
+    expect(row.getByDisplayValue('Acciones')).toBeInTheDocument()
+  })
+
+  it('filters holdings by ticker, asset type and broker', async () => {
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+    await screen.findByRole('heading', { name: /posiciones en cartera/i })
+
+    expect(await screen.findByRole('cell', { name: 'AAPL' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Filtro de tipo'), {
+      target: { value: 'Cripto' },
+    })
+    expect(screen.queryByRole('cell', { name: 'AAPL' })).not.toBeInTheDocument()
+    expect(screen.getByText('Sin resultados para los filtros aplicados.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /limpiar/i }))
+    expect(await screen.findByRole('cell', { name: 'AAPL' })).toBeInTheDocument()
+  })
+
+  it('shows only the last three transactions in the recent transactions card', async () => {
+    const recent = [
+      { id: 5, ticker: 'NVDA', broker: 'ECO', category: 'Acciones', operation_type: 'BUY', quantity: '4', unit_price: '875.20', currency: 'USD', occurred_at: '2024-03-04T14:32:10' },
+      { id: 4, ticker: 'BTC', broker: 'BINANCE', category: 'Cripto', operation_type: 'BUY', quantity: '0.05', unit_price: '64200.00', currency: 'USD', occurred_at: '2024-03-03T18:04:19' },
+      { id: 3, ticker: 'MSFT', broker: 'ECO', category: 'Acciones', operation_type: 'SELL', quantity: '10', unit_price: '415.50', currency: 'USD', occurred_at: '2024-02-24T10:15:02' },
+      { id: 2, ticker: 'KO', broker: 'ECO', category: 'Acciones', operation_type: 'BUY', quantity: '3', unit_price: '60.00', currency: 'USD', occurred_at: '2024-02-20T11:00:00' },
+      { id: 1, ticker: 'PAMP.BA', broker: 'PPI', category: 'Cedear', operation_type: 'SELL', quantity: '2', unit_price: '4802.50', currency: 'ARS', occurred_at: '2024-02-19T09:30:00' },
+    ]
+    server.use(
+      http.get('*/api/v1/transactions', () => HttpResponse.json(recent)),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const card = await screen.findByRole('region', { name: /últimas transacciones/i })
+    await within(card).findByText(/NVDA/)
+    expect(within(card).getAllByText(/u\.$/)).toHaveLength(3)
+    expect(within(card).queryByText(/KO/)).not.toBeInTheDocument()
+    expect(within(card).queryByText(/PAMP\.BA/)).not.toBeInTheDocument()
+  })
+
   it('executes a transaction from QuickOrderCard and triggers portfolio refresh', async () => {
     let portfolioFetchCount = 0
     let posted: Record<string, unknown> | null = null
@@ -123,7 +274,7 @@ describe('PortfolioWorkspace', () => {
 
     // The unit price is autocompleted from the quote before the order is sent.
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('190.00')
+      expect(screen.getByLabelText('Precio')).toHaveValue('190.00')
     })
 
     // Submit quick order
@@ -161,11 +312,13 @@ describe('PortfolioWorkspace', () => {
     fireEvent.change(combobox, { target: { value: 'apple' } })
 
     // The suggestion list comes from the search endpoint, not a hardcoded list.
-    fireEvent.click(await screen.findByRole('option', { name: /AAPL/ }))
+    // The control debounces typing, so the wait is generous: a loaded test run
+    // can push the response past the one-second default.
+    fireEvent.click(await screen.findByRole('option', { name: /AAPL/ }, { timeout: 5000 }))
     expect(combobox).toHaveValue('AAPL')
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('190.00')
+      expect(screen.getByLabelText('Precio')).toHaveValue('190.00')
     })
 
     fireEvent.click(screen.getByRole('button', { name: /registrar transacción/i }))
@@ -192,7 +345,7 @@ describe('PortfolioWorkspace', () => {
 
     // The quote supplies the price and the currency the ticket will record.
     await waitFor(() => {
-      expect(screen.getByLabelText('Precio / Acción')).toHaveValue('4802.50')
+      expect(screen.getByLabelText('Precio')).toHaveValue('4802.50')
     })
     expect(screen.getAllByText('ARS')).toHaveLength(2)
 

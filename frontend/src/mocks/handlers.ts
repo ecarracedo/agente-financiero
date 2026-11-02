@@ -89,6 +89,18 @@ export const handlers = [
     return HttpResponse.json(analysisAAPL)
   }),
 
+  // A position update is addressed by ticker plus its business identity, so the
+  // response is the stored row with the patched fields applied.
+  http.put(`${BASE}/api/v1/portfolio/:ticker`, async ({ request, params }) => {
+    const body = (await request.json()) as { broker?: string; category?: string }
+    const current = (portfolioItems as PortfolioPosition[]).find(
+      (item) => item.ticker === String(params.ticker),
+    )
+    return HttpResponse.json<PortfolioPosition | null>(
+      current ? { ...current, ...body } : null,
+    )
+  }),
+
   // A portfolio alert is configured per ticker.
   http.put(`${BASE}/api/v1/portfolio/:ticker/alert`, () =>
     HttpResponse.json({ configured: true }),

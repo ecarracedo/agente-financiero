@@ -12,7 +12,7 @@ export const portfolioItems = [
   {
     ticker: 'AAPL',
     broker: 'ECO',
-    category: 'Stock',
+    category: 'Acciones',
     quantity: '10',
     average_price: '150.25',
     currency: 'USD',

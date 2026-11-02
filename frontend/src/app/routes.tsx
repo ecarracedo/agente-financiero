@@ -4,6 +4,7 @@ import { BibliographyWorkspace } from '../features/bibliography/BibliographyWork
 import { AlertsWorkspace } from '../features/alerts/AlertsWorkspace'
 import { MarketWorkspace } from '../features/market/MarketWorkspace'
 import { PortfolioWorkspace } from '../features/portfolio/PortfolioWorkspace'
+import { SettingsPage } from '../features/settings/SettingsPage'
 import { SplitWorkspace } from '../features/tools/split/SplitWorkspace'
 import { TransactionsWorkspace } from '../features/transactions/TransactionsWorkspace'
 import { WishlistWorkspace } from '../features/wishlist/WishlistWorkspace'
@@ -37,6 +38,7 @@ export const WORKSPACE_ROUTES: WorkspaceRoute[] = [
   { path: 'wishlist', label: 'Wishlist', element: <WishlistWorkspace /> },
   { path: 'bibliography', label: 'Bibliography', element: <BibliographyWorkspace /> },
   { path: 'tools', label: 'Tools', element: <SplitWorkspace /> },
+  { path: 'configuracion', label: 'Configuración', element: <SettingsPage /> },
 ]
 
 /** Landing route: the default workspace. */

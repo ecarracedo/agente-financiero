@@ -78,6 +78,14 @@ export const api = {
     const query = new URLSearchParams({ ticker, broker })
     return request<TransactionsResponse>(`/api/v1/transactions?${query.toString()}`)
   },
+  /**
+   * Fetch the newest transactions across every asset, newest first.
+   *
+   * Unlike `listTransactions`, this call names no ticker or broker, so it can
+   * power a dashboard widget that shows recent activity for the whole portfolio.
+   */
+  listRecentTransactions: (limit: number): Promise<TransactionsResponse> =>
+    request<TransactionsResponse>(`/api/v1/transactions?limit=${limit}`),
   createTransaction: (payload: TransactionRequest): Promise<TransactionCreatedResponse> =>
     request<TransactionCreatedResponse>('/api/v1/transactions', {
       method: 'POST',

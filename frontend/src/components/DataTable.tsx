@@ -87,7 +87,7 @@ export function DataTable<T>({
               <TableHeaderCell
                 key={column.key}
                 data-align={column.align ?? 'left'}
-                className={`${alignClass(column.align ?? 'left')} !text-center`}
+                className={alignClass(column.align ?? 'left')}
               >
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#869397]">{column.header}</span>
               </TableHeaderCell>

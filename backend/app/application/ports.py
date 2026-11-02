@@ -82,6 +82,10 @@ class PortfolioRepositoryPort(Protocol):
         self, ticker: str, broker: str
     ) -> Sequence[TransactionRecordPort]: ...
 
+    def list_recent_transactions(
+        self, limit: int
+    ) -> Sequence[TransactionRecordPort]: ...
+
 
 class PortfolioUnitOfWorkPort(Protocol):
     """Caller-controlled transaction boundary for portfolio persistence."""

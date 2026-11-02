@@ -26,6 +26,7 @@ export interface PortfolioWorkspaceProps {
 export function PortfolioWorkspace({ refreshToken = 0 }: PortfolioWorkspaceProps) {
   const [internalVersion, setInternalVersion] = useState(0)
   const { status, data, error, reload } = usePortfolio(refreshToken + internalVersion)
+  const version = refreshToken + internalVersion
 
   return (
     <section aria-labelledby="portfolio-heading" className="space-y-6">
@@ -70,7 +71,7 @@ export function PortfolioWorkspace({ refreshToken = 0 }: PortfolioWorkspaceProps
           {/* Bottom Grid: Exposure Warning + Recent Executions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ExposureAlertCard />
-            <RecentExecutionsCard />
+            <RecentExecutionsCard refreshToken={version} />
           </div>
 
           {/* Valuations Table */}

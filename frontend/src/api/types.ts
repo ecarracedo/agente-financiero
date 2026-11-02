@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/portfolio/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Portfolio Position
+         * @description Update broker or category for an existing position.
+         */
+        put: operations["update_portfolio_position_api_v1_portfolio__ticker__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transactions": {
         parameters: {
             query?: never;
@@ -33,7 +53,12 @@ export interface paths {
         };
         /**
          * List Transactions
-         * @description Return chronological transaction history for a ticker and broker.
+         * @description Return transaction history, or the newest operations across every asset.
+         *
+         *     Supplying both `ticker` and `broker` returns that asset's chronological
+         *     history, which is what a position drill-down needs. Supplying neither
+         *     returns the most recent operations across the whole portfolio, newest
+         *     first, so a dashboard can show recent activity without naming a ticker.
          */
         get: operations["list_transactions_api_v1_transactions_get"];
         put?: never;
@@ -534,6 +559,13 @@ export interface components {
             /** Currency */
             currency: string;
         };
+        /** PortfolioPositionUpdateRequest */
+        PortfolioPositionUpdateRequest: {
+            /** Broker */
+            broker?: string | null;
+            /** Category */
+            category?: string | null;
+        };
         /**
          * PositionAlertCheckRequest
          * @description Identify a broker/category position whose alert should be evaluated.
@@ -746,11 +778,50 @@ export interface operations {
             };
         };
     };
-    list_transactions_api_v1_transactions_get: {
+    update_portfolio_position_api_v1_portfolio__ticker__put: {
         parameters: {
             query: {
-                ticker: string;
                 broker: string;
+                category: string;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioPositionUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioPositionResponse"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_api_v1_transactions_get: {
+        parameters: {
+            query?: {
+                ticker?: string | null;
+                broker?: string | null;
+                limit?: number;
             };
             header?: never;
             path?: never;

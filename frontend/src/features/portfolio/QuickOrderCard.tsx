@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { api } from '../../api/client'
 import { describeApiError } from '../../api/errors'
 import type { TickerSuggestion } from '../../components/TickerSearch'
 import { TickerSearch } from '../../components/TickerSearch'
 import { localDateTimeValue } from '../../lib/datetime'
 import { marketApi } from '../market/marketApi'
-
-const BROKERS = ['ECO', 'PPI', 'BINANCE'] as const
-const CATEGORIES = ['Acciones', 'CEDEAR', 'ETF', 'Bono', 'FCI', 'Cripto'] as const
+import { readBrokers, readCategories, subscribeCatalog } from '../settings/catalogSettings'
 
 export interface QuickOrderCardProps {
   /** Optional callback invoked when a transaction has been successfully created. */
@@ -32,8 +30,8 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [orderType, setOrderType] = useState<'BUY' | 'SELL'>('BUY')
   const [ticker, setTicker] = useState('NVDA')
   const [asset, setAsset] = useState<TickerSuggestion | null>(null)
-  const [broker, setBroker] = useState<(typeof BROKERS)[number]>('ECO')
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('Acciones')
+  const [broker, setBroker] = useState('ECO')
+  const [category, setCategory] = useState('Acciones')
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('')
   const [priceEdited, setPriceEdited] = useState(false)
@@ -42,6 +40,9 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [submitted, setSubmitted] = useState(false)
   const [quotedTicker, setQuotedTicker] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const brokers = useSyncExternalStore(subscribeCatalog, readBrokers, readBrokers)
+  const categories = useSyncExternalStore(subscribeCatalog, readCategories, readCategories)
 
   const symbol = ticker.trim().toUpperCase()
   // Derived, so no state is written synchronously inside the effect.
@@ -101,11 +102,11 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
     if (!asset) return
     const mapped = categoryFor(asset)
     const sym = asset.symbol.toUpperCase()
-    let next: (typeof CATEGORIES)[number] = 'Acciones'
+    let next = 'Acciones'
     if (mapped === 'Cripto') next = 'Cripto'
     else if (mapped === 'ETF') next = 'ETF'
     else if (sym.endsWith('.BA') || asset.exchange === 'Buenos Aires') {
-      next = 'CEDEAR'
+      next = 'Cedear'
     }
     queueMicrotask(() => {
       setCategory((prev) => (prev === next ? prev : next))
@@ -210,11 +211,11 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
             <select
               id="quick-order-broker"
               value={broker}
-              onChange={(e) => setBroker(e.target.value as (typeof BROKERS)[number])}
+              onChange={(e) => setBroker(e.target.value)}
               className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none"
             >
-              {BROKERS.map((b) => (
-                <option key={b} value={b}>
+              {brokers.map((b) => (
+                <option key={b} value={b} className="bg-[#181c24] text-white">
                   {b}
                 </option>
               ))}
@@ -227,11 +228,11 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
             <select
               id="quick-order-category"
               value={category}
-              onChange={(e) => setCategory(e.target.value as (typeof CATEGORIES)[number])}
+              onChange={(e) => setCategory(e.target.value)}
               className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none"
             >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
+              {categories.map((c) => (
+                <option key={c} value={c} className="bg-[#181c24] text-white">
                   {c}
                 </option>
               ))}

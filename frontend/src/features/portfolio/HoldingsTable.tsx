@@ -2,16 +2,40 @@
  * Holdings table for the portfolio workspace.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import type { PortfolioPosition } from '../../api/client'
 import { api } from '../../api/client'
 import type { Column } from '../../components/DataTable'
 import { DataTable } from '../../components/DataTable'
 import { marketApi } from '../market/marketApi'
+import { readBrokers, readCategories, subscribeCatalog } from '../settings/catalogSettings'
+import {
+  DEFAULT_REFRESH_MINUTES,
+  readRefreshMinutes,
+  subscribeRefreshMinutes,
+} from '../settings/refreshInterval'
+import { AutoRefreshTimer } from './AutoRefreshTimer'
 
-const BROKERS = ['ECO', 'PPI', 'BINANCE']
-const CATEGORIES = ['Acciones', 'CEDEAR', 'ETF', 'Bono', 'FCI', 'Cripto']
+/** Mutable fields a user can change on an existing position. */
+type PositionPatch = { broker?: string; category?: string }
+
+/** Identify one row so an in-flight edit can be shown before the reload lands. */
+function positionKey(position: PortfolioPosition): string {
+  return `${position.ticker}|${position.broker}|${position.category}`
+}
+
+/**
+ * Return `values` with `current` guaranteed to be present.
+ *
+ * A stored position can hold a broker or asset type the catalog no longer
+ * offers: the catalog is user-editable and older rows predate it. A `<select>`
+ * whose `value` matches no `option` renders empty, so the current value is
+ * prepended instead of silently disappearing.
+ */
+function withCurrent(values: string[], current: string): string[] {
+  return values.includes(current) ? values : [current, ...values]
+}
 
 type QuoteState = {
   price: string | null
@@ -88,7 +112,10 @@ function makeColumns(
   getQuote: (ticker: string) => QuoteState,
   onSellAll: (position: PortfolioPosition, price: string) => void,
   sellingTicker: string | null,
-  onUpdate: (position: PortfolioPosition, payload: { broker?: string; category?: string }) => void,
+  onUpdate: (position: PortfolioPosition, payload: PositionPatch) => void,
+  brokers: string[],
+  categories: string[],
+  drafts: Record<string, PositionPatch>,
 ): Column<PortfolioPosition>[] {
   return [
     {
@@ -100,20 +127,27 @@ function makeColumns(
     },
     {
       key: 'category',
-      header: 'Category',
-      render: (position) => (
-        <select
-          value={position.category}
-          onChange={(e) => onUpdate(position, { category: e.target.value })}
-          className="px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6] border border-[#4cd7f6]/30"
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      ),
+      header: 'Activo',
+      render: (position) => {
+        const selected = drafts[positionKey(position)]?.category ?? position.category
+        return (
+          <select
+            value={selected}
+            onChange={(e) => {
+              e.stopPropagation()
+              onUpdate(position, { category: e.target.value })
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6] border border-[#4cd7f6]/30"
+          >
+            {withCurrent(categories, selected).map((c) => (
+              <option key={c} value={c} className="bg-[#181c24] text-[#dfe2ee]">
+                {c}
+              </option>
+            ))}
+          </select>
+        )
+      },
     },
     {
       key: 'quantity',
@@ -156,19 +190,26 @@ function makeColumns(
     {
       key: 'broker',
       header: 'Broker',
-      render: (position) => (
-        <select
-          value={position.broker}
-          onChange={(e) => onUpdate(position, { broker: e.target.value })}
-          className="px-1.5 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono"
-        >
-          {BROKERS.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
-      ),
+      render: (position) => {
+        const selected = drafts[positionKey(position)]?.broker ?? position.broker
+        return (
+          <select
+            value={selected}
+            onChange={(e) => {
+              e.stopPropagation()
+              onUpdate(position, { broker: e.target.value })
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="px-1.5 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono"
+          >
+            {withCurrent(brokers, selected).map((b) => (
+              <option key={b} value={b} className="bg-[#181c24] text-[#dfe2ee]">
+                {b}
+              </option>
+            ))}
+          </select>
+        )
+      },
     },
     {
       key: 'actions',
@@ -208,6 +249,20 @@ export interface HoldingsTableProps {
 export function HoldingsTable({ positions, onPositionsChange }: HoldingsTableProps) {
   const [quotes, setQuotes] = useState<Record<string, QuoteState>>({})
   const [sellingTicker, setSellingTicker] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
+  const [drafts, setDrafts] = useState<Record<string, PositionPatch>>({})
+  const [tickerFilter, setTickerFilter] = useState('')
+  const [brokerFilter, setBrokerFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+
+  const refreshMinutes = useSyncExternalStore(
+    subscribeRefreshMinutes,
+    readRefreshMinutes,
+    () => DEFAULT_REFRESH_MINUTES,
+  )
+  const brokers = useSyncExternalStore(subscribeCatalog, readBrokers, readBrokers)
+  const categories = useSyncExternalStore(subscribeCatalog, readCategories, readCategories)
 
   useEffect(() => {
     let active = true
@@ -218,29 +273,44 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
         .getAnalysis(ticker, '1mo')
         .then((data) => {
           if (!active) return
-          setQuotes((prev) => {
-            if (prev[ticker]?.status === 'ready') return prev
-            return {
-              ...prev,
-              [ticker]: { price: data?.current_price ?? null, status: 'ready' },
-            }
-          })
+          setQuotes((prev) => ({
+            ...prev,
+            [ticker]: { price: data?.current_price ?? null, status: 'ready' },
+          }))
+          setUpdatedAt(new Date())
         })
         .catch(() => {
           if (!active) return
-          setQuotes((prev) => {
-            if (prev[ticker]?.status === 'ready' || prev[ticker]?.status === 'error') return prev
-            return { ...prev, [ticker]: { price: null, status: 'error' } }
-          })
+          setQuotes((prev) => ({
+            ...prev,
+            [ticker]: { price: null, status: 'error' },
+          }))
         })
     }
 
     return () => {
       active = false
     }
-  }, [positions])
+  }, [positions, refreshKey])
 
   const getQuote = (ticker: string) => quotes[ticker] ?? { price: null, status: 'loading' as const }
+
+  const normalizedTickerFilter = tickerFilter.trim().toUpperCase()
+  const visiblePositions = positions.filter((position) => {
+    if (normalizedTickerFilter && !position.ticker.toUpperCase().includes(normalizedTickerFilter)) {
+      return false
+    }
+    if (brokerFilter && position.broker !== brokerFilter) return false
+    if (categoryFilter && position.category !== categoryFilter) return false
+    return true
+  })
+  const hasFilters = normalizedTickerFilter !== '' || brokerFilter !== '' || categoryFilter !== ''
+
+  function clearFilters() {
+    setTickerFilter('')
+    setBrokerFilter('')
+    setCategoryFilter('')
+  }
 
   const handleSellAll = async (position: PortfolioPosition, price: string) => {
     try {
@@ -263,7 +333,12 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
     }
   }
 
-  const handleUpdate = async (position: PortfolioPosition, payload: { broker?: string; category?: string }) => {
+  const handleUpdate = async (position: PortfolioPosition, payload: PositionPatch) => {
+    // Show the choice immediately: the select is driven by server state, so
+    // without this the control snaps back until the reload finishes.
+    const key = positionKey(position)
+    setDrafts((prev) => ({ ...prev, [key]: { ...prev[key], ...payload } }))
+
     try {
       await api.updatePortfolioPosition(
         position.ticker,
@@ -273,18 +348,131 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
       onPositionsChange?.()
     } catch (error) {
       console.error('Failed to update position', error)
+      setDrafts((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
     }
   }
 
   return (
-    <DataTable
-      caption="Holdings"
-      columns={makeColumns(getQuote, handleSellAll, sellingTicker, handleUpdate)}
-      rows={positions}
-      getRowKey={(position, index) =>
-        `${position.ticker}-${position.broker}-${position.category}-${index}`
-      }
-      emptyMessage="No holdings yet."
-    />
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-4 px-1">
+        <span className="flex items-center gap-1.5 text-[11px] text-[#869397] font-mono">
+          <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+            schedule
+          </span>
+          Próxima actualización en
+          <AutoRefreshTimer
+            key={`${refreshMinutes}-${refreshKey}`}
+            minutes={refreshMinutes}
+            onElapsed={() => setRefreshKey((key) => key + 1)}
+          />
+          <span className="text-[#3d494c]">·</span>
+          cada {refreshMinutes} {refreshMinutes === 1 ? 'minuto' : 'minutos'}
+          {updatedAt ? (
+            <>
+              <span className="text-[#3d494c]">·</span>
+              <span data-testid="quotes-updated-at">
+                actualizado {updatedAt.toLocaleTimeString('es-AR')}
+              </span>
+            </>
+          ) : null}
+        </span>
+        <button
+          type="button"
+          onClick={() => setRefreshKey((key) => key + 1)}
+          className="flex items-center gap-1 text-[11px] font-mono text-[#4cd7f6] hover:text-white transition-colors"
+        >
+          <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+            refresh
+          </span>
+          Actualizar
+        </button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <div className="relative flex items-center">
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined absolute left-2 text-[#869397] pointer-events-none text-[15px]"
+          >
+            search
+          </span>
+          <input
+            type="search"
+            value={tickerFilter}
+            onChange={(event) => setTickerFilter(event.target.value)}
+            placeholder="Filtrar ticker…"
+            aria-label="Filtro de ticker"
+            className="w-40 pl-7 pr-2 py-1 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 text-[11px] font-mono text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6]"
+          />
+        </div>
+        <select
+          value={categoryFilter}
+          onChange={(event) => setCategoryFilter(event.target.value)}
+          aria-label="Filtro de tipo"
+          className="px-2 py-1 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 text-[11px] font-mono text-white focus:outline-none focus:border-[#4cd7f6]"
+        >
+          <option value="" className="bg-[#181c24] text-white">
+            Todos los activos
+          </option>
+          {categories.map((category) => (
+            <option key={category} value={category} className="bg-[#181c24] text-white">
+              {category}
+            </option>
+          ))}
+        </select>
+        <select
+          value={brokerFilter}
+          onChange={(event) => setBrokerFilter(event.target.value)}
+          aria-label="Filtro de broker"
+          className="px-2 py-1 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 text-[11px] font-mono text-white focus:outline-none focus:border-[#4cd7f6]"
+        >
+          <option value="" className="bg-[#181c24] text-white">
+            Todos los brokers
+          </option>
+          {brokers.map((broker) => (
+            <option key={broker} value={broker} className="bg-[#181c24] text-white">
+              {broker}
+            </option>
+          ))}
+        </select>
+        {hasFilters ? (
+          <>
+            <span className="text-[11px] font-mono text-[#869397]">
+              {visiblePositions.length} de {positions.length}
+            </span>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-[11px] font-mono text-[#869397] hover:text-white transition-colors"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+                filter_alt_off
+              </span>
+              Limpiar
+            </button>
+          </>
+        ) : null}
+      </div>
+      <DataTable
+        caption="Holdings"
+        columns={makeColumns(
+          getQuote,
+          handleSellAll,
+          sellingTicker,
+          handleUpdate,
+          brokers,
+          categories,
+          drafts,
+        )}
+        rows={visiblePositions}
+        getRowKey={(position, index) =>
+          `${position.ticker}-${position.broker}-${position.category}-${index}`
+        }
+        emptyMessage={hasFilters ? 'Sin resultados para los filtros aplicados.' : 'No holdings yet.'}
+      />
+    </div>
   )
 }

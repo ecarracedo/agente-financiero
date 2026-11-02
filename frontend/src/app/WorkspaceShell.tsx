@@ -14,6 +14,7 @@ const ROUTE_ICONS: Record<string, string> = {
   wishlist: 'monitoring',
   bibliography: 'menu_book',
   tools: 'calculate',
+  configuracion: 'settings',
 }
 
 /**
