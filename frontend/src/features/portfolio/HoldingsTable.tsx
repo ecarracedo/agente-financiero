@@ -9,6 +9,7 @@ import { api } from '../../api/client'
 import type { Column } from '../../components/DataTable'
 import { DataTable } from '../../components/DataTable'
 import { marketApi } from '../market/marketApi'
+import { readBrokers, readCategories, subscribeCatalog } from '../settings/catalogSettings'
 import {
   DEFAULT_REFRESH_MINUTES,
   readRefreshMinutes,
@@ -16,8 +17,13 @@ import {
 } from '../settings/refreshInterval'
 import { AutoRefreshTimer } from './AutoRefreshTimer'
 
-const BROKERS = ['ECO', 'PPI', 'BINANCE']
-const CATEGORIES = ['Acciones', 'Cedear', 'ETF', 'Bono', 'FCI', 'Cripto']
+/** Mutable fields a user can change on an existing position. */
+type PositionPatch = { broker?: string; category?: string }
+
+/** Identify one row so an in-flight edit can be shown before the reload lands. */
+function positionKey(position: PortfolioPosition): string {
+  return `${position.ticker}|${position.broker}|${position.category}`
+}
 
 type QuoteState = {
   price: string | null
@@ -94,7 +100,10 @@ function makeColumns(
   getQuote: (ticker: string) => QuoteState,
   onSellAll: (position: PortfolioPosition, price: string) => void,
   sellingTicker: string | null,
-  onUpdate: (position: PortfolioPosition, payload: { broker?: string; category?: string }) => void,
+  onUpdate: (position: PortfolioPosition, payload: PositionPatch) => void,
+  brokers: string[],
+  categories: string[],
+  drafts: Record<string, PositionPatch>,
 ): Column<PortfolioPosition>[] {
   return [
     {
@@ -109,7 +118,7 @@ function makeColumns(
       header: 'Activo',
       render: (position) => (
         <select
-          value={position.category}
+          value={drafts[positionKey(position)]?.category ?? position.category}
           onChange={(e) => {
             e.stopPropagation()
             onUpdate(position, { category: e.target.value })
@@ -117,7 +126,7 @@ function makeColumns(
           onClick={(e) => e.stopPropagation()}
           className="px-1.5 py-0.5 rounded bg-[#4cd7f6]/10 text-[10px] font-medium text-[#4cd7f6] border border-[#4cd7f6]/30"
         >
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <option key={c} value={c} className="bg-[#181c24] text-[#dfe2ee]">
               {c}
             </option>
@@ -168,7 +177,7 @@ function makeColumns(
       header: 'Broker',
       render: (position) => (
         <select
-          value={position.broker}
+          value={drafts[positionKey(position)]?.broker ?? position.broker}
           onChange={(e) => {
             e.stopPropagation()
             onUpdate(position, { broker: e.target.value })
@@ -176,7 +185,7 @@ function makeColumns(
           onClick={(e) => e.stopPropagation()}
           className="px-1.5 py-0.5 rounded bg-[#1c2028] border border-[#3d494c]/30 text-[10px] text-[#bcc9cd] font-mono"
         >
-          {BROKERS.map((b) => (
+          {brokers.map((b) => (
             <option key={b} value={b} className="bg-[#181c24] text-[#dfe2ee]">
               {b}
             </option>
@@ -224,12 +233,15 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
   const [sellingTicker, setSellingTicker] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
+  const [drafts, setDrafts] = useState<Record<string, PositionPatch>>({})
 
   const refreshMinutes = useSyncExternalStore(
     subscribeRefreshMinutes,
     readRefreshMinutes,
     () => DEFAULT_REFRESH_MINUTES,
   )
+  const brokers = useSyncExternalStore(subscribeCatalog, readBrokers, readBrokers)
+  const categories = useSyncExternalStore(subscribeCatalog, readCategories, readCategories)
 
   useEffect(() => {
     let active = true
@@ -283,7 +295,12 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
     }
   }
 
-  const handleUpdate = async (position: PortfolioPosition, payload: { broker?: string; category?: string }) => {
+  const handleUpdate = async (position: PortfolioPosition, payload: PositionPatch) => {
+    // Show the choice immediately: the select is driven by server state, so
+    // without this the control snaps back until the reload finishes.
+    const key = positionKey(position)
+    setDrafts((prev) => ({ ...prev, [key]: { ...prev[key], ...payload } }))
+
     try {
       await api.updatePortfolioPosition(
         position.ticker,
@@ -293,6 +310,11 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
       onPositionsChange?.()
     } catch (error) {
       console.error('Failed to update position', error)
+      setDrafts((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
     }
   }
 
@@ -333,7 +355,15 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
       </div>
       <DataTable
         caption="Holdings"
-        columns={makeColumns(getQuote, handleSellAll, sellingTicker, handleUpdate)}
+        columns={makeColumns(
+          getQuote,
+          handleSellAll,
+          sellingTicker,
+          handleUpdate,
+          brokers,
+          categories,
+          drafts,
+        )}
         rows={positions}
         getRowKey={(position, index) =>
           `${position.ticker}-${position.broker}-${position.category}-${index}`
