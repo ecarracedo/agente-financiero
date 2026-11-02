@@ -81,17 +81,17 @@ class TestPpiMarketDataProvider:
         # Bond by ticker
         ae38 = provider.get_quote("AE38")
         assert ae38 is not None
-        assert ae38.price == Decimal("109480")
+        assert ae38.price == Decimal("1094.80")
         assert ae38.currency == "ARS"
 
         al30 = provider.get_quote("AL30")
         assert al30 is not None
-        assert al30.price == Decimal("83870")
+        assert al30.price == Decimal("838.70")
         assert al30.currency == "ARS"
 
         al30d = provider.get_quote("AL30D")
         assert al30d is not None
-        assert al30d.price == Decimal("53.52")
+        assert al30d.price == Decimal("0.5352")
         assert al30d.currency == "USD"
 
         # FCI by official name (price is per 1000 cuotapartes in PPI, multiplied by 1000)

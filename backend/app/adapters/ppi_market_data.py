@@ -130,6 +130,10 @@ class PpiMarketDataProvider:
                             try:
                                 price = Decimal(str(price_raw))
                                 if price.is_finite() and price > 0:
+                                    # PPI reports bond prices per 100 nominal units
+                                    # (e.g. 109390 means 1093.90 per unit). Divide by 100
+                                    # to get the real per-unit price.
+                                    price = price / Decimal("100")
                                     currency = _to_currency(currency_raw)
                                     new_cache[normalize_ticker(ticker)] = QuoteSnapshot(
                                         price=price,
