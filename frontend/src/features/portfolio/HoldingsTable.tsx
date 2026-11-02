@@ -2,13 +2,18 @@
  * Holdings table for the portfolio workspace.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import type { PortfolioPosition } from '../../api/client'
 import { api } from '../../api/client'
 import type { Column } from '../../components/DataTable'
 import { DataTable } from '../../components/DataTable'
 import { marketApi } from '../market/marketApi'
+import {
+  DEFAULT_REFRESH_MINUTES,
+  readRefreshMinutes,
+  subscribeRefreshMinutes,
+} from '../settings/refreshInterval'
 
 const BROKERS = ['ECO', 'PPI', 'BINANCE']
 const CATEGORIES = ['Acciones', 'Cedear', 'ETF', 'Bono', 'FCI', 'Cripto']
@@ -216,6 +221,13 @@ export interface HoldingsTableProps {
 export function HoldingsTable({ positions, onPositionsChange }: HoldingsTableProps) {
   const [quotes, setQuotes] = useState<Record<string, QuoteState>>({})
   const [sellingTicker, setSellingTicker] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const refreshMinutes = useSyncExternalStore(
+    subscribeRefreshMinutes,
+    readRefreshMinutes,
+    () => DEFAULT_REFRESH_MINUTES,
+  )
 
   useEffect(() => {
     let active = true
@@ -226,27 +238,32 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
         .getAnalysis(ticker, '1mo')
         .then((data) => {
           if (!active) return
-          setQuotes((prev) => {
-            if (prev[ticker]?.status === 'ready') return prev
-            return {
-              ...prev,
-              [ticker]: { price: data?.current_price ?? null, status: 'ready' },
-            }
-          })
+          setQuotes((prev) => ({
+            ...prev,
+            [ticker]: { price: data?.current_price ?? null, status: 'ready' },
+          }))
         })
         .catch(() => {
           if (!active) return
-          setQuotes((prev) => {
-            if (prev[ticker]?.status === 'ready' || prev[ticker]?.status === 'error') return prev
-            return { ...prev, [ticker]: { price: null, status: 'error' } }
-          })
+          setQuotes((prev) => ({
+            ...prev,
+            [ticker]: { price: null, status: 'error' },
+          }))
         })
     }
 
     return () => {
       active = false
     }
-  }, [positions])
+  }, [positions, refreshKey])
+
+  useEffect(() => {
+    const id = window.setInterval(
+      () => setRefreshKey((key) => key + 1),
+      refreshMinutes * 60_000,
+    )
+    return () => window.clearInterval(id)
+  }, [refreshMinutes])
 
   const getQuote = (ticker: string) => quotes[ticker] ?? { price: null, status: 'loading' as const }
 
@@ -285,14 +302,32 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
   }
 
   return (
-    <DataTable
-      caption="Holdings"
-      columns={makeColumns(getQuote, handleSellAll, sellingTicker, handleUpdate)}
-      rows={positions}
-      getRowKey={(position, index) =>
-        `${position.ticker}-${position.broker}-${position.category}-${index}`
-      }
-      emptyMessage="No holdings yet."
-    />
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-4 px-1">
+        <span className="text-[11px] text-[#869397] font-mono">
+          Precios actualizados cada {refreshMinutes}{' '}
+          {refreshMinutes === 1 ? 'minuto' : 'minutos'}
+        </span>
+        <button
+          type="button"
+          onClick={() => setRefreshKey((key) => key + 1)}
+          className="flex items-center gap-1 text-[11px] font-mono text-[#4cd7f6] hover:text-white transition-colors"
+        >
+          <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+            refresh
+          </span>
+          Actualizar
+        </button>
+      </div>
+      <DataTable
+        caption="Holdings"
+        columns={makeColumns(getQuote, handleSellAll, sellingTicker, handleUpdate)}
+        rows={positions}
+        getRowKey={(position, index) =>
+          `${position.ticker}-${position.broker}-${position.category}-${index}`
+        }
+        emptyMessage="No holdings yet."
+      />
+    </div>
   )
 }

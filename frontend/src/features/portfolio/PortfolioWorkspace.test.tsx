@@ -161,7 +161,9 @@ describe('PortfolioWorkspace', () => {
     fireEvent.change(combobox, { target: { value: 'apple' } })
 
     // The suggestion list comes from the search endpoint, not a hardcoded list.
-    fireEvent.click(await screen.findByRole('option', { name: /AAPL/ }))
+    // The control debounces typing, so the wait is generous: a loaded test run
+    // can push the response past the one-second default.
+    fireEvent.click(await screen.findByRole('option', { name: /AAPL/ }, { timeout: 5000 }))
     expect(combobox).toHaveValue('AAPL')
 
     await waitFor(() => {
