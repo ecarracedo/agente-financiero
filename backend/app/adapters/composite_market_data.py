@@ -116,15 +116,26 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
     def search_symbols(
         self, query: str, limit: int = DEFAULT_SEARCH_RESULTS
     ) -> Sequence[TickerMatch]:
-        # Delegate to yfinance search
+        # Combine PPI results with yfinance results
+        combined: list[TickerMatch] = []
+        seen: set[str] = set()
+
+        # First, PPI bonds and FCIs
+        ppi_results = self._ppi.search_symbols(query, limit)
+        for match in ppi_results:
+            if match.symbol not in seen:
+                seen.add(match.symbol)
+                combined.append(match)
+                if len(combined) >= limit:
+                    return tuple(combined)
+
+        # Then, yfinance
         try:
             results = self._create_yfinance_search(query, limit)
             quotes = getattr(results, "quotes", None) or ()
         except Exception:
-            return ()
+            return tuple(combined)
 
-        matches: list[TickerMatch] = []
-        seen: set[str] = set()
         for quote in quotes:
             if not isinstance(quote, dict):
                 continue
@@ -140,7 +151,7 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
             name = quote.get("longname") or quote.get("shortname") or symbol
             exchange = quote.get("exchDisp") or quote.get("exchange") or ""
             quote_type = quote.get("typeDisp") or quote.get("quoteType") or ""
-            matches.append(
+            combined.append(
                 TickerMatch(
                     symbol=symbol,
                     name=str(name),
@@ -148,6 +159,7 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
                     quote_type=str(quote_type),
                 )
             )
-            if len(matches) >= limit:
+            if len(combined) >= limit:
                 break
-        return tuple(matches)
+
+        return tuple(combined)

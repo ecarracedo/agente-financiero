@@ -10,8 +10,12 @@
 - [x] 2.1 Implement `CompositeMarketDataProvider` wrapping PPI and yfinance.
 - [x] 2.2 Wire `CompositeMarketDataProvider` as the default market data provider in `backend/app/main.py`.
 - [x] 2.3 Verify `GET /api/v1/analysis/AE38` and `GET /api/v1/analysis/AL.DIVER.A` in backend integration tests.
+- [x] 2.4 Implement `search_symbols` in PPI provider (index all bonds and FCIs by ticker/name).
+- [x] 2.5 Combine PPI + yfinance search results in `CompositeMarketDataProvider.search_symbols`.
+- [x] 2.6 Verify search endpoint returns bond and FCI matches for `AE38`, `AL.DIVER`, `Allaria`.
 
 ## 3. Verification & Live Test
 - [x] 3.1 Run full backend test suite (`pytest`).
 - [x] 3.2 Verify live endpoint on docker container against real data for `AE38` and `AL.DIVER.A`.
 - [x] 3.3 Verify frontend holdings table shows live prices for Bonos and FCIs.
+- [x] 3.4 Verify autocomplete search returns bond and FCI matches.

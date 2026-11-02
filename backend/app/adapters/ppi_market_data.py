@@ -62,6 +62,7 @@ class PpiMarketDataProvider:
         self._timeout = timeout_seconds
         self._cache: dict[str, QuoteSnapshot] | None = None
         self._cache_date: date | None = None
+        self._search_index: list[TickerMatch] | None = None
 
     def _is_cache_valid(self) -> bool:
         """Return True if cache exists and is from today."""
@@ -107,6 +108,7 @@ class PpiMarketDataProvider:
         On network failure, keeps stale cache if available.
         """
         new_cache: dict[str, QuoteSnapshot] = {}
+        new_search_index: list[TickerMatch] = []
         success = True
 
         try:
@@ -133,6 +135,14 @@ class PpiMarketDataProvider:
                                         price=price,
                                         currency=currency,
                                     )
+                                    new_search_index.append(
+                                        TickerMatch(
+                                            symbol=normalize_ticker(ticker),
+                                            name=f"Bono {inst.get('description', ticker)}",
+                                            exchange="BYMA",
+                                            quote_type="Bond",
+                                        )
+                                    )
                             except (InvalidOperation, ValueError):
                                 pass
 
@@ -157,10 +167,26 @@ class PpiMarketDataProvider:
                                     currency = _to_currency(currency_raw)
                                     key = normalize_ticker(name)
                                     new_cache[key] = QuoteSnapshot(price=price, currency=currency)
+                                    new_search_index.append(
+                                        TickerMatch(
+                                            symbol=normalize_ticker(name),
+                                            name=f"FCI {inst.get('description', name)}",
+                                            exchange="CAFCI",
+                                            quote_type="Mutual Fund",
+                                        )
+                                    )
                                     for alias, canonical in self._fci_aliases.items():
                                         if canonical == name:
                                             new_cache[normalize_ticker(alias)] = QuoteSnapshot(
                                                 price=price, currency=currency
+                                            )
+                                            new_search_index.append(
+                                                TickerMatch(
+                                                    symbol=normalize_ticker(alias),
+                                                    name=f"FCI {inst.get('description', name)}",
+                                                    exchange="CAFCI",
+                                                    quote_type="Mutual Fund",
+                                                )
                                             )
                             except (InvalidOperation, ValueError):
                                 pass
@@ -168,6 +194,7 @@ class PpiMarketDataProvider:
             if new_cache:
                 self._cache = new_cache
                 self._cache_date = date.today()
+                self._search_index = new_search_index
                 logger.info("PPI cache refreshed: %d instruments", len(new_cache))
             else:
                 success = False
@@ -175,7 +202,6 @@ class PpiMarketDataProvider:
         except Exception as exc:
             logger.warning("PPI cache refresh failed: %s", exc)
             success = False
-            # On failure, do NOT overwrite cache - keep stale data if we have it
 
         return success
 
@@ -189,7 +215,6 @@ class PpiMarketDataProvider:
             return True
         if self._cache is not None:
             logger.info("PPI cache expired (was %s, today %s)", self._cache_date, date.today())
-            # Try to refresh, but return True even on failure so stale cache is used
             self._refresh_cache()
             return True
         return self._refresh_cache()
@@ -207,6 +232,27 @@ class PpiMarketDataProvider:
         """PPI public pages do not expose historical series; return empty."""
         return ()
 
-    def search_symbols(self, query: str, limit: int = DEFAULT_SEARCH_RESULTS) -> tuple[TickerMatch, ...]:
-        """PPI does not provide a search API; return empty for now."""
-        return ()
+    def search_symbols(
+        self, query: str, limit: int = DEFAULT_SEARCH_RESULTS
+    ) -> tuple[TickerMatch, ...]:
+        """Search PPI bonds and FCIs by ticker or name."""
+        if not self._ensure_cache():
+            return ()
+        if self._search_index is None:
+            return ()
+
+        q = query.strip().upper()
+        if not q:
+            return ()
+
+        matches: list[TickerMatch] = []
+        seen: set[str] = set()
+        for match in self._search_index:
+            if q in match.symbol.upper() or q in match.name.upper():
+                if match.symbol not in seen:
+                    seen.add(match.symbol)
+                    matches.append(match)
+                    if len(matches) >= limit:
+                        break
+
+        return tuple(matches)

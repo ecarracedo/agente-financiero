@@ -174,10 +174,38 @@ class TestPpiMarketDataProvider:
         quote = provider.get_quote("AE38")
         assert quote is None
 
-    def test_search_symbols_returns_empty(self, monkeypatch):
+    def test_search_symbols_finds_bonos_and_fci(self, monkeypatch):
         provider = PpiMarketDataProvider()
+
+        def mock_fetch(url: str) -> str:
+            if url == PPI_BONOS_URL:
+                return make_html(BONOS_NEXT_DATA)
+            if url == PPI_FCI_URL:
+                return make_html(FCI_NEXT_DATA)
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
+        monkeypatch.setattr(provider, "_cache_date", date.today() - timedelta(days=1))
+
         results = provider.search_symbols("AE38", limit=5)
-        assert results == ()
+        assert len(results) == 1
+        assert results[0].symbol == "AE38"
+        assert results[0].quote_type == "Bond"
+
+        fci_results = provider.search_symbols("Allaria", limit=5)
+        # Both official name and alias match
+        assert len(fci_results) == 2
+        assert all(r.quote_type == "Mutual Fund" for r in fci_results)
+
+        alias_results = provider.search_symbols("AL.DIVER", limit=5)
+        assert len(alias_results) == 1
+        assert alias_results[0].symbol == "AL.DIVER.A"
+
+        # Empty query returns nothing
+        assert provider.search_symbols("", limit=5) == ()
+
+        # No match returns empty
+        assert provider.search_symbols("ZZZZZ", limit=5) == ()
 
     def test_historical_series_returns_empty(self, monkeypatch):
         provider = PpiMarketDataProvider()
