@@ -9,7 +9,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import { api } from '../../api/client'
-import type { TickerAliasResponse } from '../../api/client'
+import type { TickerAliasResponse, TickerMatch } from '../../api/client'
 import {
   readBrokers,
   readCategories,
@@ -121,6 +121,7 @@ export function SettingsPage() {
   const [aliasBroker, setAliasBroker] = useState('')
   const [aliasOfficial, setAliasOfficial] = useState('')
   const [aliasLoading, setAliasLoading] = useState(false)
+  const [ppiInstruments, setPpiInstruments] = useState<TickerMatch[]>([])
 
   useEffect(() => {
     let active = true
@@ -132,10 +133,20 @@ export function SettingsPage() {
       .catch(() => {
         // ignore
       })
+    api
+      .listPpiInstruments()
+      .then((data) => {
+        if (active) setPpiInstruments(data)
+      })
+      .catch(() => {
+        // ignore
+      })
     return () => {
       active = false
     }
   }, [])
+
+  // (removed unused variable)
 
   async function addAlias() {
     const broker = aliasBroker.trim().toUpperCase()
@@ -274,14 +285,19 @@ export function SettingsPage() {
               aria-label="Ticker broker para alias"
               className="bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/40 text-sm text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6]"
             />
-            <input
-              type="text"
+            <select
               value={aliasOfficial}
               onChange={(e) => setAliasOfficial(e.target.value)}
-              placeholder="Nombre oficial PPI"
               aria-label="Nombre oficial PPI para alias"
-              className="bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/40 text-sm text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6]"
-            />
+              className="bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/40 text-sm text-white focus:outline-none focus:border-[#4cd7f6]"
+            >
+              <option value="" className="bg-[#181c24] text-white">Seleccionar activo PPI…</option>
+              {ppiInstruments.map((inst) => (
+                <option key={inst.symbol} value={inst.symbol} className="bg-[#181c24] text-white">
+                  {inst.name} ({inst.symbol})
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               onClick={addAlias}

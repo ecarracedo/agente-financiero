@@ -289,3 +289,18 @@ class PpiMarketDataProvider:
                         break
 
         return tuple(matches)
+
+    def list_instruments(self) -> list[TickerMatch]:
+        """Return all PPI bonds and FCIs available for aliasing."""
+        if not self._ensure_cache():
+            return []
+        if self._search_index is None:
+            return []
+        # Deduplicate by symbol
+        seen: set[str] = set()
+        result: list[TickerMatch] = []
+        for match in self._search_index:
+            if match.symbol not in seen:
+                seen.add(match.symbol)
+                result.append(match)
+        return sorted(result, key=lambda m: m.name)

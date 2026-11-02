@@ -391,6 +391,16 @@ def list_ticker_aliases(request: Request) -> list:
     return _services(request).resources.list_ticker_aliases()
 
 
+@router.get(
+    "/ppi-instruments",
+    response_model=list[TickerMatchResponse],
+    tags=["market"],
+)
+def list_ppi_instruments(request: Request) -> list:
+    """Return all PPI bonds and FCIs available for aliasing."""
+    return _services(request).analytics.list_ppi_instruments()
+
+
 @router.post(
     "/ticker-aliases",
     response_model=TickerAliasResponse,
