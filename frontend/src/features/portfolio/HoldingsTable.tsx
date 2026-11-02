@@ -234,6 +234,9 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
   const [refreshKey, setRefreshKey] = useState(0)
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
   const [drafts, setDrafts] = useState<Record<string, PositionPatch>>({})
+  const [tickerFilter, setTickerFilter] = useState('')
+  const [brokerFilter, setBrokerFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
 
   const refreshMinutes = useSyncExternalStore(
     subscribeRefreshMinutes,
@@ -273,6 +276,23 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
   }, [positions, refreshKey])
 
   const getQuote = (ticker: string) => quotes[ticker] ?? { price: null, status: 'loading' as const }
+
+  const normalizedTickerFilter = tickerFilter.trim().toUpperCase()
+  const visiblePositions = positions.filter((position) => {
+    if (normalizedTickerFilter && !position.ticker.toUpperCase().includes(normalizedTickerFilter)) {
+      return false
+    }
+    if (brokerFilter && position.broker !== brokerFilter) return false
+    if (categoryFilter && position.category !== categoryFilter) return false
+    return true
+  })
+  const hasFilters = normalizedTickerFilter !== '' || brokerFilter !== '' || categoryFilter !== ''
+
+  function clearFilters() {
+    setTickerFilter('')
+    setBrokerFilter('')
+    setCategoryFilter('')
+  }
 
   const handleSellAll = async (position: PortfolioPosition, price: string) => {
     try {
@@ -353,6 +373,71 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
           Actualizar
         </button>
       </div>
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <div className="relative flex items-center">
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined absolute left-2 text-[#869397] pointer-events-none text-[15px]"
+          >
+            search
+          </span>
+          <input
+            type="search"
+            value={tickerFilter}
+            onChange={(event) => setTickerFilter(event.target.value)}
+            placeholder="Filtrar ticker…"
+            aria-label="Filtro de ticker"
+            className="w-40 pl-7 pr-2 py-1 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 text-[11px] font-mono text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6]"
+          />
+        </div>
+        <select
+          value={categoryFilter}
+          onChange={(event) => setCategoryFilter(event.target.value)}
+          aria-label="Filtro de tipo"
+          className="px-2 py-1 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 text-[11px] font-mono text-white focus:outline-none focus:border-[#4cd7f6]"
+        >
+          <option value="" className="bg-[#181c24] text-white">
+            Todos los activos
+          </option>
+          {categories.map((category) => (
+            <option key={category} value={category} className="bg-[#181c24] text-white">
+              {category}
+            </option>
+          ))}
+        </select>
+        <select
+          value={brokerFilter}
+          onChange={(event) => setBrokerFilter(event.target.value)}
+          aria-label="Filtro de broker"
+          className="px-2 py-1 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 text-[11px] font-mono text-white focus:outline-none focus:border-[#4cd7f6]"
+        >
+          <option value="" className="bg-[#181c24] text-white">
+            Todos los brokers
+          </option>
+          {brokers.map((broker) => (
+            <option key={broker} value={broker} className="bg-[#181c24] text-white">
+              {broker}
+            </option>
+          ))}
+        </select>
+        {hasFilters ? (
+          <>
+            <span className="text-[11px] font-mono text-[#869397]">
+              {visiblePositions.length} de {positions.length}
+            </span>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-[11px] font-mono text-[#869397] hover:text-white transition-colors"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+                filter_alt_off
+              </span>
+              Limpiar
+            </button>
+          </>
+        ) : null}
+      </div>
       <DataTable
         caption="Holdings"
         columns={makeColumns(
@@ -364,11 +449,11 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
           categories,
           drafts,
         )}
-        rows={positions}
+        rows={visiblePositions}
         getRowKey={(position, index) =>
           `${position.ticker}-${position.broker}-${position.category}-${index}`
         }
-        emptyMessage="No holdings yet."
+        emptyMessage={hasFilters ? 'Sin resultados para los filtros aplicados.' : 'No holdings yet.'}
       />
     </div>
   )

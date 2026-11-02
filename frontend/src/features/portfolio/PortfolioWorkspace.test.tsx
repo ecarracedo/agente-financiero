@@ -130,6 +130,22 @@ describe('PortfolioWorkspace', () => {
     })
   })
 
+  it('filters holdings by ticker, asset type and broker', async () => {
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+    await screen.findByRole('heading', { name: /posiciones en cartera/i })
+
+    expect(await screen.findByRole('cell', { name: 'AAPL' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Filtro de tipo'), {
+      target: { value: 'Cripto' },
+    })
+    expect(screen.queryByRole('cell', { name: 'AAPL' })).not.toBeInTheDocument()
+    expect(screen.getByText('Sin resultados para los filtros aplicados.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /limpiar/i }))
+    expect(await screen.findByRole('cell', { name: 'AAPL' })).toBeInTheDocument()
+  })
+
   it('executes a transaction from QuickOrderCard and triggers portfolio refresh', async () => {
     let portfolioFetchCount = 0
     let posted: Record<string, unknown> | null = null

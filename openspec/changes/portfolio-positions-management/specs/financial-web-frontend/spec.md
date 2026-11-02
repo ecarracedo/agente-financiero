@@ -110,6 +110,27 @@ Each portfolio row MUST offer a way to sell the whole position at the current qu
 - THEN a sell transaction for the full quantity is recorded at the current price
 - AND the portfolio is reloaded
 
+### Requirement: Filter the holdings table
+
+The holdings table MUST let the user narrow the displayed positions by ticker, asset type, and broker.
+
+- The ticker filter MUST match on a case-insensitive substring.
+- The asset-type and broker filters MUST offer exactly the values present in the configurable catalog, plus an "all" option.
+- When no row matches, the table MUST show a filter-specific empty state rather than the empty-portfolio message.
+- Clearing the filters MUST restore the full list.
+
+#### Scenario: Filter by asset type
+
+- GIVEN a portfolio with positions of more than one asset type
+- WHEN the user selects a single asset type
+- THEN only the positions of that asset type remain visible
+
+#### Scenario: No match
+
+- GIVEN filters that match no position
+- WHEN the table renders
+- THEN it shows that there are no results for the applied filters
+
 ## MODIFIED Requirements
 
 ### Requirement: Portfolio starts without seeded positions

@@ -40,8 +40,14 @@
 - [x] 6.1 Add a "Vender" action that sells the whole position at the current quote.
 - [x] 6.2 Refresh the portfolio after a successful sale.
 
-## 7. Verification
+## 7. Filtering
 
-- [x] 7.1 Backend suite passes.
-- [x] 7.2 Frontend suite passes.
-- [x] 7.3 Frontend lint and typecheck are clean.
+- [x] 7.1 Add ticker, asset-type and broker filters above the holdings table.
+- [x] 7.2 Show a filter-specific empty state and a clear-filters action.
+- [x] 7.3 Cover the filters with a view test.
+
+## 8. Verification
+
+- [x] 8.1 Backend suite passes.
+- [x] 8.2 Frontend suite passes.
+- [x] 8.3 Frontend lint and typecheck are clean.
