@@ -9,12 +9,12 @@ const RECENT_LIMIT = 3
 
 /** Format a money amount with two decimals. */
 function formatAmount(value: number): string {
-  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 /** Format a quantity without trailing zeros, capped at six decimals. */
 function formatQuantity(value: number): string {
-  return value.toLocaleString('en-US', { maximumFractionDigits: 6 })
+  return value.toLocaleString('es-AR', { maximumFractionDigits: 6 })
 }
 
 /**

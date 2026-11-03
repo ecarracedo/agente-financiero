@@ -117,6 +117,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
 - Reducción adecuada de cantidad al vender activos
 - Manejo de errores al vender posiciones inexistentes
 - Validación de mercado para prevenir errores de ticker entre mercados (ej. sufijo .BA en mercado de EE.UU.)
+- Alias FCI corregidos (`FIMA.AH.P`, `AL.DIVER.A`, `SHC.PLUS.A`); formato moneda global `es-AR` aplicado (`$ 1.000,00`); input de precio acepta `,` decimal.
 
 ### Cambiado
 - Reorganizada la estructura del proyecto:

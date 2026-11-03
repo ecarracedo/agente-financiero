@@ -2,6 +2,7 @@
 ## 1. Código y Calidad
 - **Docstrings**: Todas las funciones y clases deben tener docstrings detallados en **INGLÉS**.
 - **Limpieza**: Verificar y eliminar archivos o funciones que ya no se utilicen. Mantener el código limpio.
+- **Formato moneda global**: Todo monto monetario debe mostrarse como "$ 1.000,00" (símbolo $, separador de miles con punto, separador decimal con coma, 2 decimales, espacio entre símbolo y número).
 ## 2. Base de Datos (SQLite)
 - **Schema**: Actualizar los esquemas de base de datos ante cualquier cambio en los modelos.
 - **Inicialización**: Si se modifica la estructura, actualizar y ejecutar `src/create_empty_db.py` para asegurar consistencia.

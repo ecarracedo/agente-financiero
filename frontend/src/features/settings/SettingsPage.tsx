@@ -143,13 +143,19 @@ export function SettingsPage() {
     }
   }, [])
 
-  /** Assets actually held, one entry per ticker. */
-  const heldTickers = Array.from(
-    new Set(positions.map((position) => position.ticker.toUpperCase())),
-  ).sort()
   const aliasByTicker = new Map(
     aliases.map((alias) => [alias.broker_ticker.toUpperCase(), alias]),
   )
+
+  /** Assets actually held, using alias broker_ticker (official name) when available, else raw ticker. */
+  const heldTickers = Array.from(
+    new Set(
+      positions.map((position) => {
+        const alias = aliasByTicker.get(position.ticker.toUpperCase())
+        return alias ? alias.broker_ticker.toUpperCase() : position.ticker.toUpperCase()
+      }),
+    ),
+  ).sort()
 
   /** What the input shows: the pending edit, else what is stored for the target. */
   const storedName =

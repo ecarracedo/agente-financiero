@@ -17,6 +17,14 @@ import {
 } from '../settings/refreshInterval'
 import { AutoRefreshTimer } from './AutoRefreshTimer'
 
+/** Ticker alias from the API. */
+interface TickerAlias {
+  id: number
+  broker_ticker: string
+  official_name: string
+  provider: string
+}
+
 /** Mutable fields a user can change on an existing position. */
 type PositionPatch = { broker?: string; category?: string }
 
@@ -69,10 +77,10 @@ function PnLCell({ position, currentPrice }: { position: PortfolioPosition; curr
   }
   const pnl = (cur - avg) * qty
   const isPositive = pnl >= 0
-  const formatted = Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const formatted = Math.abs(pnl).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return (
     <span className={`font-mono text-xs ${isPositive ? 'text-[#46fa9c]' : 'text-[#ff7f8b]'}`}>
-      {isPositive ? '+' : '-'}${formatted}
+      {isPositive ? '+' : '-'}$ {formatted}
     </span>
   )
 }
@@ -85,10 +93,10 @@ function TotalCell({ position, currentPrice }: { position: PortfolioPosition; cu
   const cur = Number(currentPrice)
   if (!Number.isFinite(qty) || !Number.isFinite(cur)) return <span className="font-mono text-xs text-[#869397]">—</span>
   const total = qty * cur
-  const formatted = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const formatted = total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return (
     <span className="font-mono text-xs text-white">
-      ${formatted} <span className="text-[#869397]">{position.currency}</span>
+      $ {formatted} <span className="text-[#869397]">{position.currency}</span>
     </span>
   )
 }
@@ -96,16 +104,16 @@ function TotalCell({ position, currentPrice }: { position: PortfolioPosition; cu
 function PriceCell({ amount }: { amount: string }) {
   const num = Number(amount)
   if (!Number.isFinite(num)) return <span className="font-mono text-xs text-[#869397]">—</span>
-  const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return <span className="font-mono text-xs text-white">${formatted}</span>
+  const formatted = num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return <span className="font-mono text-xs text-white">$ {formatted}</span>
 }
 
 function CurrentPriceCell({ currentPrice }: { currentPrice: string | null }) {
   if (!currentPrice) return <span className="font-mono text-xs text-[#869397]">—</span>
   const num = Number(currentPrice)
   if (!Number.isFinite(num)) return <span className="font-mono text-xs text-[#869397]">—</span>
-  const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return <span className="font-mono text-xs text-white">${formatted}</span>
+  const formatted = num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return <span className="font-mono text-xs text-white">$ {formatted}</span>
 }
 
 function makeColumns(
@@ -116,13 +124,16 @@ function makeColumns(
   brokers: string[],
   categories: string[],
   drafts: Record<string, PositionPatch>,
+  displayTicker: (ticker: string) => string,
 ): Column<PortfolioPosition>[] {
   return [
     {
       key: 'ticker',
       header: 'Ticker',
       render: (position) => (
-        <span className="font-bold text-xs text-white font-mono">{position.ticker}</span>
+        <span className="font-bold text-xs text-white font-mono">
+          {displayTicker(position.ticker)}
+        </span>
       ),
     },
     {
@@ -154,7 +165,7 @@ function makeColumns(
       header: 'Cantidad',
       align: 'center',
       render: (position) => (
-        <span className="font-mono text-xs text-white">{position.quantity}</span>
+        <span className="font-mono text-xs text-white">{Number(position.quantity).toLocaleString('es-AR', { maximumFractionDigits: 6 })}</span>
       ),
     },
     {
@@ -255,6 +266,7 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
   const [tickerFilter, setTickerFilter] = useState('')
   const [brokerFilter, setBrokerFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [aliases, setAliases] = useState<TickerAlias[]>([])
 
   const refreshMinutes = useSyncExternalStore(
     subscribeRefreshMinutes,
@@ -293,12 +305,48 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
     }
   }, [positions, refreshKey])
 
+  useEffect(() => {
+    let active = true
+    api
+      .listTickerAliases()
+      .then((aliasList) => {
+        if (!active) return
+        setAliases(aliasList)
+      })
+      .catch(() => {
+        if (!active) return
+        setAliases([])
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  /** Map from position ticker to its alias display name, if any. */
+  const aliasByTicker = new Map(
+    aliases.map((alias) => [alias.broker_ticker.toUpperCase(), alias.official_name]),
+  )
+
+  /** Display name for a position: alias official_name if found (by broker_ticker or official_name), else raw ticker. */
+  function displayTicker(ticker: string): string {
+    const byBroker = aliasByTicker.get(ticker.toUpperCase())
+    if (byBroker) return byBroker
+    // Search by official_name (for positions whose ticker is the alias short name)
+    const matchByOfficial = aliases.find((a: TickerAlias) => a.official_name.toUpperCase() === ticker.toUpperCase())
+    if (matchByOfficial) return matchByOfficial.official_name
+    return ticker
+  }
+
   const getQuote = (ticker: string) => quotes[ticker] ?? { price: null, status: 'loading' as const }
 
   const normalizedTickerFilter = tickerFilter.trim().toUpperCase()
   const visiblePositions = positions.filter((position) => {
-    if (normalizedTickerFilter && !position.ticker.toUpperCase().includes(normalizedTickerFilter)) {
-      return false
+    if (normalizedTickerFilter) {
+      const d = displayTicker(position.ticker).toUpperCase()
+      const t = position.ticker.toUpperCase()
+      if (!d.includes(normalizedTickerFilter) && !t.includes(normalizedTickerFilter)) {
+        return false
+      }
     }
     if (brokerFilter && position.broker !== brokerFilter) return false
     if (categoryFilter && position.category !== categoryFilter) return false
@@ -466,6 +514,7 @@ export function HoldingsTable({ positions, onPositionsChange }: HoldingsTablePro
           brokers,
           categories,
           drafts,
+          displayTicker,
         )}
         rows={visiblePositions}
         getRowKey={(position, index) =>

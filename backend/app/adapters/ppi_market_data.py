@@ -210,10 +210,14 @@ class PpiMarketDataProvider:
                                     )
                                     canonical_name = _canonical_instrument_name(name)
                                     for alias, official_name in aliases.items():
+                                        # Matchear contra el ticker de la posición (broker_ticker / alias)
+                                        # para resolver el precio; official_name es solo para display
                                         if (
-                                            _canonical_instrument_name(official_name)
+                                            _canonical_instrument_name(alias)
                                             == canonical_name
                                         ):
+                                            # Usar broker_ticker como key de cache (el ticker de la posición)
+                                            # y oficial_name para display si es diferente
                                             new_cache[normalize_ticker(alias)] = QuoteSnapshot(
                                                 price=price, currency=currency
                                             )

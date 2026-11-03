@@ -35,7 +35,7 @@ export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProp
           </div>
           <div className="flex flex-wrap items-baseline gap-3">
             <h1 className="text-3xl lg:text-4xl font-bold font-mono text-white tracking-tight">
-              {totalValue ? `$${totalValue}` : '—'}
+              {totalValue ? `$ ${Number(totalValue).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
               <span className="text-sm font-normal text-[#869397] ml-2">
                 {primaryValuation?.currency ?? 'USD'}
               </span>

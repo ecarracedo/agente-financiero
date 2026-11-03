@@ -51,16 +51,29 @@ export function CurrencyAmount({ amount, currency, variant = 'plain' }: Currency
   }
 
   if (variant === 'plain') {
+    const num = Number(amount);
+    const fmt = Number.isFinite(num)
+      ? num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : amount;
     return (
       <span>
-        {amount} {currency}
+        $ {fmt} {currency}
       </span>
     )
+  }
+
+  const fmtAmount = (val: string) => {
+    const num = Number(val.replace(/^[+-]/, ''))
+    const formatted = Number.isFinite(num)
+      ? num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : val
+    return val.startsWith('-') ? `- ${formatted}` : val.startsWith('+') ? `+ ${formatted}` : formatted
   }
 
   const trend = trendOf(amount)
   // The backend already sends the minus for a loss; only a gain needs one added.
   const signed = trend === 'up' ? `+${amount}` : amount
+  const signedFormatted = fmtAmount(signed)
   const colorClass =
     trend === 'up'
       ? 'text-[#46fa9c]'
@@ -70,7 +83,7 @@ export function CurrencyAmount({ amount, currency, variant = 'plain' }: Currency
 
   return (
     <span data-trend={trend} className={`font-mono tabular-nums ${colorClass}`}>
-      {signed} {currency}
+      {signedFormatted} {currency}
       <span aria-hidden="true"> {trend === 'up' ? '▲' : trend === 'down' ? '▼' : '='}</span>
     </span>
   )

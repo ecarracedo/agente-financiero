@@ -49,8 +49,8 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const fetchingQuote = symbol !== '' && symbol !== quotedTicker
 
   const numQty = parseFloat(quantity) || 0
-  const numPrice = parseFloat(price) || 0
-  const total = (numQty * numPrice).toLocaleString('en-US', {
+  const numPrice = parseFloat(price.replace(/,/g, '.')) || 0
+  const total = (numQty * numPrice).toLocaleString('es-AR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
@@ -131,7 +131,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         category,
         operation_type: orderType,
         quantity,
-        unit_price: price,
+        unit_price: price.replace(/,/g, '.'),
         currency,
         occurred_at: localDateTimeValue(),
       })
@@ -281,7 +281,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         <div className="flex items-center justify-between bg-[#1c2028]/80 px-3 py-2 rounded-lg border border-[#3d494c]/20">
           <span className="text-[10px] font-mono text-[#869397] uppercase">Total</span>
           <div className="text-right">
-            <span className="text-base font-bold font-mono text-white">${total}</span>
+            <span className="text-base font-bold font-mono text-white">$ {total}</span>
             <span className="text-[10px] font-mono text-[#869397] ml-1">{currency}</span>
           </div>
         </div>
