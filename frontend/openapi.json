@@ -987,32 +987,6 @@
         }
       }
     },
-    "/api/v1/ppi-instruments": {
-      "get": {
-        "tags": [
-          "market"
-        ],
-        "summary": "List Ppi Instruments",
-        "description": "Return all PPI bonds and FCIs available for aliasing.",
-        "operationId": "list_ppi_instruments_api_v1_ppi_instruments_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/TickerMatchResponse"
-                  },
-                  "type": "array",
-                  "title": "Response List Ppi Instruments Api V1 Ppi Instruments Get"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/ticker-aliases/{alias_id}": {
       "delete": {
         "tags": [

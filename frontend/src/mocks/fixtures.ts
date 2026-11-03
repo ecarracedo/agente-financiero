@@ -237,19 +237,3 @@ export const tickerAliases = [
     provider: 'ppi',
   },
 ]
-
-/** TickerMatchResponse. */
-export const ppiInstruments = [
-  {
-    symbol: 'ALLARIA DIVERSIFICADO CLASE A',
-    name: 'FCI Allaria Diversificado Clase A',
-    exchange: 'CAFCI',
-    quote_type: 'Mutual Fund',
-  },
-  {
-    symbol: 'AE38',
-    name: 'Bono AE38',
-    exchange: 'BYMA',
-    quote_type: 'Bond',
-  },
-]

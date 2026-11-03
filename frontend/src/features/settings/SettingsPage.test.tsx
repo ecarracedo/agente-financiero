@@ -118,64 +118,88 @@ describe('SettingsPage', () => {
   /**
    * Alias editor.
    *
-   * The selector is driven by the assets actually held, so a row exists per held
-   * ticker and never per instrument the data provider knows about.
+   * The only choice offered is the set of assets actually held: a mapping is
+   * configured per held ticker, and the official name is typed rather than
+   * picked from the provider instrument list.
    */
   describe('alias de cotización', () => {
-    it('lists a row per held asset with its stored alias selected', async () => {
+    it('offers only the assets held in the portfolio', async () => {
       renderWithRouter({ initialEntries: ['/configuracion'] })
 
       const settings = within(await settingsSection())
       const selector = (await settings.findByLabelText(
-        'Alias de AAPL',
+        'Activo a configurar',
       )) as HTMLSelectElement
 
-      expect(selector.value).toBe('Allaria Diversificado Clase A')
-      expect(settings.getByText('Con alias')).toBeInTheDocument()
+      const values = Array.from(selector.options).map((option) => option.value)
+      // The placeholder plus the single held ticker, nothing from the provider.
+      expect(values).toEqual(['', 'AAPL'])
     })
 
-    it('marks an asset without a mapping as "Sin alias"', async () => {
+    it('prefills the alias already stored for the selected asset', async () => {
+      renderWithRouter({ initialEntries: ['/configuracion'] })
+
+      const settings = within(await settingsSection())
+      const selector = (await settings.findByLabelText(
+        'Activo a configurar',
+      )) as HTMLSelectElement
+
+      fireEvent.change(selector, { target: { value: 'AAPL' } })
+
+      expect(settings.getByLabelText('Alias de AAPL')).toHaveValue(
+        'Allaria Diversificado Clase A',
+      )
+    })
+
+    it('starts with an empty alias for an asset without a mapping', async () => {
       server.use(http.get('*/api/v1/ticker-aliases', () => HttpResponse.json([])))
 
       renderWithRouter({ initialEntries: ['/configuracion'] })
 
       const settings = within(await settingsSection())
       const selector = (await settings.findByLabelText(
-        'Alias de AAPL',
+        'Activo a configurar',
       )) as HTMLSelectElement
 
-      expect(selector.value).toBe('')
-      expect(settings.getByText('Sin alias')).toBeInTheDocument()
+      fireEvent.change(selector, { target: { value: 'AAPL' } })
+
+      expect(settings.getByLabelText('Alias de AAPL')).toHaveValue('')
     })
 
-    it('stores the chosen official name for a held asset', async () => {
+    it('saves the alias typed for the selected asset', async () => {
       server.use(http.get('*/api/v1/ticker-aliases', () => HttpResponse.json([])))
 
       renderWithRouter({ initialEntries: ['/configuracion'] })
 
       const settings = within(await settingsSection())
       const selector = (await settings.findByLabelText(
-        'Alias de AAPL',
+        'Activo a configurar',
       )) as HTMLSelectElement
 
-      fireEvent.change(selector, { target: { value: 'AE38' } })
+      fireEvent.change(selector, { target: { value: 'AAPL' } })
+      fireEvent.change(settings.getByLabelText('Alias de AAPL'), {
+        target: { value: 'Delta Recursos Naturales Clase A' },
+      })
+      fireEvent.click(settings.getByRole('button', { name: 'Guardar alias' }))
 
-      await waitFor(() => expect(settings.getByText('Con alias')).toBeInTheDocument())
-      expect(selector.value).toBe('AE38')
+      await waitFor(() =>
+        expect(settings.getByText('Delta Recursos Naturales Clase A')).toBeInTheDocument(),
+      )
+      expect(settings.getByRole('button', { name: 'Quitar alias AAPL' })).toBeInTheDocument()
     })
 
-    it('clears the alias when the empty option is chosen', async () => {
+    it('removes a stored alias from the list', async () => {
       renderWithRouter({ initialEntries: ['/configuracion'] })
 
       const settings = within(await settingsSection())
-      const selector = (await settings.findByLabelText(
-        'Alias de AAPL',
-      )) as HTMLSelectElement
 
-      fireEvent.change(selector, { target: { value: '' } })
+      fireEvent.click(
+        await settings.findByRole('button', { name: 'Quitar alias AAPL' }),
+      )
 
-      await waitFor(() => expect(settings.getByText('Sin alias')).toBeInTheDocument())
-      expect(selector.value).toBe('')
+      await waitFor(() =>
+        expect(settings.getByText('Sin alias configurados.')).toBeInTheDocument(),
+      )
     })
   })
 })

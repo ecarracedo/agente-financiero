@@ -64,13 +64,6 @@ class PortfolioAnalyticsUseCases:
         if ppi is not None and hasattr(ppi, "invalidate_cache"):
             ppi.invalidate_cache()
 
-    def list_ppi_instruments(self) -> list[TickerMatch]:
-        """Return all PPI bonds and FCIs available for aliasing."""
-        ppi = getattr(self._market_data, "_ppi", None)
-        if ppi is not None and hasattr(ppi, "list_instruments"):
-            return ppi.list_instruments()
-        return []
-
     def analyze_ticker(
         self, ticker: str, period: str = DEFAULT_ANALYSIS_PERIOD
     ) -> MarketAnalysis:

@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Recent Transactions**: "Últimas Transacciones" now lists the last three recorded operations instead of demo data.
 - **Transactions API**: `GET /api/v1/transactions` accepts an optional `limit` and, when no ticker is given, returns the newest operations across the portfolio.
 - **Local Market Data (PPI Provider)**: Argentine Bonds (`AE38`, `AL30`, `AL30D`, `GD30`, etc.) and Mutual Funds (`AL.DIVER.A` -> Allaria Diversificado Clase A) now quote from Portfolio Personal Inversiones public pages, cached daily. Falls back to yfinance for stocks/CEDEARs/crypto. Search autocomplete now includes bonds and FCIs. FCI prices scaled x1000 (PPI reports per 1000 cuotapartes). Bond prices divided by 100 (PPI reports per 100 nominal).
-- **Ticker Aliases**: Broker symbols are mapped to the official PPI instrument name from Configuración. Mappings live in the `ticker_aliases` table behind `GET/POST/DELETE /api/v1/ticker-aliases`, with no hardcoded list in the provider. The editor shows one row per asset held in the portfolio and the current alias, if any.
+- **Ticker Aliases**: Broker symbols are mapped to the official PPI instrument name from Configuración. Mappings live in the `ticker_aliases` table behind `GET/POST/DELETE /api/v1/ticker-aliases`, with no hardcoded list in the provider. The editor offers only the assets held in the portfolio: pick one and type its alias.
 
 ### Changed
 - **Dev Start Script**: `scripts/start.sh` replaces `scripts/start-demo.sh` and runs the Vite dev server against the real backend instead of the MSW demo fixtures.

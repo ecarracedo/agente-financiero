@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
-import type { MutationResponse, PortfolioPosition, TickerAliasResponse, TickerMatch, TransactionSummary } from '../api/client'
+import type { MutationResponse, PortfolioPosition, TickerAliasResponse, TransactionSummary } from '../api/client'
 import type { AlertCheck } from '../features/alerts/alertApi'
 import type { BibliographyItem } from '../features/bibliography/bibliographyApi'
 import type { SplitProjection } from '../features/tools/split/splitApi'
@@ -12,7 +12,6 @@ import {
   analysisPAMP,
   bibliography,
   portfolioItems,
-  ppiInstruments,
   splitResult,
   tickerAliases,
   tickerSearchResults,
@@ -107,10 +106,6 @@ export const handlers = [
   }),
   http.delete(`${BASE}/api/v1/ticker-aliases/:alias_id`, () =>
     HttpResponse.json<MutationResponse>({ deleted: true }),
-  ),
-  // Instruments offered as official names for an alias.
-  http.get(`${BASE}/api/v1/ppi-instruments`, () =>
-    HttpResponse.json<TickerMatch[]>(ppiInstruments),
   ),
 
   http.get(`${BASE}/api/v1/analysis/:ticker`, ({ params }) => {

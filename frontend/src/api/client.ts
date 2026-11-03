@@ -55,10 +55,6 @@ export type TickerAliasResponse =
 export type TickerAliasCreateRequest =
   paths['/api/v1/ticker-aliases']['post']['requestBody']['content']['application/json']
 
-/** PPI instrument match from `GET /api/v1/ppi-instruments`. */
-export type TickerMatch =
-  paths['/api/v1/ppi-instruments']['get']['responses'][200]['content']['application/json'][number]
-
 /** Typed convenience wrappers over the backend contract. */
 export const api = {
   health: (): Promise<HealthResponse> => request<HealthResponse>('/health'),
@@ -120,6 +116,4 @@ export const api = {
     request<MutationResponse>(`/api/v1/ticker-aliases/${aliasId}`, {
       method: 'DELETE',
     }),
-  listPpiInstruments: (): Promise<TickerMatch[]> =>
-    request<TickerMatch[]>('/api/v1/ppi-instruments'),
 }

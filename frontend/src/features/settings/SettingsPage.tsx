@@ -9,7 +9,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import { api } from '../../api/client'
-import type { PortfolioPosition, TickerAliasResponse, TickerMatch } from '../../api/client'
+import type { PortfolioPosition, TickerAliasResponse } from '../../api/client'
 import {
   readBrokers,
   readCategories,
@@ -119,17 +119,21 @@ export function SettingsPage() {
 
   const [positions, setPositions] = useState<PortfolioPosition[]>([])
   const [aliases, setAliases] = useState<TickerAliasResponse[]>([])
-  const [ppiInstruments, setPpiInstruments] = useState<TickerMatch[]>([])
-  const [savingTicker, setSavingTicker] = useState<string | null>(null)
+  const [aliasTarget, setAliasTarget] = useState('')
+  // A pending edit, tagged with the asset it belongs to. Keeping the tag means a
+  // selection change can never write an old draft onto a different asset.
+  const [aliasDraft, setAliasDraft] = useState<{ ticker: string; value: string } | null>(
+    null,
+  )
+  const [aliasSaving, setAliasSaving] = useState(false)
 
   useEffect(() => {
     let active = true
-    Promise.all([api.listPortfolio(), api.listTickerAliases(), api.listPpiInstruments()])
-      .then(([portfolio, aliasList, instruments]) => {
+    Promise.all([api.listPortfolio(), api.listTickerAliases()])
+      .then(([portfolio, aliasList]) => {
         if (!active) return
         setPositions(portfolio)
         setAliases(aliasList)
-        setPpiInstruments(instruments)
       })
       .catch(() => {
         // The editor stays empty when the data source is unavailable.
@@ -139,53 +143,57 @@ export function SettingsPage() {
     }
   }, [])
 
-  /** Assets actually held, one row per ticker. */
+  /** Assets actually held, one entry per ticker. */
   const heldTickers = Array.from(
     new Set(positions.map((position) => position.ticker.toUpperCase())),
   ).sort()
   const aliasByTicker = new Map(
     aliases.map((alias) => [alias.broker_ticker.toUpperCase(), alias]),
   )
-  /** Alias rows that no longer match a held asset, so they can still be removed. */
-  const orphanAliases = aliases.filter(
-    (alias) => !heldTickers.includes(alias.broker_ticker.toUpperCase()),
-  )
-  /**
-   * Official names offered in the selector, without the provider display prefix.
-   *
-   * Stored aliases use the bare PPI name, so the option values must match it or
-   * an existing alias would render as an empty selection.
-   */
-  const officialNames = Array.from(
-    new Set(
-      ppiInstruments.map((instrument) => instrument.name.replace(/^(FCI|Bono) /, '')),
-    ),
-  ).sort()
 
-  async function saveAlias(ticker: string, officialName: string) {
-    const normalized = ticker.toUpperCase()
-    const existing = aliasByTicker.get(normalized)
-    setSavingTicker(normalized)
+  /** What the input shows: the pending edit, else what is stored for the target. */
+  const storedName =
+    aliasTarget === '' ? '' : (aliasByTicker.get(aliasTarget)?.official_name ?? '')
+  const draftValue =
+    aliasDraft !== null && aliasDraft.ticker === aliasTarget ? aliasDraft.value : storedName
+
+  async function saveAlias() {
+    if (aliasTarget === '') return
+    const stored = aliasByTicker.get(aliasTarget)
+    const officialName = draftValue.trim()
+    setAliasSaving(true)
     try {
-      if (!officialName) {
-        if (!existing) return
-        await api.deleteTickerAlias(existing.id)
-        setAliases((prev) => prev.filter((alias) => alias.id !== existing.id))
+      if (officialName === '') {
+        if (!stored) return
+        await api.deleteTickerAlias(stored.id)
+        setAliases((prev) => prev.filter((alias) => alias.id !== stored.id))
         return
       }
       const saved = await api.createTickerAlias({
-        broker_ticker: normalized,
+        broker_ticker: aliasTarget,
         official_name: officialName,
         provider: 'ppi',
       })
       setAliases((prev) => [
-        ...prev.filter((alias) => alias.broker_ticker.toUpperCase() !== normalized),
+        ...prev.filter(
+          (alias) => alias.broker_ticker.toUpperCase() !== aliasTarget,
+        ),
         saved,
       ])
+      setAliasDraft(null)
     } catch {
-      // Keep the previous selection when the write fails.
+      // Keep the previous state when the write fails.
     } finally {
-      setSavingTicker(null)
+      setAliasSaving(false)
+    }
+  }
+
+  async function removeAlias(alias: TickerAliasResponse) {
+    try {
+      await api.deleteTickerAlias(alias.id)
+      setAliases((prev) => prev.filter((entry) => entry.id !== alias.id))
+    } catch {
+      // Keep the row when the delete fails.
     }
   }
 
@@ -255,66 +263,85 @@ export function SettingsPage() {
         <div className="px-6 py-4 border-b border-[#3d494c]/20">
           <h2 className="text-sm font-semibold text-white">Alias de cotización</h2>
           <p className="text-xs text-[#869397] mt-1">
-            Elegí uno de tus activos en cartera y vinculalo con el nombre oficial del proveedor
-            de datos (PPI). Si ya tiene alias, aparece seleccionado.
+            Elegí uno de tus activos en cartera y definí con qué nombre lo publica el
+            proveedor de datos (PPI).
           </p>
         </div>
-        <div className="px-6 py-4 flex flex-col gap-3">
+        <div className="px-6 py-4 flex flex-col gap-4">
           {heldTickers.length === 0 ? (
             <p className="text-xs text-[#869397]">
               No hay activos registrados en la cartera.
             </p>
           ) : (
-            <ul className="flex flex-col gap-2">
-              {heldTickers.map((ticker) => {
-                const current = aliasByTicker.get(ticker)?.official_name ?? ''
-                const options =
-                  current === '' || officialNames.includes(current)
-                    ? officialNames
-                    : [current, ...officialNames]
-                return (
-                  <li
-                    key={ticker}
-                    className="flex items-center gap-3 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 px-3 py-2"
-                  >
-                    <span className="w-40 shrink-0 truncate text-xs font-mono text-[#4cd7f6]" title={ticker}>
+            <>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="alias-asset" className="text-xs text-[#869397]">
+                  Activo a configurar
+                </label>
+                <select
+                  id="alias-asset"
+                  aria-label="Activo a configurar"
+                  value={aliasTarget}
+                  onChange={(event) => {
+                    setAliasTarget(event.target.value)
+                    setAliasDraft(null)
+                  }}
+                  className="bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/40 text-sm text-white focus:outline-none focus:border-[#4cd7f6]"
+                >
+                  <option value="" className="bg-[#181c24] text-white">
+                    Elegí un activo…
+                  </option>
+                  {heldTickers.map((ticker) => (
+                    <option key={ticker} value={ticker} className="bg-[#181c24] text-white">
                       {ticker}
-                    </span>
-                    <select
-                      aria-label={`Alias de ${ticker}`}
-                      value={current}
-                      disabled={savingTicker === ticker}
-                      onChange={(event) => void saveAlias(ticker, event.target.value)}
-                      className="flex-1 bg-[#181c24] px-2 py-1 rounded-md border border-[#3d494c]/40 text-xs text-white focus:outline-none focus:border-[#4cd7f6] disabled:opacity-50"
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {aliasTarget === '' ? null : (
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="alias-name" className="text-xs text-[#869397]">
+                    Alias de {aliasTarget}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="alias-name"
+                      aria-label={`Alias de ${aliasTarget}`}
+                      type="text"
+                      value={draftValue}
+                      onChange={(event) =>
+                        setAliasDraft({ ticker: aliasTarget, value: event.target.value })
+                      }
+                      placeholder="Ej.: Delta Recursos Naturales Clase A"
+                      className="flex-1 bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/40 text-sm text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void saveAlias()}
+                      disabled={aliasSaving}
+                      className="px-3 py-1.5 rounded-lg bg-[#4cd7f6]/10 border border-[#4cd7f6]/30 text-xs font-mono text-[#4cd7f6] hover:bg-[#4cd7f6]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                      <option value="" className="bg-[#181c24] text-white">
-                        Sin alias (cotiza con su propio ticker)
-                      </option>
-                      {options.map((name) => (
-                        <option key={name} value={name} className="bg-[#181c24] text-white">
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                    <span
-                      className={`shrink-0 text-[10px] font-mono uppercase tracking-wide ${
-                        current ? 'text-[#4cd7f6]' : 'text-[#869397]'
-                      }`}
-                    >
-                      {current ? 'Con alias' : 'Sin alias'}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
+                      Guardar alias
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-[#869397]">
+                    Nombre exacto del instrumento en PPI. Vacío = se cotiza con el propio
+                    ticker.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
-          {orphanAliases.length > 0 ? (
-            <div className="flex flex-col gap-2 pt-2 border-t border-[#3d494c]/20">
-              <span className="text-[10px] font-mono uppercase tracking-wide text-[#869397]">
-                Alias sin activo en cartera
-              </span>
-              {orphanAliases.map((alias) => (
+          <div className="flex flex-col gap-2 pt-2 border-t border-[#3d494c]/20">
+            <span className="text-[10px] font-mono uppercase tracking-wide text-[#869397]">
+              Alias configurados
+            </span>
+            {aliases.length === 0 ? (
+              <p className="text-xs text-[#869397]">Sin alias configurados.</p>
+            ) : (
+              aliases.map((alias) => (
                 <div
                   key={alias.id}
                   className="flex items-center justify-between gap-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 px-3 py-2 text-xs font-mono text-[#bcc9cd]"
@@ -327,7 +354,7 @@ export function SettingsPage() {
                   <button
                     type="button"
                     aria-label={`Quitar alias ${alias.broker_ticker}`}
-                    onClick={() => void saveAlias(alias.broker_ticker, '')}
+                    onClick={() => void removeAlias(alias)}
                     className="text-[#869397] hover:text-[#ff7f8b] transition-colors"
                   >
                     <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
@@ -335,9 +362,9 @@ export function SettingsPage() {
                     </span>
                   </button>
                 </div>
-              ))}
-            </div>
-          ) : null}
+              ))
+            )}
+          </div>
         </div>
       </div>
     </section>

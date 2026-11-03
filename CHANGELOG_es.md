@@ -16,7 +16,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
 - **Filtros de Tenencias**: Filtrado por ticker, tipo de activo y broker, con contador de resultados y acción para limpiar.
 - **Últimas Transacciones**: La tarjeta muestra las últimas tres operaciones registradas en lugar de datos de ejemplo.
 - **API de Transacciones**: `GET /api/v1/transactions` acepta un `limit` opcional y, sin ticker, devuelve las operaciones más recientes de toda la cartera.
-- **Alias de cotización**: Los símbolos de broker se vinculan al nombre oficial del instrumento en PPI desde Configuración. Los alias viven en la tabla `ticker_aliases` detrás de `GET/POST/DELETE /api/v1/ticker-aliases`, sin listas hardcodeadas en el proveedor. El editor muestra una fila por cada activo en cartera y el alias actual, si existe.
+- **Alias de cotización**: Los símbolos de broker se vinculan al nombre oficial del instrumento en PPI desde Configuración. Los alias viven en la tabla `ticker_aliases` detrás de `GET/POST/DELETE /api/v1/ticker-aliases`, sin listas hardcodeadas en el proveedor. El editor ofrece solo los activos en cartera: elegís uno y escribís su alias.
 - **Datos de Mercado Local (Proveedor PPI)**: Bonos Argentinos (`AE38`, `AL30`, `AL30D`, `GD30`, etc.) y Fondos Comunes de Inversión (`AL.DIVER.A` -> Allaria Diversificado Clase A) ahora cotizan desde las páginas públicas de Portfolio Personal Inversiones, con caché diaria. Para acciones, Cedears y cripto se sigue usando yfinance.
 
 ### Cambiado
