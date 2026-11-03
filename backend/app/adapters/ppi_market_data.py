@@ -33,11 +33,20 @@ PPI_CURRENCY_MAP = {
     10001: "USD",   # Dólares (otra variante)
 }
 
-# Default FCI alias mapping: broker symbol -> official PPI fund name
-DEFAULT_FCI_ALIASES: dict[str, str] = {
-    "AL.DIVER.A": "Allaria Diversificado Clase A",
-    "DEL.RR.NAT.A": "Delta Recursos Naturales Clase A",
-}
+# Display prefixes added to instrument names in the search index. Alias rows are
+# matched against the bare PPI name, so both sides are normalized before
+# comparison.
+_DISPLAY_PREFIXES = ("FCI ", "Bono ")
+
+
+def _canonical_instrument_name(value: str) -> str:
+    """Return a comparable instrument name without its display prefix."""
+    cleaned = value.strip()
+    for prefix in _DISPLAY_PREFIXES:
+        if cleaned.startswith(prefix):
+            cleaned = cleaned[len(prefix):]
+            break
+    return " ".join(cleaned.split()).casefold()
 
 
 def _to_currency(value: Any) -> str | None:
@@ -60,7 +69,7 @@ class PpiMarketDataProvider:
         aliases_provider=None,
         timeout_seconds: int = 15,
     ) -> None:
-        self._default_aliases = {k.upper(): v for k, v in (fci_aliases or DEFAULT_FCI_ALIASES).items()}
+        self._default_aliases = {k.upper(): v for k, v in (fci_aliases or {}).items()}
         self._aliases_provider = aliases_provider
         self._timeout = timeout_seconds
         self._cache: dict[str, QuoteSnapshot] | None = None
@@ -175,6 +184,7 @@ class PpiMarketDataProvider:
                         .get("pageProps", {})
                         .get("instruments", [])
                     )
+                    aliases = self._get_aliases()
                     for inst in instruments:
                         name = inst.get("name") or inst.get("ticker")
                         price_raw = inst.get("lastPrice")
@@ -198,9 +208,12 @@ class PpiMarketDataProvider:
                                             quote_type="Mutual Fund",
                                         )
                                     )
-                                    aliases = self._get_aliases()
-                                    for alias, canonical in aliases.items():
-                                        if canonical == name:
+                                    canonical_name = _canonical_instrument_name(name)
+                                    for alias, official_name in aliases.items():
+                                        if (
+                                            _canonical_instrument_name(official_name)
+                                            == canonical_name
+                                        ):
                                             new_cache[normalize_ticker(alias)] = QuoteSnapshot(
                                                 price=price, currency=currency
                                             )

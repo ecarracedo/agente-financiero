@@ -375,9 +375,19 @@ class SqlAlchemyResourceRepository:
     def add_ticker_alias(
         self, broker_ticker: str, official_name: str, provider: str = "ppi"
     ) -> TickerAliasRecord:
-        """Add a ticker alias and return the persisted record."""
+        """Store a ticker alias, updating the official name when it already exists."""
+        normalized = broker_ticker.strip().upper()
+        statement = select(TickerAliasRecord).where(
+            TickerAliasRecord.broker_ticker == normalized
+        )
+        record = self._session.scalar(statement)
+        if record is not None:
+            record.official_name = official_name.strip()
+            record.provider = provider.strip().lower()
+            self._session.flush()
+            return record
         record = TickerAliasRecord(
-            broker_ticker=broker_ticker.strip().upper(),
+            broker_ticker=normalized,
             official_name=official_name.strip(),
             provider=provider.strip().lower(),
         )

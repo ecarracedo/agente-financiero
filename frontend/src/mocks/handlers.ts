@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
-import type { MutationResponse, PortfolioPosition, TransactionSummary } from '../api/client'
+import type { MutationResponse, PortfolioPosition, TickerAliasResponse, TickerMatch, TransactionSummary } from '../api/client'
 import type { AlertCheck } from '../features/alerts/alertApi'
 import type { BibliographyItem } from '../features/bibliography/bibliographyApi'
 import type { SplitProjection } from '../features/tools/split/splitApi'
@@ -12,7 +12,9 @@ import {
   analysisPAMP,
   bibliography,
   portfolioItems,
+  ppiInstruments,
   splitResult,
+  tickerAliases,
   tickerSearchResults,
   transactions,
   unknownAnalysis,
@@ -81,6 +83,35 @@ export const handlers = [
       : []
     return HttpResponse.json(matches)
   }),
+
+  // Alias rows are keyed by broker ticker; the list is static so a test never
+  // leaks a created row into the next one.
+  http.get(`${BASE}/api/v1/ticker-aliases`, () =>
+    HttpResponse.json<TickerAliasResponse[]>(tickerAliases),
+  ),
+  http.post(`${BASE}/api/v1/ticker-aliases`, async ({ request }) => {
+    const body = (await request.json()) as {
+      broker_ticker: string
+      official_name: string
+      provider?: string
+    }
+    return HttpResponse.json<TickerAliasResponse>(
+      {
+        id: 99,
+        broker_ticker: body.broker_ticker,
+        official_name: body.official_name,
+        provider: body.provider ?? 'ppi',
+      },
+      { status: 201 },
+    )
+  }),
+  http.delete(`${BASE}/api/v1/ticker-aliases/:alias_id`, () =>
+    HttpResponse.json<MutationResponse>({ deleted: true }),
+  ),
+  // Instruments offered as official names for an alias.
+  http.get(`${BASE}/api/v1/ppi-instruments`, () =>
+    HttpResponse.json<TickerMatch[]>(ppiInstruments),
+  ),
 
   http.get(`${BASE}/api/v1/analysis/:ticker`, ({ params }) => {
     const ticker = String(params.ticker)

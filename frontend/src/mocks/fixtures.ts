@@ -227,3 +227,29 @@ export const splitResult = {
   average_price: '150.25',
   ratio: '2:1',
 }
+
+/** TickerAliasResponse. */
+export const tickerAliases = [
+  {
+    id: 1,
+    broker_ticker: 'AAPL',
+    official_name: 'Allaria Diversificado Clase A',
+    provider: 'ppi',
+  },
+]
+
+/** TickerMatchResponse. */
+export const ppiInstruments = [
+  {
+    symbol: 'ALLARIA DIVERSIFICADO CLASE A',
+    name: 'FCI Allaria Diversificado Clase A',
+    exchange: 'CAFCI',
+    quote_type: 'Mutual Fund',
+  },
+  {
+    symbol: 'AE38',
+    name: 'Bono AE38',
+    exchange: 'BYMA',
+    quote_type: 'Bond',
+  },
+]

@@ -1,7 +1,9 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 
 import { renderWithRouter } from '../../../tests/render'
+import { server } from '../../../tests/setup'
 import {
   BROKERS_STORAGE_KEY,
   CATEGORIES_STORAGE_KEY,
@@ -111,5 +113,69 @@ describe('SettingsPage', () => {
     fireEvent.change(selector, { target: { value: '10' } })
 
     expect(window.localStorage.getItem(REFRESH_INTERVAL_STORAGE_KEY)).toBe('10')
+  })
+
+  /**
+   * Alias editor.
+   *
+   * The selector is driven by the assets actually held, so a row exists per held
+   * ticker and never per instrument the data provider knows about.
+   */
+  describe('alias de cotización', () => {
+    it('lists a row per held asset with its stored alias selected', async () => {
+      renderWithRouter({ initialEntries: ['/configuracion'] })
+
+      const settings = within(await settingsSection())
+      const selector = (await settings.findByLabelText(
+        'Alias de AAPL',
+      )) as HTMLSelectElement
+
+      expect(selector.value).toBe('Allaria Diversificado Clase A')
+      expect(settings.getByText('Con alias')).toBeInTheDocument()
+    })
+
+    it('marks an asset without a mapping as "Sin alias"', async () => {
+      server.use(http.get('*/api/v1/ticker-aliases', () => HttpResponse.json([])))
+
+      renderWithRouter({ initialEntries: ['/configuracion'] })
+
+      const settings = within(await settingsSection())
+      const selector = (await settings.findByLabelText(
+        'Alias de AAPL',
+      )) as HTMLSelectElement
+
+      expect(selector.value).toBe('')
+      expect(settings.getByText('Sin alias')).toBeInTheDocument()
+    })
+
+    it('stores the chosen official name for a held asset', async () => {
+      server.use(http.get('*/api/v1/ticker-aliases', () => HttpResponse.json([])))
+
+      renderWithRouter({ initialEntries: ['/configuracion'] })
+
+      const settings = within(await settingsSection())
+      const selector = (await settings.findByLabelText(
+        'Alias de AAPL',
+      )) as HTMLSelectElement
+
+      fireEvent.change(selector, { target: { value: 'AE38' } })
+
+      await waitFor(() => expect(settings.getByText('Con alias')).toBeInTheDocument())
+      expect(selector.value).toBe('AE38')
+    })
+
+    it('clears the alias when the empty option is chosen', async () => {
+      renderWithRouter({ initialEntries: ['/configuracion'] })
+
+      const settings = within(await settingsSection())
+      const selector = (await settings.findByLabelText(
+        'Alias de AAPL',
+      )) as HTMLSelectElement
+
+      fireEvent.change(selector, { target: { value: '' } })
+
+      await waitFor(() => expect(settings.getByText('Sin alias')).toBeInTheDocument())
+      expect(selector.value).toBe('')
+    })
   })
 })

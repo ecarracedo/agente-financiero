@@ -175,7 +175,9 @@ class TestPpiMarketDataProvider:
         assert quote is None
 
     def test_search_symbols_finds_bonos_and_fci(self, monkeypatch):
-        provider = PpiMarketDataProvider()
+        provider = PpiMarketDataProvider(
+            fci_aliases={"AL.DIVER.A": "Allaria Diversificado Clase A"}
+        )
 
         def mock_fetch(url: str) -> str:
             if url == PPI_BONOS_URL:
