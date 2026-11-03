@@ -121,6 +121,27 @@ class TestPpiMarketDataProvider:
         assert quote.price == Decimal("182.601916")
         assert quote.currency == "ARS"
 
+    def test_alias_provider_reload_after_invalidation(self, monkeypatch):
+        """Aliases read through the provider take effect after cache reset."""
+        stored: dict[str, str] = {}
+        provider = PpiMarketDataProvider(aliases_provider=lambda: stored)
+
+        def mock_fetch(url: str) -> str:
+            if url == PPI_BONOS_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_FCI_URL:
+                return make_html(FCI_NEXT_DATA)
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
+
+        assert provider.get_quote("SHC.PLUS.A") is None
+        stored["SHC.PLUS.A"] = "Allaria Diversificado Clase A"
+        provider.invalidate_cache()
+        quote = provider.get_quote("SHC.PLUS.A")
+        assert quote is not None
+        assert quote.price == Decimal("182.601916")
+
     def test_cache_validity_same_day(self, monkeypatch):
         provider = PpiMarketDataProvider()
 

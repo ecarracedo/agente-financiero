@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Positions Table**: A broker or asset type that is no longer in the catalog now stays visible in its selector instead of leaving the control blank.
 - **Portfolio Catalog**: The catalog memo now notices a `localStorage` change made by another path, so an edited catalog is never served stale.
+- **Ticker Aliases**: Added API contract tests for `GET/POST/DELETE /api/v1/ticker-aliases` (including alias upsert by broker ticker) and a provider test proving a DB-backed alias takes effect after cache invalidation.
 - **Demo**: Fixed ticker search in demo mode, added Pampa tickers to fixtures.
 - **Lint/Build**: Resolved React hooks and TypeScript issues.
 

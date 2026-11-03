@@ -149,6 +149,31 @@ def test_delete_transaction_endpoint_rebuilds_position(api_client):
     assert portfolio[0]["average_price"] == "15"
 
 
+def test_ticker_alias_endpoints_support_create_list_delete(api_client):
+    """A user alias round-trips and upserts by broker ticker."""
+    client, _ = api_client
+
+    created = client.post(
+        "/api/v1/ticker-aliases",
+        json={"broker_ticker": "shc.plus.a", "official_name": "Schroder Renta Plus Clase A"},
+    )
+    assert created.status_code == 201
+    assert created.json()["broker_ticker"] == "SHC.PLUS.A"
+
+    updated = client.post(
+        "/api/v1/ticker-aliases",
+        json={"broker_ticker": "SHC.PLUS.A", "official_name": "Schroder Renta Plus Clase B"},
+    )
+    assert updated.status_code == 201
+    listed = client.get("/api/v1/ticker-aliases").json()
+    assert len(listed) == 1
+    assert listed[0]["official_name"] == "Schroder Renta Plus Clase B"
+
+    deleted = client.delete(f"/api/v1/ticker-aliases/{listed[0]['id']}")
+    assert deleted.status_code == 200
+    assert client.get("/api/v1/ticker-aliases").json() == []
+
+
 def test_valuation_and_analysis_endpoints_preserve_currency(api_client):
     """Valuation and analysis routes return currency-grouped Decimal data."""
     client, market_data = api_client
