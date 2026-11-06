@@ -197,8 +197,7 @@ function CurrencySectionView({ section, loading }: { section: CurrencySection; l
                   <span className="text-xs font-bold font-mono text-white">{formatMoney(slice.value)}</span>
                 </div>
                 <span className="text-[9px] text-[#869397]">
-                  {slice.tickers.length} {slice.tickers.length === 1 ? 'Activo' : 'Activos'} (
-                  {slice.tickers.join(', ')})
+                  {slice.tickers.length} {slice.tickers.length === 1 ? 'Activo' : 'Activos'}
                 </span>
               </div>
             ))}
