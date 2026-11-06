@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - 2026-11-06
 
 ### Added
 - **ON and Letras Quotes (PPI)**: Obligaciones Negociables (`RUCDD`, `YMCJD`, etc.) and Letras del Tesoro (`S13N6`, etc.) now quote from the Portfolio Personal Inversiones `/Cotizaciones/Ons` and `/Cotizaciones/Letras` pages, searchable as "Corporate Bond" and "Treasury Bill". Prices are divided by 100 (PPI reports per 100 nominal), like bonds. User aliases now resolve in a single final pass over the full quote cache: a mapping can point a USD ticker at its ARS variant (`RUCDD -> RUCDO`) and the alias quote wins over the direct one.

@@ -5,7 +5,7 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - 2026-11-06
 
 ### Agregado
 - **Cotizaciones de ON y Letras (PPI)**: Obligaciones Negociables (`RUCDD`, `YMCJD`, etc.) y Letras del Tesoro (`S13N6`, etc.) ahora cotizan desde las páginas `/Cotizaciones/Ons` y `/Cotizaciones/Letras` de Portfolio Personal Inversiones, buscables como "Corporate Bond" y "Treasury Bill". Los precios se dividen por 100 (PPI los reporta cada 100 nominales), igual que los bonos. Los alias del usuario ahora se resuelven en un único pase final sobre toda la caché de cotizaciones: un mapeo puede apuntar un ticker en USD a su variante en ARS (`RUCDD -> RUCDO`) y la cotización del alias pisa a la directa.
