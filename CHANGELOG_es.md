@@ -8,6 +8,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
 ## [Unreleased] - 2026-11-06
 
 ### Agregado
+- **Distribución de Activos real**: `AssetDistributionCard` ahora calcula la asignación desde posiciones reales valorizadas a precios de mercado actuales, agrupadas por categoría real y una sección por moneda (nunca sumadas entre monedas). Las posiciones sin precio se excluyen de los totales y se declaran. Desapareció el mock hardcodeado ($148,650.80, 62%/23%/10%/5%, Score 9.4/10, "Efectivo"); cada categoría muestra además el % de ganancia/pérdida vs capital invertido y una barra roja/verde con la proporción de activos en pérdida/ganancia.
 - **Cotizaciones de ON y Letras (PPI)**: Obligaciones Negociables (`RUCDD`, `YMCJD`, etc.) y Letras del Tesoro (`S13N6`, etc.) ahora cotizan desde las páginas `/Cotizaciones/Ons` y `/Cotizaciones/Letras` de Portfolio Personal Inversiones, buscables como "Corporate Bond" y "Treasury Bill". Los precios se dividen por 100 (PPI los reporta cada 100 nominales), igual que los bonos. Los alias del usuario ahora se resuelven en un único pase final sobre toda la caché de cotizaciones: un mapeo puede apuntar un ticker en USD a su variante en ARS (`RUCDD -> RUCDO`) y la cotización del alias pisa a la directa.
 - **Posiciones en Cartera**: Columnas Total y Variación con cotizaciones en vivo, más columna de P&L.
 - **Registrar Transacción**: Selectores de broker y tipo de activo; precio editable manualmente.
