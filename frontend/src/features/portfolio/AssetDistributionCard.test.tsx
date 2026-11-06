@@ -35,6 +35,12 @@ describe('AssetDistributionCard', () => {
     // AAPL: current 190 > average 150.25 -> 0/1 in red, 1/1 in green.
     const bar = await within(card).findByTitle(/0\/1 en rojo, 1\/1 en verde/)
     expect(bar).toHaveAttribute('aria-label', '0,0% en rojo, 100,0% en verde')
+    // The bar must actually take space: full width with a fixed height.
+    expect(bar.className).toContain('h-1.5')
+    expect(bar.className).toContain('w-full')
+    // No side labels: the bar stays bare.
+    expect(within(card).queryByText('rojo')).not.toBeInTheDocument()
+    expect(within(card).queryByText('verde')).not.toBeInTheDocument()
   })
 
   it('shows the red share when some assets are below their average price', async () => {
