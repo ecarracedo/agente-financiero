@@ -154,26 +154,17 @@ function WinLossBar({ greenCount, redCount }: { greenCount: number; redCount: nu
     n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   return (
     <span
-      className="flex items-center gap-1.5"
+      className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-[#0a0e16]"
       title={`${redCount}/${total} en rojo, ${greenCount}/${total} en verde`}
       aria-label={`${pct(redPercent)}% en rojo, ${pct(greenPercent)}% en verde`}
+      role="img"
     >
-      <span className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-[#0a0e16]">
-        {redPercent > 0 ? (
-          <span className="h-full" style={{ width: `${redPercent}%`, backgroundColor: '#ff7f8b' }} />
-        ) : null}
-        {greenPercent > 0 ? (
-          <span className="h-full" style={{ width: `${greenPercent}%`, backgroundColor: '#46fa9c' }} />
-        ) : null}
-      </span>
-      <span className="text-[9px] font-mono font-semibold" style={{ color: '#ff7f8b' }}>
-        {pct(redPercent)}%
-      </span>
-      <span className="text-[9px] font-mono text-[#869397]">rojo</span>
-      <span className="text-[9px] font-mono font-semibold" style={{ color: '#46fa9c' }}>
-        {pct(greenPercent)}%
-      </span>
-      <span className="text-[9px] font-mono text-[#869397]">verde</span>
+      {redPercent > 0 ? (
+        <span className="h-full" style={{ width: `${redPercent}%`, backgroundColor: '#ff7f8b' }} />
+      ) : null}
+      {greenPercent > 0 ? (
+        <span className="h-full" style={{ width: `${greenPercent}%`, backgroundColor: '#46fa9c' }} />
+      ) : null}
     </span>
   )
 }
