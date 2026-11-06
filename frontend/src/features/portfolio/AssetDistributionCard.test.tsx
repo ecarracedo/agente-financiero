@@ -28,6 +28,30 @@ describe('AssetDistributionCard', () => {
     expect(within(card).queryByText(/Efectivo/)).not.toBeInTheDocument()
   })
 
+  it('shows the gain percentage next to the amount', async () => {
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const card = await screen.findByRole('region', { name: /distribución de activos/i })
+    // AAPL: market 1.900 vs invested 1.502,50 -> +26,5%.
+    const gain = await within(card).findByText(/\+26,5%/)
+    expect(gain.closest('[data-trend]')).toHaveAttribute('data-trend', 'up')
+  })
+
+  it('shows the loss percentage in red next to the amount', async () => {
+    server.use(
+      http.get('*/api/v1/analysis/:ticker', () =>
+        HttpResponse.json({ ...analysisAAPL, current_price: '100.00' }),
+      ),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const card = await screen.findByRole('region', { name: /distribución de activos/i })
+    // Market 1.000 vs invested 1.502,50 -> -33,4%.
+    const loss = await within(card).findByText(/-33,4%/)
+    expect(loss.closest('[data-trend]')).toHaveAttribute('data-trend', 'down')
+  })
+
   it('shows all assets in green when every price is above the average price', async () => {
     renderWithRouter({ initialEntries: ['/portfolio'] })
 

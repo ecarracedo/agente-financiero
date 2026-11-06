@@ -40,6 +40,8 @@ interface CategorySlice {
   greenCount: number
   /** Assets below their average price (red) inside this category. */
   redCount: number
+  /** Gain/loss versus invested capital in percent, or null when unknown. */
+  gainLossPercent: number | null
 }
 
 /** All slices of one currency plus its valued total. */
@@ -71,6 +73,7 @@ function buildSections(
       continue
     }
     const average = Number(position.average_price)
+    const invested = qty * average
     let categories = byCurrency.get(position.currency)
     if (!categories) {
       categories = new Map()
@@ -78,10 +81,11 @@ function buildSections(
     }
     let slice = categories.get(position.category)
     if (!slice) {
-      slice = { value: 0, greenCount: 0, redCount: 0, tickers: new Set() }
+      slice = { value: 0, invested: 0, greenCount: 0, redCount: 0, tickers: new Set() }
       categories.set(position.category, slice)
     }
     slice.value += qty * current
+    if (Number.isFinite(invested) && invested > 0) slice.invested += invested
     if (Number.isFinite(average) && average > 0) {
       if (current >= average) slice.greenCount += 1
       else slice.redCount += 1
@@ -103,6 +107,8 @@ function buildSections(
         color: PALETTE[index % PALETTE.length],
         greenCount: s.greenCount,
         redCount: s.redCount,
+        gainLossPercent:
+          s.invested > 0 ? ((s.value - s.invested) / s.invested) * 100 : null,
       }))
     sections.push({ currency, total, slices })
   }
@@ -235,6 +241,20 @@ function CurrencySectionView({ section, loading }: { section: CurrencySection; l
                 </div>
                 <div className="flex items-baseline justify-between mt-1">
                   <span className="text-xs font-bold font-mono text-white">{formatMoney(slice.value)}</span>
+                  {slice.gainLossPercent !== null ? (
+                    <span
+                      data-trend={slice.gainLossPercent >= 0 ? 'up' : 'down'}
+                      className="text-[10px] font-mono font-semibold"
+                      style={{ color: slice.gainLossPercent >= 0 ? '#46fa9c' : '#ff7f8b' }}
+                    >
+                      {slice.gainLossPercent >= 0 ? '▲ +' : '▼ '}
+                      {slice.gainLossPercent.toLocaleString('es-AR', {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      })}
+                      %
+                    </span>
+                  ) : null}
                 </div>
                 <WinLossBar greenCount={slice.greenCount} redCount={slice.redCount} />
                 <span className="text-[9px] text-[#869397]">
