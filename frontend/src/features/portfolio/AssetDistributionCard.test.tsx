@@ -28,6 +28,31 @@ describe('AssetDistributionCard', () => {
     expect(within(card).queryByText(/Efectivo/)).not.toBeInTheDocument()
   })
 
+  it('shows a green gain bar per category versus invested capital', async () => {
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const card = await screen.findByRole('region', { name: /distribución de activos/i })
+    // AAPL: invested 10 x 150.25 = 1.502,50; market 10 x 190 = 1.900 -> +26,5%.
+    const bar = await within(card).findByTitle(/\+26,5%/)
+    expect(bar).toHaveAttribute('data-trend', 'up')
+    expect(within(card).getByText(/\+26,5%/)).toBeInTheDocument()
+  })
+
+  it('shows a red loss bar when the market value is below invested capital', async () => {
+    server.use(
+      http.get('*/api/v1/analysis/:ticker', () =>
+        HttpResponse.json({ ...analysisAAPL, current_price: '100.00' }),
+      ),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    const card = await screen.findByRole('region', { name: /distribución de activos/i })
+    // Market 10 x 100 = 1.000 vs invested 1.502,50 -> -33,4%.
+    const bar = await within(card).findByTitle(/-33,4%/)
+    expect(bar).toHaveAttribute('data-trend', 'down')
+  })
+
   it('groups by currency and never sums different currencies together', async () => {
     server.use(
       http.get('*/api/v1/portfolio', () =>
