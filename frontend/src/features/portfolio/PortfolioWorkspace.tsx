@@ -91,7 +91,11 @@ export function PortfolioWorkspace({ refreshToken = 0 }: PortfolioWorkspaceProps
           </Card>
 
           {/* Asset Distribution */}
-          <AssetDistributionCard />
+          <AssetDistributionCard
+            positions={data.positions}
+            valuations={data.valuations}
+            refreshToken={version}
+          />
         </div>
       ) : null}
     </section>
