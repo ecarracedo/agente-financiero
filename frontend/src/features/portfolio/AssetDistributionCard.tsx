@@ -224,7 +224,7 @@ function CurrencySectionView({ section, loading }: { section: CurrencySection; l
             {slices.map((slice) => (
               <div
                 key={slice.name}
-                className="bg-[#1c2028]/60 p-3 rounded-lg flex flex-col gap-1 border border-[#3d494c]/15"
+                className="bg-[#1c2028]/60 p-3.5 rounded-lg flex flex-col gap-1.5 border border-[#3d494c]/15"
               >
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[9px] font-mono uppercase text-[#dfe2ee]">
