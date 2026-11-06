@@ -7,7 +7,13 @@ from decimal import Decimal
 import pytest
 
 from backend.app.domain.analysis import QuoteSnapshot
-from backend.app.adapters.ppi_market_data import PpiMarketDataProvider, PPI_BONOS_URL, PPI_FCI_URL
+from backend.app.adapters.ppi_market_data import (
+    PpiMarketDataProvider,
+    PPI_BONOS_URL,
+    PPI_FCI_URL,
+    PPI_ONS_URL,
+    PPI_LETRAS_URL,
+)
 
 
 # Minimal valid __NEXT_DATA__ payloads for Bonos and FCI
@@ -56,6 +62,48 @@ FCI_NEXT_DATA = {
     }
 }
 
+# Minimal valid __NEXT_DATA__ payload for Obligaciones Negociables (ONs).
+# PPI reports ON prices per 100 nominal units, like bonds.
+ONS_NEXT_DATA = {
+    "props": {
+        "pageProps": {
+            "instruments": [
+                {
+                    "ticker": "RUCDD",
+                    "description": "MSU ENERGY S.A. REGS 9.75% VTO. 05/12/30",
+                    "lastPrice": 107,
+                    "currency": {"id": 22013},
+                },
+                {
+                    "ticker": "YMCJD",
+                    "description": "ON YPF S.A. REGS 1,5% V.30/09/2033",
+                    "lastPrice": 99.99,
+                    "currency": {"id": 22013},
+                },
+            ]
+        }
+    }
+}
+
+# Minimal valid __NEXT_DATA__ payload for Letras. PPI reports prices per 100
+# nominal units, like bonds.
+LETRAS_NEXT_DATA = {
+    "props": {
+        "pageProps": {
+            "instruments": [
+                {
+                    "ticker": "S13N6",
+                    "description": "Letras Capitalizable Ministerio de Economía S13N6",
+                    "lastPrice": 109.479,
+                    "currency": {"id": 10000},
+                },
+            ]
+        }
+    }
+}
+
+EMPTY_PAGE = {"props": {"pageProps": {"instruments": []}}}
+
 def make_html(next_data: dict) -> str:
     """Wrap __NEXT_DATA__ in a minimal HTML page."""
     return f'<html><script id="__NEXT_DATA__" type="application/json">{json.dumps(next_data)}</script></html>'
@@ -70,6 +118,10 @@ class TestPpiMarketDataProvider:
                 return make_html(BONOS_NEXT_DATA)
             if url == PPI_FCI_URL:
                 return make_html(FCI_NEXT_DATA)
+            if url == PPI_ONS_URL:
+                return make_html(ONS_NEXT_DATA)
+            if url == PPI_LETRAS_URL:
+                return make_html(EMPTY_PAGE)
             raise AssertionError(f"Unexpected URL: {url}")
 
         monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
@@ -108,6 +160,10 @@ class TestPpiMarketDataProvider:
                 return make_html({"props": {"pageProps": {"instruments": []}}})
             if url == PPI_FCI_URL:
                 return make_html(FCI_NEXT_DATA)
+            if url == PPI_ONS_URL:
+                return make_html(ONS_NEXT_DATA)
+            if url == PPI_LETRAS_URL:
+                return make_html(EMPTY_PAGE)
             raise AssertionError(f"Unexpected URL: {url}")
 
         monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
@@ -131,6 +187,10 @@ class TestPpiMarketDataProvider:
                 return make_html({"props": {"pageProps": {"instruments": []}}})
             if url == PPI_FCI_URL:
                 return make_html(FCI_NEXT_DATA)
+            if url == PPI_ONS_URL:
+                return make_html(ONS_NEXT_DATA)
+            if url == PPI_LETRAS_URL:
+                return make_html(EMPTY_PAGE)
             raise AssertionError(f"Unexpected URL: {url}")
 
         monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
@@ -154,6 +214,10 @@ class TestPpiMarketDataProvider:
                 return make_html(BONOS_NEXT_DATA)
             if url == PPI_FCI_URL:
                 return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_ONS_URL:
+                return make_html(ONS_NEXT_DATA)
+            if url == PPI_LETRAS_URL:
+                return make_html(EMPTY_PAGE)
             raise AssertionError(f"Unexpected URL: {url}")
 
         monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
@@ -161,11 +225,11 @@ class TestPpiMarketDataProvider:
         # First call - should fetch
         provider._cache_date = date.today() - timedelta(days=1)
         assert provider._ensure_cache()
-        assert call_count == 2  # Bonos + FCI
+        assert call_count == 4  # Bonos + FCI + Ons + Letras
 
         # Second call same day - should use cache
         provider._ensure_cache()
-        assert call_count == 2  # No new fetches
+        assert call_count == 4  # No new fetches
 
     def test_network_failure_keeps_stale_cache(self, monkeypatch):
         provider = PpiMarketDataProvider()
@@ -205,6 +269,10 @@ class TestPpiMarketDataProvider:
                 return make_html(BONOS_NEXT_DATA)
             if url == PPI_FCI_URL:
                 return make_html(FCI_NEXT_DATA)
+            if url == PPI_ONS_URL:
+                return make_html(ONS_NEXT_DATA)
+            if url == PPI_LETRAS_URL:
+                return make_html(EMPTY_PAGE)
             raise AssertionError(f"Unexpected URL: {url}")
 
         monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
@@ -229,6 +297,157 @@ class TestPpiMarketDataProvider:
 
         # No match returns empty
         assert provider.search_symbols("ZZZZZ", limit=5) == ()
+
+    def test_parses_ons_from_next_data(self, monkeypatch):
+        provider = PpiMarketDataProvider()
+
+        def mock_fetch(url: str) -> str:
+            if url == PPI_BONOS_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_FCI_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_ONS_URL:
+                return make_html(ONS_NEXT_DATA)
+            if url == PPI_LETRAS_URL:
+                return make_html(EMPTY_PAGE)
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
+        monkeypatch.setattr(provider, "_cache_date", date.today() - timedelta(days=1))
+
+        assert provider._refresh_cache()
+
+        # PPI reports ON prices per 100 nominal units, like bonds.
+        rucdd = provider.get_quote("RUCDD")
+        assert rucdd is not None
+        assert rucdd.price == Decimal("1.07")
+        assert rucdd.currency == "USD"
+
+        ymcjd = provider.get_quote("YMCJD")
+        assert ymcjd is not None
+        assert ymcjd.price == Decimal("0.9999")
+        assert ymcjd.currency == "USD"
+
+        # A ticker absent from the page simply has no quote.
+        assert provider.get_quote("YFCGD") is None
+
+        results = provider.search_symbols("YMCJD", limit=5)
+        assert len(results) == 1
+        assert results[0].symbol == "YMCJD"
+        assert results[0].quote_type == "Corporate Bond"
+
+    def test_alias_resolution_for_ons(self, monkeypatch):
+        """A held ticker can be mapped to a PPI ON ticker via alias."""
+        provider = PpiMarketDataProvider(
+            fci_aliases={"YFCGD": "YMCJD"}
+        )
+
+        def mock_fetch(url: str) -> str:
+            if url == PPI_BONOS_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_FCI_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_ONS_URL:
+                return make_html(ONS_NEXT_DATA)
+            if url == PPI_LETRAS_URL:
+                return make_html(EMPTY_PAGE)
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
+        monkeypatch.setattr(provider, "_cache_date", date.today() - timedelta(days=1))
+
+        assert provider._refresh_cache()
+
+        quote = provider.get_quote("YFCGD")
+        assert quote is not None
+        assert quote.price == Decimal("0.9999")
+        assert quote.currency == "USD"
+
+        results = provider.search_symbols("YFCGD", limit=5)
+        assert len(results) == 1
+        assert results[0].symbol == "YFCGD"
+        assert results[0].quote_type == "Corporate Bond"
+
+    def test_alias_overrides_direct_quote(self, monkeypatch):
+        """An alias to another real ticker wins over the direct quote.
+
+        RUCDD is itself a PPI ticker (USD variant); aliasing it to RUCDO
+        (ARS variant) must make get_quote('RUCDD') return the ARS price.
+        """
+        provider = PpiMarketDataProvider(
+            fci_aliases={"RUCDD": "RUCDO"}
+        )
+        ons_data = {
+            "props": {
+                "pageProps": {
+                    "instruments": [
+                        {
+                            "ticker": "RUCDD",
+                            "description": "MSU ENERGY S.A. REGS 9.75%",
+                            "lastPrice": 107,
+                            "currency": {"id": 22013},
+                        },
+                        {
+                            "ticker": "RUCDO",
+                            "description": "MSU ENERGY S.A. REGS 9.75%",
+                            "lastPrice": 169900,
+                            "currency": {"id": 10000},
+                        },
+                    ]
+                }
+            }
+        }
+
+        def mock_fetch(url: str) -> str:
+            if url == PPI_BONOS_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_FCI_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_ONS_URL:
+                return make_html(ons_data)
+            if url == PPI_LETRAS_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
+        monkeypatch.setattr(provider, "_cache_date", date.today() - timedelta(days=1))
+
+        assert provider._refresh_cache()
+
+        quote = provider.get_quote("RUCDD")
+        assert quote is not None
+        assert quote.price == Decimal("1699")
+        assert quote.currency == "ARS"
+
+    def test_parses_letras_from_next_data(self, monkeypatch):
+        provider = PpiMarketDataProvider()
+
+        def mock_fetch(url: str) -> str:
+            if url == PPI_BONOS_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_FCI_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_ONS_URL:
+                return make_html({"props": {"pageProps": {"instruments": []}}})
+            if url == PPI_LETRAS_URL:
+                return make_html(LETRAS_NEXT_DATA)
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        monkeypatch.setattr(provider, "_fetch_page", mock_fetch)
+        monkeypatch.setattr(provider, "_cache_date", date.today() - timedelta(days=1))
+
+        assert provider._refresh_cache()
+
+        # PPI reports Letras prices per 100 nominal units, like bonds.
+        s13n6 = provider.get_quote("S13N6")
+        assert s13n6 is not None
+        assert s13n6.price == Decimal("1.09479")
+        assert s13n6.currency == "ARS"
+
+        results = provider.search_symbols("S13N6", limit=5)
+        assert len(results) == 1
+        assert results[0].symbol == "S13N6"
+        assert results[0].quote_type == "Treasury Bill"
 
     def test_historical_series_returns_empty(self, monkeypatch):
         provider = PpiMarketDataProvider()

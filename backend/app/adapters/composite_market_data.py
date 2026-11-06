@@ -1,4 +1,4 @@
-"""Composite market data provider with PPI fallback for Argentine Bonds and FCI."""
+"""Composite market data provider with PPI fallback for Argentine Bonds, FCI and ONs."""
 
 from collections.abc import Callable, Sequence
 from datetime import date
@@ -27,7 +27,7 @@ def _to_currency(value: Any) -> str | None:
 
 
 class CompositeMarketDataProvider(MarketDataProviderPort):
-    """Market data provider that delegates to PPI for local bonds/FCI, yfinance for everything else."""
+    """Market data provider that delegates to PPI for local bonds/FCI/ONs, yfinance otherwise."""
 
     def __init__(
         self,
@@ -65,7 +65,7 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
     def get_quote(self, ticker: str) -> QuoteSnapshot | None:
         normalized = normalize_ticker(ticker)
 
-        # First try PPI for local bonds and FCI
+        # First try PPI for local bonds, FCI and ONs
         quote = self._ppi.get_quote(normalized)
         if quote is not None:
             return quote
@@ -120,7 +120,7 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
         combined: list[TickerMatch] = []
         seen: set[str] = set()
 
-        # First, PPI bonds and FCIs
+        # First, PPI bonds, FCIs and ONs
         ppi_results = self._ppi.search_symbols(query, limit)
         for match in ppi_results:
             if match.symbol not in seen:

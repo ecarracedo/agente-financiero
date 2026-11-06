@@ -8,6 +8,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Agregado
+- **Cotizaciones de ON y Letras (PPI)**: Obligaciones Negociables (`RUCDD`, `YMCJD`, etc.) y Letras del Tesoro (`S13N6`, etc.) ahora cotizan desde las páginas `/Cotizaciones/Ons` y `/Cotizaciones/Letras` de Portfolio Personal Inversiones, buscables como "Corporate Bond" y "Treasury Bill". Los precios se dividen por 100 (PPI los reporta cada 100 nominales), igual que los bonos. Los alias del usuario ahora se resuelven en un único pase final sobre toda la caché de cotizaciones: un mapeo puede apuntar un ticker en USD a su variante en ARS (`RUCDD -> RUCDO`) y la cotización del alias pisa a la directa.
 - **Posiciones en Cartera**: Columnas Total y Variación con cotizaciones en vivo, más columna de P&L.
 - **Registrar Transacción**: Selectores de broker y tipo de activo; precio editable manualmente.
 - **Gestión de Tenencias**: Botón "Vender" para vender la posición completa al precio actual. La cartera inicia vacía en modo demo.

@@ -1,4 +1,4 @@
-"""PPI (Portfolio Personal Inversiones) adapter for Argentine Bonds and FCI quotes.
+"""PPI (Portfolio Personal Inversiones) adapter for Argentine Bonds, FCI, ON and Letras quotes.
 
 Fetches daily public quote tables from PPI's Next.js pages, extracts structured
 JSON from __NEXT_DATA__, and caches results per calendar day.
@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 # PPI public quote pages
 PPI_BONOS_URL = "https://portfoliopersonal.com/Cotizaciones/Bonos"
 PPI_FCI_URL = "https://portfoliopersonal.com/Cotizaciones/SupermercadoFCI"
+PPI_ONS_URL = "https://portfoliopersonal.com/Cotizaciones/Ons"
+PPI_LETRAS_URL = "https://portfoliopersonal.com/Cotizaciones/Letras"
 
 # Currency ID mapping from PPI to ISO codes
 PPI_CURRENCY_MAP = {
@@ -61,7 +63,7 @@ def _to_currency(value: Any) -> str | None:
 
 
 class PpiMarketDataProvider:
-    """Fetch Argentine Bonds and FCI quotes from PPI public pages with daily cache."""
+    """Fetch Argentine Bonds, FCI, ON and Letras quotes from PPI public pages with daily cache."""
 
     def __init__(
         self,
@@ -126,7 +128,7 @@ class PpiMarketDataProvider:
             return None
 
     def _refresh_cache(self) -> bool:
-        """Fetch both PPI pages and rebuild the internal quote cache.
+        """Fetch all PPI pages and rebuild the internal quote cache.
 
         Returns True if cache was refreshed successfully, False otherwise.
         On network failure, keeps stale cache if available.
@@ -184,7 +186,6 @@ class PpiMarketDataProvider:
                         .get("pageProps", {})
                         .get("instruments", [])
                     )
-                    aliases = self._get_aliases()
                     for inst in instruments:
                         name = inst.get("name") or inst.get("ticker")
                         price_raw = inst.get("lastPrice")
@@ -208,29 +209,122 @@ class PpiMarketDataProvider:
                                             quote_type="Mutual Fund",
                                         )
                                     )
-                                    canonical_name = _canonical_instrument_name(name)
-                                    for alias, official_name in aliases.items():
-                                        # Matchear contra el ticker de la posición (broker_ticker / alias)
-                                        # para resolver el precio; official_name es solo para display
-                                        if (
-                                            _canonical_instrument_name(alias)
-                                            == canonical_name
-                                        ):
-                                            # Usar broker_ticker como key de cache (el ticker de la posición)
-                                            # y oficial_name para display si es diferente
-                                            new_cache[normalize_ticker(alias)] = QuoteSnapshot(
-                                                price=price, currency=currency
-                                            )
-                                            new_search_index.append(
-                                                TickerMatch(
-                                                    symbol=normalize_ticker(alias),
-                                                    name=f"FCI {inst.get('description', name)}",
-                                                    exchange="CAFCI",
-                                                    quote_type="Mutual Fund",
-                                                )
-                                            )
                             except (InvalidOperation, ValueError):
                                 pass
+
+            # Fetch ONs (Obligaciones Negociables)
+            ons_html = self._fetch_page(PPI_ONS_URL)
+            if ons_html:
+                ons_data = self._extract_next_data(ons_html)
+                if ons_data:
+                    instruments = (
+                        ons_data.get("props", {})
+                        .get("pageProps", {})
+                        .get("instruments", [])
+                    )
+                    for inst in instruments:
+                        ticker = inst.get("ticker")
+                        price_raw = inst.get("lastPrice")
+                        currency_raw = inst.get("currency")
+                        if ticker and price_raw is not None:
+                            try:
+                                price = Decimal(str(price_raw))
+                                if price.is_finite() and price > 0:
+                                    # PPI reports ON prices per 100 nominal units,
+                                    # like bonds (e.g. 107 means 1.07 per unit).
+                                    price = price / Decimal("100")
+                                    currency = _to_currency(currency_raw)
+                                    new_cache[normalize_ticker(ticker)] = QuoteSnapshot(
+                                        price=price,
+                                        currency=currency,
+                                    )
+                                    description = str(inst.get("description", ticker))
+                                    if description.upper().startswith("ON "):
+                                        description = description[3:]
+                                    display_name = f"ON {description}"
+                                    new_search_index.append(
+                                        TickerMatch(
+                                            symbol=normalize_ticker(ticker),
+                                            name=display_name,
+                                            exchange="BYMA",
+                                            quote_type="Corporate Bond",
+                                        )
+                                    )
+                            except (InvalidOperation, ValueError):
+                                pass
+
+            # Fetch Letras del Tesoro
+            letras_html = self._fetch_page(PPI_LETRAS_URL)
+            if letras_html:
+                letras_data = self._extract_next_data(letras_html)
+                if letras_data:
+                    instruments = (
+                        letras_data.get("props", {})
+                        .get("pageProps", {})
+                        .get("instruments", [])
+                    )
+                    for inst in instruments:
+                        ticker = inst.get("ticker")
+                        price_raw = inst.get("lastPrice")
+                        currency_raw = inst.get("currency")
+                        if ticker and price_raw is not None:
+                            try:
+                                price = Decimal(str(price_raw))
+                                if price.is_finite() and price > 0:
+                                    # PPI reports Letras prices per 100 nominal
+                                    # units, like bonds (e.g. 109493 means
+                                    # 1094.93 per unit).
+                                    price = price / Decimal("100")
+                                    currency = _to_currency(currency_raw)
+                                    new_cache[normalize_ticker(ticker)] = QuoteSnapshot(
+                                        price=price,
+                                        currency=currency,
+                                    )
+                                    description = str(inst.get("description", ticker))
+                                    new_search_index.append(
+                                        TickerMatch(
+                                            symbol=normalize_ticker(ticker),
+                                            name=description,
+                                            exchange="BCRA",
+                                            quote_type="Treasury Bill",
+                                        )
+                                    )
+                            except (InvalidOperation, ValueError):
+                                pass
+
+            # Final alias pass: user-defined aliases link two names (held ticker
+            # and PPI instrument); the quote must be reachable by both, and the
+            # alias wins over a direct quote for the same key so a USD ticker can
+            # be pointed at its ARS variant (e.g. RUCDD -> RUCDO).
+            match_by_symbol = {m.symbol: m for m in new_search_index}
+            for alias, official_name in self._get_aliases().items():
+                try:
+                    alias_key = normalize_ticker(alias)
+                    official_key = normalize_ticker(official_name)
+                except ValueError:
+                    continue
+                source = None
+                source_match = None
+                # The official name side is the PPI instrument; prefer its quote
+                # so an alias can point a USD ticker at its ARS variant.
+                for candidate in (official_key, alias_key):
+                    if candidate in new_cache:
+                        source = new_cache[candidate]
+                        source_match = match_by_symbol.get(candidate)
+                        break
+                if source is None:
+                    continue
+                for target in (alias_key, official_key):
+                    new_cache[target] = source
+                    if source_match is not None and target not in match_by_symbol:
+                        new_search_index.append(
+                            TickerMatch(
+                                symbol=target,
+                                name=source_match.name,
+                                exchange=source_match.exchange,
+                                quote_type=source_match.quote_type,
+                            )
+                        )
 
             if new_cache:
                 self._cache = new_cache
@@ -270,7 +364,7 @@ class PpiMarketDataProvider:
         self._search_index = None
 
     def get_quote(self, ticker: str) -> QuoteSnapshot | None:
-        """Return current price for a bond ticker or mapped FCI alias."""
+        """Return current price for a bond, ON, Letras or mapped alias ticker."""
         normalized = normalize_ticker(ticker)
         if not self._ensure_cache():
             return None
@@ -285,7 +379,7 @@ class PpiMarketDataProvider:
     def search_symbols(
         self, query: str, limit: int = DEFAULT_SEARCH_RESULTS
     ) -> tuple[TickerMatch, ...]:
-        """Search PPI bonds and FCIs by ticker or name."""
+        """Search PPI bonds, FCIs, ONs and Letras by ticker or name."""
         if not self._ensure_cache():
             return ()
         if self._search_index is None:

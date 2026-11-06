@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ON and Letras Quotes (PPI)**: Obligaciones Negociables (`RUCDD`, `YMCJD`, etc.) and Letras del Tesoro (`S13N6`, etc.) now quote from the Portfolio Personal Inversiones `/Cotizaciones/Ons` and `/Cotizaciones/Letras` pages, searchable as "Corporate Bond" and "Treasury Bill". Prices are divided by 100 (PPI reports per 100 nominal), like bonds. User aliases now resolve in a single final pass over the full quote cache: a mapping can point a USD ticker at its ARS variant (`RUCDD -> RUCDO`) and the alias quote wins over the direct one.
 - **Portfolio Positions**: Added Total and Variación columns to positions table with live quotes; added P&L column.
 - **Quick Order**: Added broker selector (ECO, PPI, BINANCE) and asset type selector (Acciones, ETF, Bono, FCI, Cripto). Allow manual price editing. Removed SHS label.
 - **Holdings Management**: Added "Vender" button to sell entire position at current price. Positions start empty in demo.
