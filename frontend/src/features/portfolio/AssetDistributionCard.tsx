@@ -36,8 +36,10 @@ interface CategorySlice {
   tickers: string[]
   percentage: number
   color: string
-  /** Gain/loss versus invested capital in percent, or null when unknown. */
-  gainLossPercent: number | null
+  /** Assets above their average price (green) inside this category. */
+  greenCount: number
+  /** Assets below their average price (red) inside this category. */
+  redCount: number
 }
 
 /** All slices of one currency plus its valued total. */
@@ -68,7 +70,7 @@ function buildSections(
       unpriced.add(position.ticker)
       continue
     }
-    const invested = qty * Number(position.average_price)
+    const average = Number(position.average_price)
     let categories = byCurrency.get(position.currency)
     if (!categories) {
       categories = new Map()
@@ -76,11 +78,14 @@ function buildSections(
     }
     let slice = categories.get(position.category)
     if (!slice) {
-      slice = { value: 0, invested: 0, tickers: new Set() }
+      slice = { value: 0, greenCount: 0, redCount: 0, tickers: new Set() }
       categories.set(position.category, slice)
     }
     slice.value += qty * current
-    if (Number.isFinite(invested) && invested > 0) slice.invested += invested
+    if (Number.isFinite(average) && average > 0) {
+      if (current >= average) slice.greenCount += 1
+      else slice.redCount += 1
+    }
     slice.tickers.add(position.ticker)
   }
 
@@ -96,8 +101,8 @@ function buildSections(
         tickers: Array.from(s.tickers).sort(),
         percentage: (s.value / total) * 100,
         color: PALETTE[index % PALETTE.length],
-        gainLossPercent:
-          s.invested > 0 ? ((s.value - s.invested) / s.invested) * 100 : null,
+        greenCount: s.greenCount,
+        redCount: s.redCount,
       }))
     sections.push({ currency, total, slices })
   }
@@ -136,39 +141,39 @@ function Donut({ slices }: { slices: CategorySlice[] }) {
 }
 
 /**
- * Diverging gain/loss bar centred on zero: green to the right for gains,
- * red to the left for losses. The fill length is relative to the largest
- * absolute gain/loss of the section, so categories are comparable at a
- * glance; the arrow and `data-trend` keep the direction readable without
- * colour.
+ * Share of assets in green versus red inside one category: the bar is split
+ * proportionally between assets above their average price (green) and below
+ * it (red). Example: 10 of 20 assets in red shows a 50% red / 50% green bar.
  */
-function GainLossBar({ gainLossPercent, maxAbs }: { gainLossPercent: number; maxAbs: number }) {
-  const isPositive = gainLossPercent >= 0
-  const halfWidth = maxAbs > 0 ? Math.min(Math.abs(gainLossPercent) / maxAbs, 1) * 50 : 0
+function WinLossBar({ greenCount, redCount }: { greenCount: number; redCount: number }) {
+  const total = greenCount + redCount
+  if (total === 0) return null
+  const redPercent = (redCount / total) * 100
+  const greenPercent = (greenCount / total) * 100
+  const pct = (n: number) =>
+    n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   return (
     <span
-      data-trend={isPositive ? 'up' : 'down'}
       className="flex items-center gap-1.5"
-      title={`${isPositive ? '+' : ''}${gainLossPercent.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
+      title={`${redCount}/${total} en rojo, ${greenCount}/${total} en verde`}
+      aria-label={`${pct(redPercent)}% en rojo, ${pct(greenPercent)}% en verde`}
     >
-      <span className="relative block h-1.5 flex-1 rounded-full bg-[#0a0e16]">
-        <span className="absolute left-1/2 top-0 h-full w-px bg-[#3d494c]" aria-hidden="true" />
-        <span
-          className="absolute top-0 h-full rounded-full"
-          style={
-            isPositive
-              ? { left: '50%', width: `${halfWidth}%`, backgroundColor: '#46fa9c' }
-              : { right: '50%', width: `${halfWidth}%`, backgroundColor: '#ff7f8b' }
-          }
-        />
+      <span className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-[#0a0e16]">
+        {redPercent > 0 ? (
+          <span className="h-full" style={{ width: `${redPercent}%`, backgroundColor: '#ff7f8b' }} />
+        ) : null}
+        {greenPercent > 0 ? (
+          <span className="h-full" style={{ width: `${greenPercent}%`, backgroundColor: '#46fa9c' }} />
+        ) : null}
       </span>
-      <span
-        className="text-[9px] font-mono font-semibold"
-        style={{ color: isPositive ? '#46fa9c' : '#ff7f8b' }}
-      >
-        {isPositive ? '▲ +' : '▼ '}
-        {gainLossPercent.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+      <span className="text-[9px] font-mono font-semibold" style={{ color: '#ff7f8b' }}>
+        {pct(redPercent)}%
       </span>
+      <span className="text-[9px] font-mono text-[#869397]">rojo</span>
+      <span className="text-[9px] font-mono font-semibold" style={{ color: '#46fa9c' }}>
+        {pct(greenPercent)}%
+      </span>
+      <span className="text-[9px] font-mono text-[#869397]">verde</span>
     </span>
   )
 }
@@ -176,7 +181,6 @@ function GainLossBar({ gainLossPercent, maxAbs }: { gainLossPercent: number; max
 /** One currency section: donut, stacked bar and category cards. */
 function CurrencySectionView({ section, loading }: { section: CurrencySection; loading: boolean }) {
   const { currency, total, slices } = section
-  const maxGainLossAbs = Math.max(0, ...slices.map((s) => Math.abs(s.gainLossPercent ?? 0)))
   return (
     <div className="flex flex-col gap-3 border-t border-[#3d494c]/20 pt-4 first:border-t-0 first:pt-0">
       <div className="flex items-center justify-between gap-3">
@@ -241,9 +245,7 @@ function CurrencySectionView({ section, loading }: { section: CurrencySection; l
                 <div className="flex items-baseline justify-between mt-1">
                   <span className="text-xs font-bold font-mono text-white">{formatMoney(slice.value)}</span>
                 </div>
-                {slice.gainLossPercent !== null ? (
-                  <GainLossBar gainLossPercent={slice.gainLossPercent} maxAbs={maxGainLossAbs} />
-                ) : null}
+                <WinLossBar greenCount={slice.greenCount} redCount={slice.redCount} />
                 <span className="text-[9px] text-[#869397]">
                   {slice.tickers.length} {slice.tickers.length === 1 ? 'Activo' : 'Activos'}
                 </span>

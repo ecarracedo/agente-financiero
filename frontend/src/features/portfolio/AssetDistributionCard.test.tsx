@@ -28,29 +28,36 @@ describe('AssetDistributionCard', () => {
     expect(within(card).queryByText(/Efectivo/)).not.toBeInTheDocument()
   })
 
-  it('shows a green gain bar per category versus invested capital', async () => {
+  it('shows all assets in green when every price is above the average price', async () => {
     renderWithRouter({ initialEntries: ['/portfolio'] })
 
     const card = await screen.findByRole('region', { name: /distribución de activos/i })
-    // AAPL: invested 10 x 150.25 = 1.502,50; market 10 x 190 = 1.900 -> +26,5%.
-    const bar = await within(card).findByTitle(/\+26,5%/)
-    expect(bar).toHaveAttribute('data-trend', 'up')
-    expect(within(card).getByText(/\+26,5%/)).toBeInTheDocument()
+    // AAPL: current 190 > average 150.25 -> 0/1 in red, 1/1 in green.
+    const bar = await within(card).findByTitle(/0\/1 en rojo, 1\/1 en verde/)
+    expect(bar).toHaveAttribute('aria-label', '0,0% en rojo, 100,0% en verde')
   })
 
-  it('shows a red loss bar when the market value is below invested capital', async () => {
+  it('shows the red share when some assets are below their average price', async () => {
+    const avg = { ticker: 'MSFT', broker: 'ECO', category: 'Acciones', quantity: '10', average_price: '280.00', currency: 'USD' }
+    const loser = { ticker: 'TSLA', broker: 'ECO', category: 'Acciones', quantity: '10', average_price: '250.00', currency: 'USD' }
     server.use(
-      http.get('*/api/v1/analysis/:ticker', () =>
-        HttpResponse.json({ ...analysisAAPL, current_price: '100.00' }),
+      http.get('*/api/v1/analysis/:ticker', ({ params }) => {
+        if (String(params.ticker) === 'TSLA') {
+          return HttpResponse.json({ ...analysisAAPL, current_price: '200.00' })
+        }
+        return HttpResponse.json({ ...analysisAAPL, current_price: '300.00' })
+      }),
+      http.get('*/api/v1/portfolio', () =>
+        HttpResponse.json([avg, loser]),
       ),
     )
 
     renderWithRouter({ initialEntries: ['/portfolio'] })
 
     const card = await screen.findByRole('region', { name: /distribución de activos/i })
-    // Market 10 x 100 = 1.000 vs invested 1.502,50 -> -33,4%.
-    const bar = await within(card).findByTitle(/-33,4%/)
-    expect(bar).toHaveAttribute('data-trend', 'down')
+    // MSFT 300 > 280 (green), TSLA 200 < 250 (red) -> 50% red / 50% green.
+    const bar = await within(card).findByTitle(/1\/2 en rojo, 1\/2 en verde/)
+    expect(bar).toHaveAttribute('aria-label', '50,0% en rojo, 50,0% en verde')
   })
 
   it('groups by currency and never sums different currencies together', async () => {
