@@ -5,6 +5,389 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "description": "Authenticate with username and password, then require TOTP when enabled.",
+        "operationId": "login_api_v1_auth_login_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-totp": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify Totp",
+        "description": "Complete login with a TOTP code after a successful password step.",
+        "operationId": "verify_totp_api_v1_auth_verify_totp_post",
+        "parameters": [
+          {
+            "name": "agente_preauth",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Preauth"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TotpVerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Me",
+        "description": "Return the authenticated user's identity.",
+        "operationId": "me_api_v1_auth_me_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout",
+        "description": "End the current session and clear its cookie.",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/totp/setup": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Totp Setup",
+        "description": "Generate a new TOTP secret and return enrollment material.",
+        "operationId": "totp_setup_api_v1_auth_totp_setup_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TotpSetupResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/totp/confirm": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Totp Confirm",
+        "description": "Enable TOTP after verifying a code from the authenticator app.",
+        "operationId": "totp_confirm_api_v1_auth_totp_confirm_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TotpConfirmRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/totp/disable": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Totp Disable",
+        "description": "Disable TOTP after re-entering the password.",
+        "operationId": "totp_disable_api_v1_auth_totp_disable_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TotpDisableRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/portfolio": {
       "get": {
         "tags": [
@@ -13,17 +396,45 @@
         "summary": "List Portfolio",
         "description": "Return current portfolio positions without presentation-layer coupling.",
         "operationId": "list_portfolio_api_v1_portfolio_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/PortfolioPositionResponse"
                   },
-                  "type": "array",
                   "title": "Response List Portfolio Api V1 Portfolio Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -71,6 +482,22 @@
               "minLength": 1,
               "maxLength": 60,
               "title": "Category"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
             }
           }
         ],
@@ -124,6 +551,24 @@
         "summary": "Record Transaction",
         "description": "Record a purchase or sale and return the resulting position.",
         "operationId": "record_transaction_api_v1_transactions_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -220,6 +665,22 @@
               "default": 50,
               "title": "Limit"
             }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
           }
         ],
         "responses": {
@@ -267,6 +728,22 @@
               "type": "integer",
               "title": "Transaction Id"
             }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
           }
         ],
         "responses": {
@@ -301,17 +778,45 @@
         "summary": "Value Portfolio",
         "description": "Return currency-grouped valuation totals.",
         "operationId": "value_portfolio_api_v1_valuations_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "object",
                   "additionalProperties": {
                     "$ref": "#/components/schemas/CurrencyValuationResponse"
                   },
-                  "type": "object",
                   "title": "Response Value Portfolio Api V1 Valuations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -349,6 +854,22 @@
               "minimum": 1,
               "default": 8,
               "title": "Limit"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
             }
           }
         ],
@@ -410,6 +931,22 @@
               "default": "1y",
               "title": "Period"
             }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
           }
         ],
         "responses": {
@@ -454,6 +991,22 @@
               "minLength": 1,
               "maxLength": 32,
               "title": "Ticker"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
             }
           }
         ],
@@ -510,6 +1063,22 @@
               "maxLength": 32,
               "title": "Ticker"
             }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
           }
         ],
         "requestBody": {
@@ -554,17 +1123,45 @@
         "summary": "List Wishlist",
         "description": "Return current wishlist entries.",
         "operationId": "list_wishlist_api_v1_wishlist_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/WishlistItemResponse"
                   },
-                  "type": "array",
                   "title": "Response List Wishlist Api V1 Wishlist Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -578,15 +1175,33 @@
         "summary": "Add Wishlist Item",
         "description": "Add a ticker to the wishlist.",
         "operationId": "add_wishlist_item_api_v1_wishlist_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/WishlistCreateRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -630,6 +1245,22 @@
               "minLength": 1,
               "maxLength": 32,
               "title": "Ticker"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
             }
           }
         ],
@@ -686,6 +1317,22 @@
               "maxLength": 32,
               "title": "Ticker"
             }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
           }
         ],
         "responses": {
@@ -730,6 +1377,22 @@
               "minLength": 1,
               "maxLength": 32,
               "title": "Ticker"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
             }
           }
         ],
@@ -786,6 +1449,22 @@
               "maxLength": 32,
               "title": "Ticker"
             }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
           }
         ],
         "responses": {
@@ -820,17 +1499,45 @@
         "summary": "List Bibliography",
         "description": "Return bibliography resources.",
         "operationId": "list_bibliography_api_v1_bibliography_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/BibliographyItemResponse"
                   },
-                  "type": "array",
                   "title": "Response List Bibliography Api V1 Bibliography Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -844,15 +1551,33 @@
         "summary": "Add Bibliography Item",
         "description": "Create a bibliography resource.",
         "operationId": "add_bibliography_item_api_v1_bibliography_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/BibliographyCreateRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -895,6 +1620,22 @@
               "type": "integer",
               "title": "Item Id"
             }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
           }
         ],
         "responses": {
@@ -929,17 +1670,45 @@
         "summary": "List Ticker Aliases",
         "description": "Return user-defined ticker aliases.",
         "operationId": "list_ticker_aliases_api_v1_ticker_aliases_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/TickerAliasResponse"
                   },
-                  "type": "array",
                   "title": "Response List Ticker Aliases Api V1 Ticker Aliases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -953,15 +1722,33 @@
         "summary": "Add Ticker Alias",
         "description": "Create a ticker alias.",
         "operationId": "add_ticker_alias_api_v1_ticker_aliases_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TickerAliasCreateRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -1004,6 +1791,22 @@
               "type": "integer",
               "title": "Alias Id"
             }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
           }
         ],
         "responses": {
@@ -1038,15 +1841,33 @@
         "summary": "Calculate Split",
         "description": "Return a forward or reverse split projection.",
         "operationId": "calculate_split_api_v1_splits_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SplitProjectionRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1383,6 +2204,59 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "description": "Credentials submitted to the login endpoint."
+      },
+      "LoginResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "totp_enabled": {
+            "type": "boolean",
+            "title": "Totp Enabled",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "LoginResponse",
+        "description": "Login outcome: either a full session or a pending TOTP step."
       },
       "MarketAnalysisResponse": {
         "properties": {
@@ -1841,6 +2715,73 @@
         "title": "TickerMatchResponse",
         "description": "Expose one asset search result with its provider labels."
       },
+      "TotpConfirmRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "TotpConfirmRequest",
+        "description": "Six-digit TOTP code submitted to confirm enrollment."
+      },
+      "TotpDisableRequest": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "title": "TotpDisableRequest",
+        "description": "Password re-entry required to disable TOTP."
+      },
+      "TotpSetupResponse": {
+        "properties": {
+          "secret": {
+            "type": "string",
+            "title": "Secret"
+          },
+          "otpauth_url": {
+            "type": "string",
+            "title": "Otpauth Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "secret",
+          "otpauth_url"
+        ],
+        "title": "TotpSetupResponse",
+        "description": "Enrollment material returned once when setting up TOTP."
+      },
+      "TotpVerifyRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "TotpVerifyRequest",
+        "description": "Six-digit TOTP code submitted for verification."
+      },
       "TransactionRequest": {
         "properties": {
           "ticker": {
@@ -1987,6 +2928,30 @@
         ],
         "title": "UpdatedResponse",
         "description": "Acknowledge a successful update operation."
+      },
+      "UserResponse": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "totp_enabled": {
+            "type": "boolean",
+            "title": "Totp Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "email",
+          "totp_enabled"
+        ],
+        "title": "UserResponse",
+        "description": "Public identity of the authenticated user."
       },
       "ValidationError": {
         "properties": {

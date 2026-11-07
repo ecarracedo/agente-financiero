@@ -149,7 +149,13 @@ def api_client(market_data):
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
-    return TestClient(create_app(database_engine=engine, market_data_provider=market_data))
+    return TestClient(
+        create_app(
+            database_engine=engine,
+            market_data_provider=market_data,
+            auth_enabled=False,
+        )
+    )
 
 
 def test_api_returns_search_matches():

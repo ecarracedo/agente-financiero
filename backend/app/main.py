@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import Engine
 from sqlalchemy.orm import sessionmaker
 
@@ -14,6 +14,7 @@ from backend.app.adapters.market_data import YFinanceMarketDataProvider
 from backend.app.adapters.composite_market_data import CompositeMarketDataProvider
 from backend.app.adapters.ppi_market_data import PpiMarketDataProvider
 from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
+from backend.app.api.auth import auth_router, require_user
 from backend.app.api.routes import router as api_router
 from backend.app.api.services import ApplicationServices
 from backend.app.application.alerts import TargetAlertUseCases
@@ -32,6 +33,7 @@ def _default_database_engine() -> Engine:
 def create_app(
     database_engine: Engine | None = None,
     market_data_provider=None,
+    auth_enabled: bool = True,
 ) -> FastAPI:
     """Create the financial agent API application.
 
@@ -84,7 +86,14 @@ def create_app(
         alerts=TargetAlertUseCases(unit_of_work_factory),
         resources=ResourceUseCases(unit_of_work_factory),
     )
-    application.include_router(api_router)
+    application.state.database_engine_provider = engine_provider
+    application.include_router(auth_router)
+    if auth_enabled:
+        application.include_router(
+            api_router, dependencies=[Depends(require_user)]
+        )
+    else:
+        application.include_router(api_router)
 
     @application.get("/health", tags=["health"])
     def health_check() -> dict[str, str]:

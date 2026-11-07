@@ -58,6 +58,7 @@ def api_client():
     application = create_app(
         database_engine=engine,
         market_data_provider=market_data,
+        auth_enabled=False,
     )
     with TestClient(application) as client:
         yield client, market_data
