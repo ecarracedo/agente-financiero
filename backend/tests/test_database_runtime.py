@@ -53,7 +53,8 @@ def test_compose_defines_private_postgres_and_backend_readiness():
     assert database["healthcheck"]["test"]
     assert backend["depends_on"]["postgres"]["condition"] == "service_healthy"
     assert backend["healthcheck"]["test"]
-    assert backend["ports"] == ["${API_PORT:-8000}:8000"]
+    assert "ports" not in backend
+    assert backend["expose"] == ["8000"]
 
 
 def test_backend_container_runs_migrations_before_uvicorn():

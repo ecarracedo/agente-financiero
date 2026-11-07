@@ -128,6 +128,14 @@ def test_postgres_is_never_published_and_keeps_its_volume():
     assert "pg_isready" in healthcheck
 
 
+def test_backend_api_is_never_published_to_the_host():
+    """The API is reachable only through the frontend proxy on the Compose network."""
+    backend = services(COMPOSE_PATH)["backend"]
+
+    assert "ports" not in backend
+    assert backend["expose"] == ["8000"]
+
+
 def test_backend_migrates_before_serving_and_waits_for_a_healthy_database():
     """The backend never serves against an unmigrated or absent database."""
     backend = services(COMPOSE_PATH)["backend"]
@@ -322,7 +330,6 @@ def test_env_example_declares_every_interpolated_variable():
         "POSTGRES_DB",
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
-        "API_PORT",
         "WEB_PORT",
         "WEB_DEV_PORT",
         "VITE_API_BASE_URL",

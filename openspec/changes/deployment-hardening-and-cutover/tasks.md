@@ -4,7 +4,7 @@ Origen: hereda las tareas 6.3, 7.1, 7.2 y 7.3 que quedaron pendientes en `financ
 
 ## Phase 1: Acceso y endurecimiento
 
-- [ ] 1.1 Cerrar la decisión de acceso single-user y aplicar control de acceso a la API publicada en `compose.yaml`; cubrir con test antes del cambio. (R1-nginx-api-exposed)
+- [x] 1.1 Cerrar la decisión de acceso single-user y aplicar control de acceso a la API publicada en `compose.yaml`; cubrir con test antes del cambio. (R1-nginx-api-exposed) — Done: `compose.yaml` backend declares `expose: 8000` with no `ports`; `API_PORT` removed from `.env.example` and tests; README (EN/ES) and CHANGELOG updated; RED→GREEN, full backend suite 207 passed, independent verifier confirmed (mutation makes 3 tests fail). Risk: item 2 (security: no longer publishes the API).
 - [ ] 1.2 Endurecer `frontend/nginx.conf` y su test en `backend/tests/test_deployment_config.py`; probar el enrutado y la re-resolución contra el stack vivo. (R4-001, R2-1, R2-2)
 - [ ] 1.3 Instalar `mypy` y `black` en el intérprete del proyecto y acotar los gates para que no barran el árbol scratch `verify/`; actualizar `openspec/config.yaml`.
 
