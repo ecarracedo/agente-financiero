@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-11-06
 
+### Security
+- **API No Longer Published**: The backend API no longer publishes a host port. It answers only on the Compose network, through the frontend proxy, closing the unauthenticated-public-API exposure in single-user mode (task 1.1, design D1). `API_PORT` is no longer interpolated and direct-API access requires a future authentication decision. Dev/local flows (Vite proxy, `generate:api:live`) keep their local `localhost:8000` targets.
+
 ### Added
 - **Real Asset Distribution**: `AssetDistributionCard` now computes the allocation from real portfolio positions valued at current market prices, grouped by real category and one section per currency (never summed across currencies). Positions without a price are excluded from totals and declared. The previous hardcoded mock ($148,650.80, 62%/23%/10%/5%, Score 9.4/10, "Efectivo") is gone.
 - **ON and Letras Quotes (PPI)**: Obligaciones Negociables (`RUCDD`, `YMCJD`, etc.) and Letras del Tesoro (`S13N6`, etc.) now quote from the Portfolio Personal Inversiones `/Cotizaciones/Ons` and `/Cotizaciones/Letras` pages, searchable as "Corporate Bond" and "Treasury Bill". Prices are divided by 100 (PPI reports per 100 nominal), like bonds. User aliases now resolve in a single final pass over the full quote cache: a mapping can point a USD ticker at its ARS variant (`RUCDD -> RUCDO`) and the alias quote wins over the direct one.

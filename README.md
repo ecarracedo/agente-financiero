@@ -73,7 +73,7 @@ cp .env.example .env    # set POSTGRES_PASSWORD before the first run
 docker compose up -d --build --wait
 ```
 
-- The API answers on `http://localhost:${API_PORT}` and the web interface on `http://localhost:${WEB_PORT}`.
+- The web interface answers on `http://localhost:${WEB_PORT}`. The backend API is not published to the host: it is reachable only on the Compose network, through the frontend proxy. Reopening a direct API port requires an explicit authentication decision first.
 - PostgreSQL is reachable only on the Compose network: it declares `expose`, never `ports`, and keeps its data in the `postgres_data` volume.
 - The backend applies `alembic upgrade head` before starting Uvicorn, and waits for a healthy database first.
 - The frontend container serves the built SPA with Nginx and proxies `/api` to the backend on the same origin, so the browser makes no cross-origin request. It proxies `/health` and `/ready` the same way, so a probe on the published origin reads the real status instead of the SPA's entry point. The image bakes `VITE_API_BASE_URL` at build time, so keep it equal to the published frontend origin and rebuild after changing it.
@@ -167,7 +167,7 @@ cp .env.example .env    # definí POSTGRES_PASSWORD antes del primer arranque
 docker compose up -d --build --wait
 ```
 
-- La API responde en `http://localhost:${API_PORT}` y la interfaz web en `http://localhost:${WEB_PORT}`.
+- La interfaz web responde en `http://localhost:${WEB_PORT}`. La API del backend no se publica al host: solo es alcanzable en la red de Compose, a través del proxy del frontend. Reabrir un puerto directo de API requiere primero una decisión explícita de autenticación.
 - PostgreSQL solo es alcanzable en la red de Compose: declara `expose`, nunca `ports`, y guarda sus datos en el volumen `postgres_data`.
 - El backend aplica `alembic upgrade head` antes de levantar Uvicorn, y primero espera a que la base esté sana.
 - El contenedor del frontend sirve la SPA compilada con Nginx y proxya `/api` al backend en el mismo origen, así que el navegador no hace ninguna petición cross-origin. También proxya `/health` y `/ready`, así que una sonda sobre el origen público lee el estado real y no la entrada de la SPA. La imagen fija `VITE_API_BASE_URL` en tiempo de build, así que mantenelo igual al origen público del frontend y recompilá tras cambiarlo.
