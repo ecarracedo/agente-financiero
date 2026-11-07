@@ -31,7 +31,7 @@ describe('PortfolioWorkspace', () => {
     expect(row.getByDisplayValue('ECO')).toBeInTheDocument()
     expect(row.getByDisplayValue('Acciones')).toBeInTheDocument()
     expect(row.getByRole('cell', { name: '10' })).toBeInTheDocument()
-    expect(row.getByText(/150\.25/)).toBeInTheDocument()
+    expect(row.getByText(/150,25/)).toBeInTheDocument()
   })
 
   it('renders each currency as a separate valuation group, never summed together', async () => {
@@ -42,9 +42,9 @@ describe('PortfolioWorkspace', () => {
     const usdRow = within(usdCell.closest('tr') as HTMLElement)
     const eurRow = within(eurCell.closest('tr') as HTMLElement)
 
-    expect(usdRow.getByRole('cell', { name: '2902.50 USD' })).toBeInTheDocument()
+    expect(usdRow.getByRole('cell', { name: '$ 2.902,50 USD' })).toBeInTheDocument()
     expect(usdRow.queryByText(/EUR/)).not.toBeInTheDocument()
-    expect(eurRow.getByRole('cell', { name: '1200.00 EUR' })).toBeInTheDocument()
+    expect(eurRow.getByRole('cell', { name: '$ 1.200,00 EUR' })).toBeInTheDocument()
     expect(eurRow.queryByText(/USD/)).not.toBeInTheDocument()
   })
 
@@ -117,7 +117,7 @@ describe('PortfolioWorkspace', () => {
     await screen.findByRole('heading', { name: /posiciones en cartera/i })
 
     await waitFor(() => {
-      expect(screen.getAllByText('$190.00').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('$ 190,00').length).toBeGreaterThan(0)
     })
 
     const callsBeforeRefresh = quoteCalls
@@ -127,7 +127,7 @@ describe('PortfolioWorkspace', () => {
       expect(quoteCalls).toBeGreaterThan(callsBeforeRefresh)
     })
     await waitFor(() => {
-      expect(screen.getAllByText('$205.00').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('$ 205,00').length).toBeGreaterThan(0)
     })
   })
 
@@ -229,7 +229,9 @@ describe('PortfolioWorkspace', () => {
     expect(screen.getByText('Sin resultados para los filtros aplicados.')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /limpiar/i }))
-    expect(await screen.findByRole('cell', { name: 'AAPL' })).toBeInTheDocument()
+    // The ticker cell shows the alias display name once aliases load, so assert
+    // on the row's quantity cell (unique to the single fixture position).
+    expect(await screen.findByRole('cell', { name: '10' }, { timeout: 5000 })).toBeInTheDocument()
   })
 
   it('shows only the last three transactions in the recent transactions card', async () => {
