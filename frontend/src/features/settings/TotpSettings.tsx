@@ -29,8 +29,18 @@ export function TotpSettings() {
   }
 
   useEffect(() => {
-    void refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let active = true
+    authApi
+      .me()
+      .then((current) => {
+        if (active) setUser(current)
+      })
+      .catch(() => {
+        if (active) setUser(null)
+      })
+    return () => {
+      active = false
+    }
   }, [])
 
   async function startSetup() {
