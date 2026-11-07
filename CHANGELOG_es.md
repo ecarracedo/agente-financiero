@@ -25,6 +25,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
 - **Script de arranque**: `scripts/start.sh` reemplaza a `scripts/start-demo.sh` y levanta el servidor de desarrollo de Vite contra el backend real en lugar de los datos de demo (MSW).
 
 ### Corregido
+- **Build del Frontend (Distribución de Activos)**: Corregidos errores de TypeScript en `AssetDistributionCard.tsx` que rompían `npm run build` (y el despliegue en Coolify): el tipo acumulador por categoría ahora incluye `invested`, `greenCount` y `redCount`. Fix solo de tipos, sin cambio de lógica en runtime.
 - **Tabla de Posiciones**: Un broker o tipo de activo que ya no está en el catálogo se sigue mostrando en su selector en lugar de dejar el control vacío.
 - **Catálogo de Cartera**: El memo del catálogo detecta cambios hechos en `localStorage` por otra vía, así que nunca sirve un catálogo viejo.
 - **Alias de cotización**: Se agregaron pruebas de contrato de API para `GET/POST/DELETE /api/v1/ticker-aliases` (incluido upsert por ticker de broker) y una prueba del proveedor que demuestra que un alias guardado en la base de datos toma efecto tras invalidar el caché.

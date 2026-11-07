@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quick Order Labels**: "Precio / Acción" → "Precio", "Monto Total Estimado" → "Total", removed "Comisión FIX".
 
 ### Fixed
+- **Frontend Build (Asset Distribution)**: Fixed TypeScript errors in `AssetDistributionCard.tsx` that broke `npm run build` (and the Coolify deployment): the per-category accumulator type now includes `invested`, `greenCount` and `redCount`. Type-only fix, no runtime logic change.
 - **Positions Table**: A broker or asset type that is no longer in the catalog now stays visible in its selector instead of leaving the control blank.
 - **Portfolio Catalog**: The catalog memo now notices a `localStorage` change made by another path, so an edited catalog is never served stale.
 - **Ticker aliases**: Fixed `FIMA.AH.P`, `AL.DIVER.A`, `SHC.PLUS.A` alias mapping; DB-backed alias reload after cache invalidation; alias editor now uses `broker_ticker` (official PPI name) in dropdown.
