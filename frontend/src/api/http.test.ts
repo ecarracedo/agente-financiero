@@ -41,7 +41,9 @@ describe('request', () => {
 
     const result = await request<{ status: string }>('/health')
 
-    expect(fetchMock).toHaveBeenCalledWith('http://api.example.test/health', undefined)
+    expect(fetchMock).toHaveBeenCalledWith('http://api.example.test/health', {
+      credentials: 'include',
+    })
     expect(result).toEqual({ status: 'ok' })
   })
 
@@ -52,10 +54,9 @@ describe('request', () => {
 
     await api.listPortfolio()
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://api.example.test/api/v1/portfolio',
-      undefined,
-    )
+    expect(fetchMock).toHaveBeenCalledWith('http://api.example.test/api/v1/portfolio', {
+      credentials: 'include',
+    })
   })
 
   it('propagates a 422 as an ApiError carrying status and parsed detail', async () => {
@@ -133,6 +134,8 @@ describe('request', () => {
     await request('/health')
 
     expect(resolveBaseUrl()).toBe('http://api.example.test/')
-    expect(fetchMock).toHaveBeenCalledWith('http://api.example.test//health', undefined)
+    expect(fetchMock).toHaveBeenCalledWith('http://api.example.test//health', {
+      credentials: 'include',
+    })
   })
 })

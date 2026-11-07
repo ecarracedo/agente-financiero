@@ -352,17 +352,18 @@ def me(user: UserRecord = Depends(require_user)) -> UserResponse:
     )
 
 
-@auth_router.post("/logout", status_code=204)
+@auth_router.post("/logout", response_model=LoginResponse)
 def logout(
     request: Request,
     response: Response,
     agente_session: str | None = Cookie(default=None),
-) -> None:
+) -> LoginResponse:
     """End the current session and clear its cookie."""
     factory = _session_factory(request)
     with factory() as session:
         _delete_session(session, agente_session, kind="full")
     _clear_cookie(response, SESSION_COOKIE)
+    return LoginResponse(status="ok")
 
 
 @auth_router.post("/totp/setup", response_model=TotpSetupResponse)

@@ -9,6 +9,7 @@ import { SplitWorkspace } from '../features/tools/split/SplitWorkspace'
 import { TransactionsWorkspace } from '../features/transactions/TransactionsWorkspace'
 import { WishlistWorkspace } from '../features/wishlist/WishlistWorkspace'
 import { WorkspaceShell } from './WorkspaceShell'
+import { AuthGate } from '../features/auth/AuthGate'
 
 /**
  * One workspace route.
@@ -50,4 +51,13 @@ export const DEFAULT_WORKSPACE = 'portfolio'
  * One shell route matches every path and owns which workspace is visible, so
  * the router never unmounts a workspace and the shell decides from the URL.
  */
-export const appRoutes: RouteObject[] = [{ path: '*', element: <WorkspaceShell /> }]
+export const appRoutes: RouteObject[] = [
+  {
+    path: '*',
+    element: (
+      <AuthGate>
+        <WorkspaceShell />
+      </AuthGate>
+    ),
+  },
+]
