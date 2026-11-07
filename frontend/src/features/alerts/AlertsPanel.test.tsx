@@ -71,7 +71,7 @@ describe('AlertsPanel', () => {
     expect(
       await screen.findByText('Precio objetivo de venta alcanzado.'),
     ).toBeInTheDocument()
-    expect(screen.getByText(/305\.00 USD/)).toBeInTheDocument()
+    expect(screen.getByText(/305,00 USD/)).toBeInTheDocument()
   })
 
   it('reports no crossing when the check returns no event', async () => {
@@ -141,7 +141,7 @@ describe('AlertsPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /check alert/i }))
 
-    expect(await screen.findByText(/150\.00 USD/)).toBeInTheDocument()
+    expect(await screen.findByText(/150,00 USD/)).toBeInTheDocument()
     expect(screen.queryByText(/total/i)).not.toBeInTheDocument()
   })
 

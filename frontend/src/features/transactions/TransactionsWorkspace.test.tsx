@@ -86,7 +86,7 @@ describe('TransactionsWorkspace', () => {
     await waitFor(() =>
       expect(api.listTransactions).toHaveBeenCalledWith('AAPL', 'IBKR'),
     )
-    expect(await screen.findByText('120.00 USD')).toBeInTheDocument()
+    expect(await screen.findByText('$ 120,00 USD')).toBeInTheDocument()
   })
 
   it('shows a rejected operation as an error and never as success', async () => {
@@ -114,12 +114,12 @@ describe('TransactionsWorkspace', () => {
     fireEvent.change(screen.getByLabelText('History broker'), { target: { value: 'IBKR' } })
     fireEvent.click(screen.getByRole('button', { name: /view history/i }))
 
-    expect(await screen.findByText('120.00 USD')).toBeInTheDocument()
+    expect(await screen.findByText('$ 120,00 USD')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /delete/i }))
 
     await waitFor(() => expect(api.deleteTransaction).toHaveBeenCalledWith(7))
-    await waitFor(() => expect(screen.queryByText('120.00 USD')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText('$ 120,00 USD')).not.toBeInTheDocument())
     expect(onPortfolioChanged).toHaveBeenCalledTimes(1)
   })
 

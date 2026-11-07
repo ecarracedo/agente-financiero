@@ -19,7 +19,7 @@ describe('CurrencyAmount', () => {
   it('shows the amount with its currency', () => {
     render(<CurrencyAmount amount="1900.00" currency="USD" />)
 
-    expect(screen.getByText(/1900\.00/)).toHaveTextContent('1900.00 USD')
+    expect(screen.getByText(/1\.900,00/)).toHaveTextContent('$ 1.900,00 USD')
   })
 
   it('shows the unavailable label when the amount is null', () => {
@@ -32,8 +32,8 @@ describe('CurrencyAmount', () => {
     it('marks a gain with a positive sign and a directional cue', () => {
       render(<CurrencyAmount amount="497.50" currency="USD" variant="gain-loss" />)
 
-      const rendered = screen.getByText(/497\.50/)
-      expect(rendered).toHaveTextContent('+497.50 USD')
+      const rendered = screen.getByText(/497,50/)
+      expect(rendered).toHaveTextContent('+ 497,50 USD')
 
       // The non-colour cue has to be present in the markup, not only in a class.
       expect(rendered).toHaveAttribute('data-trend', 'up')
@@ -42,8 +42,8 @@ describe('CurrencyAmount', () => {
     it('marks a loss with a negative sign and a directional cue', () => {
       render(<CurrencyAmount amount="-10.00" currency="USD" variant="gain-loss" />)
 
-      const rendered = screen.getByText(/-10\.00/)
-      expect(rendered).toHaveTextContent('-10.00 USD')
+      const rendered = screen.getByText(/10,00/)
+      expect(rendered).toHaveTextContent('- 10,00 USD')
       expect(rendered).toHaveAttribute('data-trend', 'down')
     })
 
@@ -61,14 +61,14 @@ describe('CurrencyAmount', () => {
       // Both the sign and the trend differ, so stripping colour leaves the two
       // still distinguishable.
       expect(gainTrend).not.toBe(lossTrend)
-      expect(gain.textContent).toContain('+497.50')
-      expect(loss.textContent).toContain('-10.00')
+      expect(gain.textContent).toContain('+ 497,50')
+      expect(loss.textContent).toContain('- 10,00')
     })
 
     it('does not add a sign to a plain amount that is not a gain or a loss', () => {
       render(<CurrencyAmount amount="1900.00" currency="USD" />)
 
-      expect(screen.getByText(/1900\.00/)).not.toHaveTextContent('+1900.00')
+      expect(screen.getByText(/1\.900,00/)).not.toHaveTextContent('+ 1.900,00')
     })
 
     it('treats a zero gain or loss as neither up nor down', () => {
