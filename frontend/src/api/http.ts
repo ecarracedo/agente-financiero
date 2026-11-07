@@ -54,7 +54,10 @@ async function parseErrorDetail(response: Response): Promise<unknown> {
  * @throws {ApiError} When the response status is outside the 2xx range.
  */
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${resolveBaseUrl()}${path}`, init)
+  const response = await fetch(`${resolveBaseUrl()}${path}`, {
+    credentials: 'include',
+    ...init,
+  })
   if (!response.ok) {
     throw new ApiError(response.status, await parseErrorDetail(response))
   }

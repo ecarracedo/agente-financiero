@@ -28,6 +28,11 @@ services:
       DB_NAME: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
       DB_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      AUTH_USERNAME: ${AUTH_USERNAME:?Set AUTH_USERNAME in .env}
+      AUTH_EMAIL: ${AUTH_EMAIL:?Set AUTH_EMAIL in .env}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:?Set AUTH_PASSWORD in .env}
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}
     depends_on:
       postgres:
         condition: service_healthy

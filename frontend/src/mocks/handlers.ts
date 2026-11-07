@@ -50,6 +50,35 @@ export const handlers = [
   http.get(`${BASE}/health`, () => HttpResponse.json({ status: 'ok' })),
   http.get(`${BASE}/ready`, () => HttpResponse.json({ status: 'ready' })),
 
+  http.get(`${BASE}/api/v1/auth/me`, () =>
+    HttpResponse.json({ username: 'ecarracedo', email: 'ecarracedo@gmail.com', totp_enabled: false }),
+  ),
+  http.post(`${BASE}/api/v1/auth/login`, async ({ request }) => {
+    const body = (await request.json()) as { username?: string; password?: string }
+    if (body.username === 'ecarracedo' && body.password === 'correct-password') {
+      return HttpResponse.json({ status: 'ok', username: 'ecarracedo', totp_enabled: false })
+    }
+    return HttpResponse.json({ detail: 'invalid credentials' }, { status: 401 })
+  }),
+  http.post(`${BASE}/api/v1/auth/verify-totp`, () =>
+    HttpResponse.json({ status: 'ok', username: 'ecarracedo', totp_enabled: true }),
+  ),
+  http.post(`${BASE}/api/v1/auth/logout`, () =>
+    HttpResponse.json({ status: 'ok', username: null, totp_enabled: false }),
+  ),
+  http.post(`${BASE}/api/v1/auth/totp/setup`, () =>
+    HttpResponse.json({
+      secret: 'JBSWY3DPEHPK3PXP',
+      otpauth_url: 'otpauth://totp/Agente%20Financiero:ecarracedo%40gmail.com?secret=JBSWY3DPEHPK3PXP',
+    }),
+  ),
+  http.post(`${BASE}/api/v1/auth/totp/confirm`, () =>
+    HttpResponse.json({ username: 'ecarracedo', email: 'ecarracedo@gmail.com', totp_enabled: true }),
+  ),
+  http.post(`${BASE}/api/v1/auth/totp/disable`, () =>
+    HttpResponse.json({ username: 'ecarracedo', email: 'ecarracedo@gmail.com', totp_enabled: false }),
+  ),
+
   http.get(`${BASE}/api/v1/portfolio`, () =>
     HttpResponse.json<PortfolioPosition[]>(portfolioItems),
   ),

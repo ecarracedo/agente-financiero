@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 
 import { api } from '../api/client'
+import { authApi } from '../features/auth/authApi'
 import { DEFAULT_WORKSPACE, WORKSPACE_ROUTES } from './routes'
 
 type BackendStatus = 'loading' | 'ready' | 'unavailable'
@@ -174,6 +175,21 @@ export function WorkspaceShell() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void (async () => {
+                try {
+                  await authApi.logout()
+                } finally {
+                  window.location.reload()
+                }
+              })()}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[#bcc9cd] hover:text-white hover:bg-[#1c2028] transition-colors border border-[#3d494c]/40 text-xs font-mono"
+              title="Cerrar sesión"
+            >
+              <span className="material-symbols-outlined text-[16px]">logout</span>
+              Salir
+            </button>
             <button
               type="button"
               className="relative p-2 rounded-lg text-[#bcc9cd] hover:text-white hover:bg-[#1c2028] transition-colors"

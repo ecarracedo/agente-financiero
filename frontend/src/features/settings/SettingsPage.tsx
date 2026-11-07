@@ -10,6 +10,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import { api } from '../../api/client'
 import type { PortfolioPosition, TickerAliasResponse } from '../../api/client'
+import { TotpSettings } from './TotpSettings'
 import {
   readBrokers,
   readCategories,
@@ -373,6 +374,8 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <TotpSettings />
     </section>
   )
 }

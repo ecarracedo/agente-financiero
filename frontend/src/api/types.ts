@@ -4,6 +4,146 @@
  */
 
 export interface paths {
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login
+         * @description Authenticate with username and password, then require TOTP when enabled.
+         */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Totp
+         * @description Complete login with a TOTP code after a successful password step.
+         */
+        post: operations["verify_totp_api_v1_auth_verify_totp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Me
+         * @description Return the authenticated user's identity.
+         */
+        get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description End the current session and clear its cookie.
+         */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Setup
+         * @description Generate a new TOTP secret and return enrollment material.
+         */
+        post: operations["totp_setup_api_v1_auth_totp_setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Confirm
+         * @description Enable TOTP after verifying a code from the authenticator app.
+         */
+        post: operations["totp_confirm_api_v1_auth_totp_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/totp/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Totp Disable
+         * @description Disable TOTP after re-entering the password.
+         */
+        post: operations["totp_disable_api_v1_auth_totp_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/portfolio": {
         parameters: {
             query?: never;
@@ -537,6 +677,31 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * LoginRequest
+         * @description Credentials submitted to the login endpoint.
+         */
+        LoginRequest: {
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+        };
+        /**
+         * LoginResponse
+         * @description Login outcome: either a full session or a pending TOTP step.
+         */
+        LoginResponse: {
+            /** Status */
+            status: string;
+            /** Username */
+            username?: string | null;
+            /**
+             * Totp Enabled
+             * @default false
+             */
+            totp_enabled: boolean;
+        };
+        /**
          * MarketAnalysisResponse
          * @description Expose technical analysis metrics, the quote currency, and unknown states.
          */
@@ -712,6 +877,40 @@ export interface components {
             quote_type: string;
         };
         /**
+         * TotpConfirmRequest
+         * @description Six-digit TOTP code submitted to confirm enrollment.
+         */
+        TotpConfirmRequest: {
+            /** Code */
+            code: string;
+        };
+        /**
+         * TotpDisableRequest
+         * @description Password re-entry required to disable TOTP.
+         */
+        TotpDisableRequest: {
+            /** Password */
+            password: string;
+        };
+        /**
+         * TotpSetupResponse
+         * @description Enrollment material returned once when setting up TOTP.
+         */
+        TotpSetupResponse: {
+            /** Secret */
+            secret: string;
+            /** Otpauth Url */
+            otpauth_url: string;
+        };
+        /**
+         * TotpVerifyRequest
+         * @description Six-digit TOTP code submitted for verification.
+         */
+        TotpVerifyRequest: {
+            /** Code */
+            code: string;
+        };
+        /**
          * TransactionRequest
          * @description Validate a portfolio purchase or sale request.
          */
@@ -774,6 +973,18 @@ export interface components {
             /** Updated */
             updated: boolean;
         };
+        /**
+         * UserResponse
+         * @description Public identity of the authenticated user.
+         */
+        UserResponse: {
+            /** Username */
+            username: string;
+            /** Email */
+            email: string;
+            /** Totp Enabled */
+            totp_enabled: boolean;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -831,12 +1042,247 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_totp_api_v1_auth_verify_totp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_preauth?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_setup_api_v1_auth_totp_setup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TotpSetupResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_confirm_api_v1_auth_totp_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    totp_disable_api_v1_auth_totp_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpDisableRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_portfolio_api_v1_portfolio_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -847,6 +1293,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortfolioPositionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -861,7 +1316,9 @@ export interface operations {
             path: {
                 ticker: string;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -898,7 +1355,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -927,7 +1386,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -962,7 +1423,9 @@ export interface operations {
             path: {
                 transaction_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -991,7 +1454,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1006,6 +1471,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     search_tickers_api_v1_tickers_search_get: {
@@ -1016,7 +1490,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1049,7 +1525,9 @@ export interface operations {
             path: {
                 ticker: string;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1080,7 +1558,9 @@ export interface operations {
             path: {
                 ticker: string;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -1115,7 +1595,9 @@ export interface operations {
             path: {
                 ticker: string;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -1148,7 +1630,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1161,6 +1645,15 @@ export interface operations {
                     "application/json": components["schemas"]["WishlistItemResponse"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     add_wishlist_item_api_v1_wishlist_post: {
@@ -1168,7 +1661,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -1203,7 +1698,9 @@ export interface operations {
             path: {
                 ticker: string;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -1238,7 +1735,9 @@ export interface operations {
             path: {
                 ticker: string;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1269,7 +1768,9 @@ export interface operations {
             path: {
                 ticker: string;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -1304,7 +1805,9 @@ export interface operations {
             path: {
                 ticker: string;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1333,7 +1836,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1346,6 +1851,15 @@ export interface operations {
                     "application/json": components["schemas"]["BibliographyItemResponse"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     add_bibliography_item_api_v1_bibliography_post: {
@@ -1353,7 +1867,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -1388,7 +1904,9 @@ export interface operations {
             path: {
                 item_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1417,7 +1935,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1430,6 +1950,15 @@ export interface operations {
                     "application/json": components["schemas"]["TickerAliasResponse"][];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     add_ticker_alias_api_v1_ticker_aliases_post: {
@@ -1437,7 +1966,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -1472,7 +2003,9 @@ export interface operations {
             path: {
                 alias_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -1501,7 +2034,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
         };
         requestBody: {
             content: {
