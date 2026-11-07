@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Frontend Build (Asset Distribution)**: Fixed TypeScript errors in `AssetDistributionCard.tsx` that broke `npm run build` (and the Coolify deployment): the per-category accumulator type now includes `invested`, `greenCount` and `redCount`. Type-only fix, no runtime logic change.
+- **Missing `lib/datetime` in Fresh Clones**: `frontend/src/lib/datetime.ts` was never tracked because the Python `.gitignore` rule `lib/` matched `frontend/src/lib/` at any depth, so local builds passed while CI/Coolify (`Cannot find module '../../lib/datetime'`) failed. Anchored the Python `lib/`/`lib64/` rules to the repo root (`/lib/`, `/lib64/`) and tracked the helper.
 - **Positions Table**: A broker or asset type that is no longer in the catalog now stays visible in its selector instead of leaving the control blank.
 - **Portfolio Catalog**: The catalog memo now notices a `localStorage` change made by another path, so an edited catalog is never served stale.
 - **Ticker aliases**: Fixed `FIMA.AH.P`, `AL.DIVER.A`, `SHC.PLUS.A` alias mapping; DB-backed alias reload after cache invalidation; alias editor now uses `broker_ticker` (official PPI name) in dropdown.
