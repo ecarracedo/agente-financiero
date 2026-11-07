@@ -56,13 +56,22 @@ function formatMoney(value: number): string {
   return `$ ${value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+/** Accumulating bucket for one category while grouping positions. */
+interface CategoryBucket {
+  value: number
+  invested: number
+  greenCount: number
+  redCount: number
+  tickers: Set<string>
+}
+
 /** Group priced positions by currency and category, with per-currency totals. */
 function buildSections(
   positions: PortfolioPosition[],
   prices: Record<string, string | null>,
 ): { sections: CurrencySection[]; unpriced: string[] } {
   const unpriced = new Set<string>()
-  const byCurrency = new Map<string, Map<string, { value: number; tickers: Set<string> }>>()
+  const byCurrency = new Map<string, Map<string, CategoryBucket>>()
 
   for (const position of positions) {
     const price = prices[position.ticker]
