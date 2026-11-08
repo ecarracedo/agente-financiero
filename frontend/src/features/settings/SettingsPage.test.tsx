@@ -71,7 +71,7 @@ describe('SettingsPage', () => {
 
     fireEvent.click(settings.getByRole('button', { name: 'Quitar BINANCE' }))
 
-    expect(settings.queryByText('BINANCE')).not.toBeInTheDocument()
+    await waitFor(() => expect(settings.queryByText('BINANCE')).not.toBeInTheDocument())
     expect(storedCatalog(BROKERS_STORAGE_KEY)).toEqual(
       DEFAULT_BROKERS.filter((broker) => broker !== 'BINANCE'),
     )
