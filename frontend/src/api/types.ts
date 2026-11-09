@@ -253,6 +253,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fx/dollars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dollar Rates
+         * @description Return MEP and CCL implied by bond and Cedear pairs (RAVA method).
+         */
+        get: operations["get_dollar_rates_api_v1_fx_dollars_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tickers/search": {
         parameters: {
             query?: never;
@@ -670,6 +690,16 @@ export interface components {
             gain_loss_percent: string | null;
             /** Unpriced Tickers */
             unpriced_tickers: string[];
+        };
+        /**
+         * DollarRatesResponse
+         * @description Expose MEP and CCL implied by bond and Cedear pairs, or null.
+         */
+        DollarRatesResponse: {
+            /** Mep */
+            mep: string | null;
+            /** Ccl */
+            ccl: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1469,6 +1499,37 @@ export interface operations {
                     "application/json": {
                         [key: string]: components["schemas"]["CurrencyValuationResponse"];
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dollar_rates_api_v1_fx_dollars_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DollarRatesResponse"];
                 };
             };
             /** @description Validation Error */

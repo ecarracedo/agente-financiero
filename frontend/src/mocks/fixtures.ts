@@ -47,6 +47,12 @@ export const valuations = [
   },
 ]
 
+/** DollarRatesResponse: MEP/CCL implied by bond and Cedear pairs. */
+export const dollarRates = {
+  mep: '900',
+  ccl: '1000',
+}
+
 /** TransactionSummaryResponse */
 export const transactions = [
   {

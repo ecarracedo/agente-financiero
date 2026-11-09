@@ -73,12 +73,48 @@ describe('PortfolioWorkspace', () => {
   it('shows the counts the backend reported inside a styled card', async () => {
     const { container } = renderWithRouter({ initialEntries: ['/portfolio'] })
 
-    const currencies = await screen.findByText('Currencies')
+    const currencies = await screen.findByText('Moneda')
     expect(currencies.nextElementSibling).toHaveTextContent('2')
+    expect(await screen.findByText('Posiciones')).toBeInTheDocument()
+    expect(screen.queryByText(/Poder de Compra/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/FIXED ENGINE ONLINE/)).not.toBeInTheDocument()
 
     // Three sections, each on the shared styling system: summary, holdings,
     // valuations. Unstyled raw HTML would carry no Tremor marker at all.
     expect(container.querySelectorAll('[tremor-id="tremor-raw"]').length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('shows the portfolio total in ARS using the CCL rate', async () => {
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    // USD fixture market_value is 3400; CCL fixture is 1000 => $ 3.400.000,00 ARS.
+    expect(await screen.findByText(/3\.400\.000,00/)).toBeInTheDocument()
+    expect(screen.getByText(/ARS/)).toBeInTheDocument()
+    // TOTAL comes from gain_loss_percent (17.14), never the old hardcoded value.
+    expect(screen.getByText(/\+17,14%/)).toBeInTheDocument()
+    expect(screen.queryByText(/\+1,25%/)).not.toBeInTheDocument()
+  })
+
+  it('sums the ARS holdings with the USD holdings converted at CCL', async () => {
+    server.use(
+      http.get('*/api/v1/valuations', () =>
+        HttpResponse.json({
+          USD: {
+            currency: 'USD', invested_value: '1000.00', market_value: '3400.00',
+            gain_loss: '2400.00', gain_loss_percent: '17.14', unpriced_tickers: [],
+          },
+          ARS: {
+            currency: 'ARS', invested_value: '500000.00', market_value: '6229259.08',
+            gain_loss: '5729259.08', gain_loss_percent: '61.69', unpriced_tickers: [],
+          },
+        }),
+      ),
+    )
+
+    renderWithRouter({ initialEntries: ['/portfolio'] })
+
+    // ARS 6.229.259,08 + USD 3.400 x CCL 1.000 = 9.629.259,08.
+    expect(await screen.findByText(/9\.629\.259,08/)).toBeInTheDocument()
   })
 
   it('shows a loading state while the request is pending', async () => {
@@ -105,10 +141,10 @@ describe('PortfolioWorkspace', () => {
 
   it('refreshes quotes when the manual refresh button is used', async () => {
     let quoteCalls = 0
+    let price = '190.00'
     server.use(
       http.get('*/api/v1/analysis/:ticker', () => {
         quoteCalls++
-        const price = quoteCalls === 1 ? '190.00' : '205.00'
         return HttpResponse.json({ ...analysisAAPL, current_price: price })
       }),
     )
@@ -121,6 +157,7 @@ describe('PortfolioWorkspace', () => {
     })
 
     const callsBeforeRefresh = quoteCalls
+    price = '205.00'
     fireEvent.click(screen.getByRole('button', { name: /actualizar/i }))
 
     await waitFor(() => {
@@ -349,7 +386,8 @@ describe('PortfolioWorkspace', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Precio')).toHaveValue('4802.50')
     })
-    expect(screen.getAllByText('ARS')).toHaveLength(2)
+    // Ticket currency, form currency, and the summary total label (ARS).
+    expect(screen.getAllByText('ARS')).toHaveLength(3)
 
     fireEvent.click(screen.getByRole('button', { name: /registrar transacción/i }))
 

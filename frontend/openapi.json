@@ -831,6 +831,56 @@
         }
       }
     },
+    "/api/v1/fx/dollars": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Get Dollar Rates",
+        "description": "Return MEP and CCL implied by bond and Cedear pairs (RAVA method).",
+        "operationId": "get_dollar_rates_api_v1_fx_dollars_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DollarRatesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tickers/search": {
       "get": {
         "tags": [
@@ -2198,6 +2248,39 @@
         ],
         "title": "CurrencyValuationResponse",
         "description": "Expose a currency-grouped valuation with optional market-derived amounts."
+      },
+      "DollarRatesResponse": {
+        "properties": {
+          "mep": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mep"
+          },
+          "ccl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ccl"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mep",
+          "ccl"
+        ],
+        "title": "DollarRatesResponse",
+        "description": "Expose MEP and CCL implied by bond and Cedear pairs, or null."
       },
       "HTTPValidationError": {
         "properties": {
