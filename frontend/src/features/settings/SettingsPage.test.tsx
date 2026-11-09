@@ -104,6 +104,20 @@ describe('SettingsPage', () => {
     expect(settings.getByText('Cripto')).toBeInTheDocument()
   })
 
+  it('configures the ticker tape symbols with the asset search', async () => {
+    renderWithRouter({ initialEntries: ['/configuracion'] })
+
+    const settings = within(await settingsSection())
+    const combobox = settings.getByRole('combobox', { name: /índice o activo/i })
+
+    fireEvent.change(combobox, { target: { value: 'apple' } })
+    const listbox = await settings.findByRole('listbox', {}, { timeout: 5000 })
+    fireEvent.click(within(listbox).getByRole('option', { name: /AAPL/ }))
+
+    await settings.findByRole('button', { name: 'Quitar AAPL' }, { timeout: 5000 })
+    expect(window.localStorage.getItem('obsidian.ticker-tape.symbols')).toContain('AAPL')
+  })
+
   it('changes the refresh interval and persists it', async () => {
     renderWithRouter({ initialEntries: ['/configuracion'] })
 

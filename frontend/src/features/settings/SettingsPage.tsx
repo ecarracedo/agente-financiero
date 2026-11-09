@@ -10,7 +10,16 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import { api } from '../../api/client'
 import type { PortfolioPosition, TickerAliasResponse } from '../../api/client'
+import { TickerSearch } from '../../components/TickerSearch'
+import type { TickerSuggestion } from '../../components/TickerSearch'
+import { marketApi } from '../market/marketApi'
 import { TotpSettings } from './TotpSettings'
+import {
+  readTapeSymbols,
+  subscribeTapeSymbols,
+  tapeLabel,
+  writeTapeSymbols,
+} from './tapeSettings'
 import {
   readBrokers,
   readCategories,
@@ -108,6 +117,57 @@ function CatalogEditor({ label, values, onChange, placeholder }: CatalogEditorPr
   )
 }
 
+/**
+ * Ticker tape editor: pick indices/assets with the same asset search used by
+ * the transaction form, so the header carousel shows what the user wants.
+ */
+function TickerTapeEditor({ symbols }: { symbols: string[] }) {
+  const [draft, setDraft] = useState('')
+
+  function addSuggestion(suggestion: TickerSuggestion) {
+    if (!symbols.includes(suggestion.symbol)) {
+      writeTapeSymbols([...symbols, suggestion.symbol])
+    }
+    setDraft('')
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <span className="text-sm text-[#dfe2ee]">Índices y activos del encabezado</span>
+      <ul className="flex flex-wrap gap-2">
+        {symbols.map((symbol) => (
+          <li
+            key={symbol}
+            className="flex items-center gap-1.5 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 px-2.5 py-1 text-xs font-mono text-[#bcc9cd]"
+          >
+            {tapeLabel(symbol)}
+            <button
+              type="button"
+              aria-label={`Quitar ${symbol}`}
+              onClick={() => writeTapeSymbols(symbols.filter((entry) => entry !== symbol))}
+              className="text-[#869397] hover:text-[#ff7f8b] transition-colors"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+                close
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <TickerSearch
+        label="Agregar índice o activo"
+        value={draft}
+        onChange={setDraft}
+        onSelect={addSuggestion}
+        search={marketApi.searchTickers}
+      />
+      <p className="text-xs text-[#869397]">
+        Se muestran de a 4 en el encabezado y rotan automáticamente si hay más.
+      </p>
+    </div>
+  )
+}
+
 /** Render the preferences available to the user. */
 export function SettingsPage() {
   const refreshMinutes = useSyncExternalStore(
@@ -117,6 +177,7 @@ export function SettingsPage() {
   )
   const brokers = useSyncExternalStore(subscribeCatalog, readBrokers, readBrokers)
   const categories = useSyncExternalStore(subscribeCatalog, readCategories, readCategories)
+  const tapeSymbols = useSyncExternalStore(subscribeTapeSymbols, readTapeSymbols, readTapeSymbols)
 
   const [positions, setPositions] = useState<PortfolioPosition[]>([])
   const [aliases, setAliases] = useState<TickerAliasResponse[]>([])
@@ -263,6 +324,18 @@ export function SettingsPage() {
             onChange={writeCategories}
             placeholder="Ej.: Obligación Negociable"
           />
+        </div>
+      </div>
+
+      <div className="relative z-10 bg-[#181c24]/80 backdrop-blur-md rounded-xl border border-[#3d494c]/30">
+        <div className="px-6 py-4 border-b border-[#3d494c]/20 rounded-t-xl">
+          <h2 className="text-sm font-semibold text-white">Cinta de índices</h2>
+          <p className="text-xs text-[#869397] mt-1">
+            Índices y activos que rotan en el encabezado de la aplicación.
+          </p>
+        </div>
+        <div className="px-6 py-4">
+          <TickerTapeEditor symbols={tapeSymbols} />
         </div>
       </div>
 

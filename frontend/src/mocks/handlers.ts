@@ -11,6 +11,7 @@ import {
   analysisAAPL,
   analysisPAMP,
   bibliography,
+  dollarRates,
   portfolioItems,
   splitResult,
   tickerAliases,
@@ -85,6 +86,8 @@ export const handlers = [
 
   // The client normalizes this object into an array with Object.values.
   http.get(`${BASE}/api/v1/valuations`, () => HttpResponse.json(valuationsByCurrency())),
+
+  http.get(`${BASE}/api/v1/fx/dollars`, () => HttpResponse.json(dollarRates)),
 
   http.get(`${BASE}/api/v1/transactions`, () =>
     HttpResponse.json<TransactionSummary[]>(transactions),

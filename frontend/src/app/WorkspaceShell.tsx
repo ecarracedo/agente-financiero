@@ -4,6 +4,7 @@ import { NavLink, useLocation } from 'react-router'
 import { api } from '../api/client'
 import { authApi } from '../features/auth/authApi'
 import { DEFAULT_WORKSPACE, WORKSPACE_ROUTES } from './routes'
+import { TickerTape } from './TickerTape'
 
 type BackendStatus = 'loading' | 'ready' | 'unavailable'
 
@@ -139,39 +140,7 @@ export function WorkspaceShell() {
                 {sidebarVisible ? 'Ocultar' : 'Menú'}
               </span>
             </button>
-            <div className="hidden xl:flex items-center gap-3 py-1 px-3 rounded-lg bg-[#0a0e16]/60 border border-[#3d494c]/20">
-              <div className="flex items-center gap-1.5 text-xs font-mono">
-                <span className="text-[#869397]">SPX</span>
-                <span className="text-white font-medium">5,117.09</span>
-                <span className="text-[#46fa9c] font-semibold">+0.42%</span>
-              </div>
-              <div className="w-px h-3 bg-[#3d494c]/40" />
-              <div className="flex items-center gap-1.5 text-xs font-mono">
-                <span className="text-[#869397]">NDX</span>
-                <span className="text-white font-medium">18,293.20</span>
-                <span className="text-[#46fa9c] font-semibold">+0.81%</span>
-              </div>
-              <div className="w-px h-3 bg-[#3d494c]/40" />
-              <div className="flex items-center gap-1.5 text-xs font-mono">
-                <span className="text-[#869397]">BTC/USD</span>
-                <span className="text-white font-medium">64,280.00</span>
-                <span className="text-[#46fa9c] font-semibold">+2.34%</span>
-              </div>
-            </div>
-
-            <div className="relative flex items-center w-64 lg:w-72">
-              <span className="material-symbols-outlined absolute left-2.5 text-[#869397] pointer-events-none text-[18px]">
-                search
-              </span>
-              <input
-                type="text"
-                placeholder="Buscar activo o ticker..."
-                className="w-full pl-8 pr-12 py-1.5 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 text-xs text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6] transition-colors font-sans"
-              />
-              <kbd className="absolute right-2 text-[10px] font-mono text-[#869397] bg-[#262a33] px-1.5 py-0.5 rounded">
-                Ctrl+K
-              </kbd>
-            </div>
+            <TickerTape />
           </div>
 
           <div className="flex items-center gap-3">
@@ -198,19 +167,6 @@ export function WorkspaceShell() {
               <span className="material-symbols-outlined text-[20px]">notifications</span>
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#06b6d4]" />
             </button>
-            <div className="flex items-center gap-2.5 pl-2 border-l border-[#3d494c]/30">
-              <div className="flex flex-col text-right hidden md:block">
-                <span className="text-xs font-medium text-white leading-tight font-sans">
-                  Trader Pro
-                </span>
-                <span className="text-[10px] font-mono font-semibold text-[#4cd7f6]">
-                  INSTITUTIONAL
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-[#262a33] border border-[#4cd7f6]/40 flex items-center justify-center text-xs font-bold font-mono text-[#4cd7f6]">
-                TP
-              </div>
-            </div>
           </div>
         </header>
 

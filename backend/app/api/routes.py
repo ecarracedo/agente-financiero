@@ -12,6 +12,7 @@ from backend.app.api.schemas import (
     BibliographyItemResponse,
     ConfiguredResponse,
     CurrencyValuationResponse,
+    DollarRatesResponse,
     MarketAnalysisResponse,
     MutationResponse,
     PortfolioAlertRequest,
@@ -178,6 +179,16 @@ def delete_transaction(transaction_id: int, request: Request) -> dict[str, bool]
 def value_portfolio(request: Request) -> dict[str, object]:
     """Return currency-grouped valuation totals."""
     return _services(request).analytics.value_portfolio()
+
+
+@router.get(
+    "/fx/dollars",
+    response_model=DollarRatesResponse,
+    tags=["market"],
+)
+def get_dollar_rates(request: Request) -> dict[str, object]:
+    """Return MEP and CCL implied by bond and Cedear pairs (RAVA method)."""
+    return _services(request).analytics.get_dollar_rates()
 
 
 @router.get(

@@ -145,6 +145,13 @@ class CurrencyValuationResponse(BaseModel):
     unpriced_tickers: list[str]
 
 
+class DollarRatesResponse(BaseModel):
+    """Expose MEP and CCL implied by bond and Cedear pairs, or null."""
+
+    mep: OptionalMoneyString
+    ccl: OptionalMoneyString
+
+
 class PricePointResponse(BaseModel):
     """Expose one dated close with a canonical money string."""
 

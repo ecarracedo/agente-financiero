@@ -10,6 +10,7 @@ from backend.app.domain.tickers import (
     TickerMatch,
     normalize_ticker,
 )
+from backend.app.domain.fx import compute_ccl, compute_mep
 from backend.app.domain.valuation import CurrencyValuation, value_portfolio
 
 # The period the analysis uses whenever a caller does not ask for one. The use
@@ -39,6 +40,22 @@ class PortfolioAnalyticsUseCases:
             if (quote := self._market_data.get_quote(ticker)) is not None
         }
         return value_portfolio(positions, current_prices)
+
+    def get_dollar_rates(self) -> dict[str, Decimal | None]:
+        """Return MEP and CCL implied by bond and Cedear pairs (RAVA method).
+
+        MEP uses GD30 (ARS) over GD30D (USD, local settlement) from the PPI
+        bond table. CCL uses the AAPL Cedear (ARS, BYMA) over AAPL (USD,
+        NASDAQ) scaled by the 20:1 BYMA ratio. A missing leg yields None.
+        """
+        def price(ticker: str) -> Decimal | None:
+            quote = self._market_data.get_quote(ticker)
+            return None if quote is None else quote.price
+
+        return {
+            "mep": compute_mep(price("GD30"), price("GD30D")),
+            "ccl": compute_ccl(price("AAPL.BA"), price("AAPL")),
+        }
 
     def get_current_price(self, ticker: str) -> Decimal | None:
         """Return the current provider quote for alert evaluation."""
