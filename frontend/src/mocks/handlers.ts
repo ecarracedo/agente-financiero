@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
-import type { MutationResponse, PortfolioPosition, TickerAliasResponse, TransactionSummary } from '../api/client'
+import type { MutationResponse, PortfolioPosition, PortfolioSnapshot, TickerAliasResponse, TransactionSummary } from '../api/client'
 import type { AlertCheck } from '../features/alerts/alertApi'
 import type { BibliographyItem } from '../features/bibliography/bibliographyApi'
 import type { SplitProjection } from '../features/tools/split/splitApi'
@@ -82,6 +82,10 @@ export const handlers = [
 
   http.get(`${BASE}/api/v1/portfolio`, () =>
     HttpResponse.json<PortfolioPosition[]>(portfolioItems),
+  ),
+
+  http.get(`${BASE}/api/v1/portfolio/snapshots`, () =>
+    HttpResponse.json<PortfolioSnapshot[]>([]),
   ),
 
   // The client normalizes this object into an array with Object.values.

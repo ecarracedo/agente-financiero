@@ -7,11 +7,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.adapters.persistence.models import (
+    AppSettingRecord,
     BibliographyRecord,
+    PortfolioDailySnapshotRecord,
     PortfolioPositionRecord,
     TickerAliasRecord,
     TransactionRecord,
     WishlistRecord,
+)
+from backend.app.application.ports import (
+    AppSettingRepositoryPort,
+    PortfolioSnapshotRecord,
+    PortfolioSnapshotRepositoryPort,
 )
 from backend.app.domain.alerts import AlertIntent, TargetAlertSettings
 from backend.app.domain.portfolio import PortfolioPosition
@@ -224,6 +231,14 @@ class SqlAlchemyPortfolioRepository:
         )
         return list(self._session.scalars(statement))
 
+    def list_all_transactions(self) -> list[TransactionRecord]:
+        """Return every portfolio operation ordered chronologically and by id."""
+        statement = (
+            select(TransactionRecord)
+            .order_by(TransactionRecord.occurred_at, TransactionRecord.id)
+        )
+        return list(self._session.scalars(statement))
+
     def list_recent_transactions(self, limit: int) -> list[TransactionRecord]:
         """Return the newest operations across every asset, most recent first."""
         statement = (
@@ -402,3 +417,59 @@ class SqlAlchemyResourceRepository:
             return False
         self._session.delete(record)
         return True
+
+
+class SqlAlchemyPortfolioSnapshotRepository:
+    """Persist and retrieve daily portfolio value snapshots."""
+
+    def __init__(self, session: Session) -> None:
+        """Initialize the repository with a caller-managed SQLAlchemy session."""
+        self._session = session
+
+    def save_snapshot(
+        self, *, date: datetime, total_value: Decimal
+    ) -> None:
+        """Insert or replace the snapshot for the given date."""
+        statement = select(PortfolioDailySnapshotRecord).where(
+            PortfolioDailySnapshotRecord.date == date
+        )
+        record = self._session.scalar(statement)
+        if record is None:
+            record = PortfolioDailySnapshotRecord(
+                date=date,
+                total_value=total_value,
+            )
+            self._session.add(record)
+        else:
+            record.total_value = total_value
+
+    def list_snapshots(self) -> list[PortfolioDailySnapshotRecord]:
+        """Return all snapshots ordered by date ascending."""
+        statement = select(PortfolioDailySnapshotRecord).order_by(
+            PortfolioDailySnapshotRecord.date.asc()
+        )
+        return list(self._session.scalars(statement))
+
+
+class SqlAlchemyAppSettingRepository:
+    """Persist and retrieve application-wide key/value settings."""
+
+    def __init__(self, session: Session) -> None:
+        """Initialize the repository with a caller-managed SQLAlchemy session."""
+        self._session = session
+
+    def get_setting(self, key: str) -> str | None:
+        """Return the setting value for the given key, or None when absent."""
+        statement = select(AppSettingRecord).where(AppSettingRecord.key == key)
+        record = self._session.scalar(statement)
+        return None if record is None else record.value
+
+    def set_setting(self, *, key: str, value: str) -> None:
+        """Insert or update the setting value for the given key."""
+        statement = select(AppSettingRecord).where(AppSettingRecord.key == key)
+        record = self._session.scalar(statement)
+        if record is None:
+            record = AppSettingRecord(key=key, value=value)
+            self._session.add(record)
+        else:
+            record.value = value

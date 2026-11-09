@@ -7,11 +7,15 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from backend.app.adapters.persistence.repositories import (
+    SqlAlchemyAppSettingRepository,
     SqlAlchemyPortfolioRepository,
+    SqlAlchemyPortfolioSnapshotRepository,
     SqlAlchemyResourceRepository,
 )
 from backend.app.application.ports import (
+    AppSettingRepositoryPort,
     PortfolioRepositoryPort,
+    PortfolioSnapshotRepositoryPort,
     ResourceRepositoryPort,
 )
 
@@ -21,6 +25,8 @@ class SqlAlchemyPortfolioUnitOfWork:
 
     portfolio: PortfolioRepositoryPort
     resources: ResourceRepositoryPort
+    snapshots: PortfolioSnapshotRepositoryPort
+    settings: AppSettingRepositoryPort
 
     def __init__(self, session_factory: Callable[[], Session]) -> None:
         """Initialize with a factory that creates an isolated session."""
@@ -29,10 +35,12 @@ class SqlAlchemyPortfolioUnitOfWork:
         self._committed = False
 
     def __enter__(self) -> "SqlAlchemyPortfolioUnitOfWork":
-        """Open a session and expose its portfolio repository."""
+        """Open a session and expose its repositories."""
         self._session = self._session_factory()
         self.portfolio = SqlAlchemyPortfolioRepository(self._session)
         self.resources = SqlAlchemyResourceRepository(self._session)
+        self.snapshots = SqlAlchemyPortfolioSnapshotRepository(self._session)
+        self.settings = SqlAlchemyAppSettingRepository(self._session)
         return self
 
     def commit(self) -> None:

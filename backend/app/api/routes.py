@@ -18,9 +18,12 @@ from backend.app.api.schemas import (
     PortfolioAlertRequest,
     PortfolioPositionResponse,
     PortfolioPositionUpdateRequest,
+    PortfolioSnapshotResponse,
     PositionAlertCheckRequest,
     SplitProjectionRequest,
     SplitProjectionResponse,
+    SnapshotScheduleRequest,
+    SnapshotScheduleResponse,
     TickerAliasCreateRequest,
     TickerAliasResponse,
     TickerMatchResponse,
@@ -179,6 +182,57 @@ def delete_transaction(transaction_id: int, request: Request) -> dict[str, bool]
 def value_portfolio(request: Request) -> dict[str, object]:
     """Return currency-grouped valuation totals."""
     return _services(request).analytics.value_portfolio()
+
+
+@router.post(
+    "/portfolio/snapshots",
+    response_model=PortfolioSnapshotResponse,
+    tags=["portfolio"],
+)
+def create_daily_snapshot(request: Request) -> dict[str, object]:
+    """Create today's portfolio value snapshot (replaces any existing row for the date)."""
+    return _services(request).snapshots.create_daily_snapshot()
+
+
+@router.get(
+    "/portfolio/snapshots",
+    response_model=list[PortfolioSnapshotResponse],
+    tags=["portfolio"],
+)
+def list_snapshots(request: Request) -> list[object]:
+    """Return all daily snapshots ordered by date, with cumulative return."""
+    return _services(request).snapshots.list_snapshots()
+
+
+@router.get(
+    "/portfolio/snapshot/schedule",
+    response_model=SnapshotScheduleResponse,
+    tags=["portfolio"],
+)
+def get_snapshot_schedule(request: Request) -> dict[str, object]:
+    """Return the configured snapshot hour and timezone."""
+    return {
+        "hour": _services(request).snapshots.get_snapshot_hour(),
+        "timezone": _services(request).snapshots.get_snapshot_timezone(),
+    }
+
+
+@router.put(
+    "/portfolio/snapshot/schedule",
+    response_model=SnapshotScheduleResponse,
+    tags=["portfolio"],
+)
+def set_snapshot_schedule(
+    request: Request, payload: SnapshotScheduleRequest
+) -> dict[str, object]:
+    """Configure the snapshot hour and timezone."""
+    _services(request).snapshots.set_snapshot_schedule(
+        hour=payload.hour, timezone=payload.timezone
+    )
+    return {
+        "hour": payload.hour,
+        "timezone": payload.timezone,
+    }
 
 
 @router.get(

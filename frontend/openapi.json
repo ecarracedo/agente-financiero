@@ -831,6 +831,216 @@
         }
       }
     },
+    "/api/v1/portfolio/snapshots": {
+      "post": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Create Daily Snapshot",
+        "description": "Create today's portfolio value snapshot (replaces any existing row for the date).",
+        "operationId": "create_daily_snapshot_api_v1_portfolio_snapshots_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioSnapshotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "List Snapshots",
+        "description": "Return all daily snapshots ordered by date, with cumulative return.",
+        "operationId": "list_snapshots_api_v1_portfolio_snapshots_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortfolioSnapshotResponse"
+                  },
+                  "title": "Response List Snapshots Api V1 Portfolio Snapshots Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/portfolio/snapshot/schedule": {
+      "get": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Get Snapshot Schedule",
+        "description": "Return the configured snapshot hour and timezone.",
+        "operationId": "get_snapshot_schedule_api_v1_portfolio_snapshot_schedule_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotScheduleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Set Snapshot Schedule",
+        "description": "Configure the snapshot hour and timezone.",
+        "operationId": "set_snapshot_schedule_api_v1_portfolio_snapshot_schedule_put",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotScheduleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/fx/dollars": {
       "get": {
         "tags": [
@@ -2589,6 +2799,31 @@
         "type": "object",
         "title": "PortfolioPositionUpdateRequest"
       },
+      "PortfolioSnapshotResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "cumulative_return": {
+            "type": "string",
+            "title": "Cumulative Return"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "value",
+          "cumulative_return"
+        ],
+        "title": "PortfolioSnapshotResponse",
+        "description": "Expose one daily portfolio snapshot with cumulative return."
+      },
       "PositionAlertCheckRequest": {
         "properties": {
           "broker": {
@@ -2632,6 +2867,49 @@
         ],
         "title": "PricePointResponse",
         "description": "Expose one dated close with a canonical money string."
+      },
+      "SnapshotScheduleRequest": {
+        "properties": {
+          "hour": {
+            "type": "integer",
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Hour"
+          },
+          "timezone": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Timezone"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "hour",
+          "timezone"
+        ],
+        "title": "SnapshotScheduleRequest",
+        "description": "Request to configure the daily snapshot hour and timezone."
+      },
+      "SnapshotScheduleResponse": {
+        "properties": {
+          "hour": {
+            "type": "integer",
+            "title": "Hour"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hour",
+          "timezone"
+        ],
+        "title": "SnapshotScheduleResponse",
+        "description": "Expose the configured daily snapshot schedule."
       },
       "SplitProjectionRequest": {
         "properties": {
