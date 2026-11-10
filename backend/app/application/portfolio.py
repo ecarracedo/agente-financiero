@@ -129,6 +129,12 @@ class PortfolioUseCases:
             records = unit_of_work.portfolio.list_recent_transactions(limit)
             return self._summarize(records)
 
+    def list_all_transactions(self) -> list[TransactionSummary]:
+        """Return every portfolio operation ordered chronologically and by id."""
+        with self._unit_of_work_factory() as unit_of_work:
+            records = unit_of_work.portfolio.list_all_transactions()
+            return self._summarize(records)
+
     @staticmethod
     def _summarize(records: Iterable[TransactionRecordPort]) -> list[TransactionSummary]:
         """Map persistence records onto read-only transaction summaries."""

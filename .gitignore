@@ -66,3 +66,9 @@ verify/
 # Tailwind toolchain test probe (transient)
 .tw-probe-*/
 backend/unused.db
+
+Folders
+.ruff_cache/
+.codegraph/
+.mypy_cache/
+.pytest_cache/ 

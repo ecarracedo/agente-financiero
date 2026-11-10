@@ -111,6 +111,33 @@ class TickerAliasRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
 
 
+class PortfolioDailySnapshotRecord(Base):
+    """One daily snapshot of the portfolio total value."""
+
+    __tablename__ = "portfolio_daily_snapshots"
+    __table_args__ = (
+        UniqueConstraint("date", name="uq_daily_snapshot_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    total_value: Mapped[Decimal] = mapped_column(Numeric(30, 10), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
+
+
+class AppSettingRecord(Base):
+    """One application-wide setting (key/value)."""
+
+    __tablename__ = "app_settings"
+    __table_args__ = (
+        UniqueConstraint("key", name="uq_app_setting_key"),
+    )
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(String(255), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
+
+
 class UserRecord(Base):
     """Persist the single application user with a hashed password."""
 

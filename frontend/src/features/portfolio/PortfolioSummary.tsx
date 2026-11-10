@@ -25,19 +25,48 @@ function formatPercent(value: number): string {
   return `${sign}${value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 }
 
+/** Format a money amount with the global format, e.g. $ 1.000,00. */
+function formatMoney(value: number): string {
+  return `$ ${value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 /** Show institutional portfolio totals and summary metrics. */
 export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProps) {
   const primaryValuation = valuations.find((v) => v.currency === 'USD') ?? valuations[0]
   const totalUsd = primaryValuation?.market_value ?? primaryValuation?.invested_value ?? null
   const gainPercent = primaryValuation?.gain_loss_percent ?? null
   const [rates, setRates] = useState<DollarRates | null>(null)
+  const [ratesLoading, setRatesLoading] = useState(true)
+  const [ratesFailed, setRatesFailed] = useState(false)
   const [dailyChange, setDailyChange] = useState<number | null>(null)
 
   useEffect(() => {
     let active = true
-    api.getDollarRates().then((r) => active && setRates(r)).catch(() => {})
+    setRatesLoading(true)
+    setRatesFailed(false)
+    const timeout = setTimeout(() => {
+      if (active && rates === null && !ratesFailed) {
+        setRatesFailed(true)
+        setRatesLoading(false)
+      }
+    }, 8000)
+    api
+      .getDollarRates()
+      .then((r) => {
+        if (active) {
+          setRates(r)
+          setRatesLoading(false)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setRatesFailed(true)
+          setRatesLoading(false)
+        }
+      })
     return () => {
       active = false
+      clearTimeout(timeout)
     }
   }, [])
 
@@ -82,9 +111,9 @@ export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProp
   const arsMarket = arsValuation?.market_value ?? arsValuation?.invested_value ?? null
   // Total ARS = ARS holdings + USD holdings converted at CCL.
   const totalArs =
-    ccl && (arsMarket || totalUsd)
-      ? Number(arsMarket ?? 0) + Number(totalUsd ?? 0) * ccl
-      : null
+    ccl && (arsMarket || totalUsd) ? Number(arsMarket ?? 0) + Number(totalUsd ?? 0) * ccl : null
+  // Fallback: if CCL never arrives, show the USD amount so the total is never blank.
+  const showUsdFallback = ratesFailed && totalUsd !== null && !ccl
   // Combined gain: USD gain at CCL plus ARS gain, over combined invested.
   const usdInvested = primaryValuation?.currency === 'USD' ? primaryValuation.invested_value : null
   const combinedGain =
@@ -95,6 +124,13 @@ export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProp
         ? Number(gainPercent)
         : null
   const gainValue = combinedGain
+  const totalLabel = showUsdFallback ? 'USD' : 'ARS'
+  const totalValue =
+    ratesLoading
+      ? null
+      : showUsdFallback
+        ? Number(totalUsd)
+        : totalArs
 
   return (
     <Card className="relative overflow-hidden border border-[#3d494c]/30 p-6 lg:p-8">
@@ -112,10 +148,12 @@ export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProp
           </div>
           <div className="flex flex-wrap items-baseline gap-3">
             <h1 className="text-3xl lg:text-4xl font-bold font-mono text-white tracking-tight">
-              {totalArs !== null
-                ? `$ ${totalArs.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              {ratesLoading ? (
+                <span className="animate-pulse text-[#869397]">—</span>
+              ) : totalValue !== null
+                ? `${formatMoney(totalValue)}`
                 : '—'}
-              <span className="text-sm font-normal text-[#869397] ml-2">ARS</span>
+              <span className="text-sm font-normal text-[#869397] ml-2">{totalLabel}</span>
             </h1>
             {gainValue !== null ? (
               <div className="flex items-center gap-1.5 bg-[#46fa9c]/10 border border-[#46fa9c]/20 px-2.5 py-1 rounded-lg">
