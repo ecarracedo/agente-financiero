@@ -115,6 +115,7 @@ export function HistoricalChartCard() {
   const height = 240
   const topY = 40
   const bottomY = 210
+  const yAxisWidth = 70 // espacio para las etiquetas del eje Y
   const padding = (maxValue - minValue) * 0.1 || maxValue * 0.1 || 1
   const yMax = maxValue + padding
   const yMin = minValue - padding
@@ -126,19 +127,24 @@ export function HistoricalChartCard() {
     return bottomY - ratio * (bottomY - topY)
   }
 
+  // 4 niveles del eje Y: MIN, dos intermedios, MAX
+  const yAxisLevels = snapshots.length > 1
+    ? [minValue, minValue + (maxValue - minValue) / 3, minValue + 2 * (maxValue - minValue) / 3, maxValue]
+    : [minValue, maxValue]
+
   // Build line path
   const linePoints = snapshots.map((d, i) => {
-    const x = i * xStep
+    const x = yAxisWidth + i * xStep
     const y = yForValue(d.value)
     return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`
   }).join(' ')
 
   // Area path: line down to bottom, then back along bottom
   const areaPoints = snapshots.map((d, i) => {
-    const x = i * xStep
+    const x = yAxisWidth + i * xStep
     const y = yForValue(d.value)
     return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`
-  }).concat([`L ${width} ${bottomY}`, `L 0 ${bottomY}`, 'Z']).join(' ')
+  }).concat([`L ${width} ${bottomY}`, `L ${yAxisWidth} ${bottomY}`, 'Z']).join(' ')
 
   return (
     <div className="bg-[#181c24]/80 backdrop-blur-md rounded-xl p-6 shadow-md flex flex-col gap-4 relative border border-[#3d494c]/20">
@@ -176,11 +182,38 @@ export function HistoricalChartCard() {
               <stop offset="100%" stopColor="#59ffa4" />
             </linearGradient>
           </defs>
+          {/* Eje Y: etiquetas y líneas de referencia */}
+          {yAxisLevels.map((val, i) => {
+            const y = yForValue(val)
+            const isTop = i === yAxisLevels.length - 1
+            const isBottom = i === 0
+            return (
+              <g key={i}>
+                <line
+                  x1={yAxisWidth}
+                  x2={width}
+                  y1={y}
+                  y2={y}
+                  stroke="#31353e"
+                  strokeOpacity={0.35}
+                  strokeDasharray="4 4"
+                  strokeWidth={1}
+                />
+                <text
+                  x={yAxisWidth - 6}
+                  y={y + 4}
+                  textAnchor="end"
+                  fill="#869397"
+                  fontSize="10"
+                  fontFamily="monospace"
+                >
+                  {formatMoney(val)}
+                </text>
+              </g>
+            )
+          })}
           {snapshots.length > 1 && (
             <>
-              <line className="text-[#31353e]/40" stroke="currentColor" strokeDasharray="4 4" strokeWidth="1" x1="0" x2={width} y1={topY} y2={topY} />
-              <line className="text-[#31353e]/40" stroke="currentColor" strokeDasharray="4 4" strokeWidth="1" x1="0" x2={width} y1={(topY + bottomY) / 2} y2={(topY + bottomY) / 2} />
-              <line className="text-[#31353e]/60" stroke="currentColor" strokeWidth="1" x1="0" x2={width} y1={bottomY} y2={bottomY} />
               <path d={areaPoints} fill="url(#chartGradient)" />
               <path d={linePoints} fill="none" stroke="url(#lineGrad)" strokeWidth="2.5" />
               <circle cx={width} cy={yForValue(lastValue!)} r="3.5" className="fill-[#46fa9c]" />

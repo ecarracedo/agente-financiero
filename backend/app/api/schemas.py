@@ -266,6 +266,14 @@ class PortfolioSnapshotResponse(BaseModel):
     cumulative_return: str
 
 
+class SnapshotCreateRequest(BaseModel):
+    """Request to create a snapshot for a specific date."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
 class SnapshotScheduleRequest(BaseModel):
     """Request to configure the daily snapshot hour and timezone."""
 

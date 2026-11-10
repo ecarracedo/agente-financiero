@@ -837,7 +837,7 @@
           "portfolio"
         ],
         "summary": "Create Daily Snapshot",
-        "description": "Create today's portfolio value snapshot (replaces any existing row for the date).",
+        "description": "Create today's portfolio value snapshot (replaces any existing row for the date).\n\nOptionally accept a ``date`` (YYYY-MM-DD) to backfill a past day.",
         "operationId": "create_daily_snapshot_api_v1_portfolio_snapshots_post",
         "parameters": [
           {
@@ -857,6 +857,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SnapshotCreateRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2867,6 +2884,26 @@
         ],
         "title": "PricePointResponse",
         "description": "Expose one dated close with a canonical money string."
+      },
+      "SnapshotCreateRequest": {
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SnapshotCreateRequest",
+        "description": "Request to create a snapshot for a specific date."
       },
       "SnapshotScheduleRequest": {
         "properties": {

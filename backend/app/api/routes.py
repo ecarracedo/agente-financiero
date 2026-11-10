@@ -22,6 +22,7 @@ from backend.app.api.schemas import (
     PositionAlertCheckRequest,
     SplitProjectionRequest,
     SplitProjectionResponse,
+    SnapshotCreateRequest,
     SnapshotScheduleRequest,
     SnapshotScheduleResponse,
     TickerAliasCreateRequest,
@@ -189,9 +190,21 @@ def value_portfolio(request: Request) -> dict[str, object]:
     response_model=PortfolioSnapshotResponse,
     tags=["portfolio"],
 )
-def create_daily_snapshot(request: Request) -> dict[str, object]:
-    """Create today's portfolio value snapshot (replaces any existing row for the date)."""
-    return _services(request).snapshots.create_daily_snapshot()
+def create_daily_snapshot(
+    request: Request, payload: SnapshotCreateRequest | None = None
+) -> dict[str, object]:
+    """Create today's portfolio value snapshot (replaces any existing row for the date).
+
+    Optionally accept a ``date`` (YYYY-MM-DD) to backfill a past day.
+    """
+    target_date = None
+    if payload is not None and payload.date is not None:
+        from datetime import date as _date
+
+        target_date = _date.fromisoformat(payload.date)
+    return _services(request).snapshots.create_daily_snapshot(
+        target_date=target_date
+    )
 
 
 @router.get(

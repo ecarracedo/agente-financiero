@@ -138,8 +138,8 @@ def test_list_snapshots_computes_cumulative_return():
     result = use_cases.list_snapshots()
 
     assert len(result) == 2
-    assert result[0]["cumulative_return"] == Decimal("0")
-    assert result[1]["cumulative_return"] == Decimal("0.1")
+    assert result[0]["cumulative_return"] == "0"
+    assert result[1]["cumulative_return"] == "0.1"
 
 
 def test_get_and_set_snapshot_schedule():
