@@ -17,7 +17,7 @@ cd "$ROOT"
 docker compose stop frontend 2>/dev/null || true
 
 # Levanta infraestructura (postgres + backend) si no está arriba.
-docker compose up -d backend postgres
+docker compose -f compose.yaml -f compose.local.yaml up -d backend postgres
 
 # Espera a que el backend esté sano (máximo ~60s).
 for _ in $(seq 1 30); do
