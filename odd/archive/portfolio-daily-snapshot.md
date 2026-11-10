@@ -12,7 +12,7 @@ S1: Tabla `portfolio_daily_snapshots` con `id`, `date` (date única), `total_val
 
 S2: Tabla `app_settings` con `key`, `value` para guardar configuración: `snapshot_hour` (default 17), `snapshot_timezone` (default America/Argentina/Buenos_Aires / UTC-3).
 
-S3: Endpoint `POST /api/v1/portfolio/snapshots` genera el snapshot del día actual (o fecha dada): lee todas las transacciones, trae precios de cierre de cada ticker (en paralelo), calcula el valor total y guarda una fila (idempotente: si ya existe para esa fecha, la reemplaza).
+S3: Endpoint `POST /api/v1/portfolio/snapshots` genera snapshots estimados de los últimos N días (default 30) en ARS. Lee todas las transacciones, valúa con precios actuales (proveedor, o costo promedio como fallback), convierte USD a ARS usando CCL (bonos GD30/GD30D 1:1 vía MEP; AAPL cedears 20:1 vía CCL). Guarda una fila por día.
 
 S4: Endpoint `GET /api/v1/portfolio/snapshots` devuelve la lista de snapshots ordenada por fecha, con `date`, `total_value`, `cumulative_return` (vs el primer snapshot).
 
@@ -24,22 +24,24 @@ S6: El frontend `HistoricalChartCard` consume `GET /api/v1/portfolio/snapshots` 
 
 | ID | S# | Route | Status | Commit |
 |----|----|-------|--------|--------|
-| T1 | S1/S2 | inline | done | — |
-| T2 | S1/S2 | inline | done | — |
-| T3 | S1/S2 | inline | done | — |
-| T4 | S3 | inline | done | — |
-| T5 | S3 | inline | done | — |
-| T6 | S4 | inline | done | — |
-| T7 | S4 | inline | done | — |
-| T8 | S5 | inline | done | — |
-| T9 | S5 | inline | done | — |
+| T1 | S1/S2 | inline | done | c63084c |
+| T2 | S1/S2 | inline | done | c63084c |
+| T3 | S1/S2 | inline | done | c63084c |
+| T4 | S3 | inline | done | c63084c |
+| T5 | S3 | inline | done | c63084c |
+| T6 | S4 | inline | done | c63084c |
+| T7 | S4 | inline | done | c63084c |
+| T8 | S5 | inline | done | c63084c |
+| T9 | S5 | inline | done | c63084c |
 
 ## Log
 
 L1: Cambiar de enfoque: snapshot diario a las 17 hs Argentina (UTC-3) en lugar de cálculo bajo demanda.
 
-L2: Backend implementado: modelos SQLAlchemy (`portfolio_daily_snapshots`, `app_settings`), migración alembic `a0007_daily_snapshot`, puertos de repositorio, `PortfolioSnapshotUseCases`, schemas Pydantic, 4 endpoints FastAPI, openapi.json regenerado, 6 tests nuevos. Backend 223 tests pasan.
+L2: Backend implementado: modelos SQLAlchemy (`portfolio_daily_snapshots`, `app_settings`), migración alembic `a0007_daily_snapshot`, puertos de repositorio, `PortfolioSnapshotUseCases`, schemas Pydantic, endpoints FastAPI (POST/GET snapshots, GET/PUT schedule), openapi.json regenerado. 223 backend tests pasan.
 
 L3: Frontend implementado: `HistoricalChartCard` consume `GET /api/v1/portfolio/snapshots`, elimina benchmark y datos hardcodeados, agrega estados de carga/error/vacío, formatea moneda como "$ 1.000,00". TypeScript limpio. Handler MSW agregado para tests. Frontend tests pasan (1 flaky preexistente aislado).
+
+L4: Cambio a estimado en ARS: valúa con precios actuales del proveedor (o costo promedio como fallback), convierte USD a ARS vía CCL/MEP. Genera 30 snapshots diarios. Valor más reciente: $8.749.211,75.
 
 Risk: item 1 (data / stored data) — se escriben tablas nuevas (snapshots, settings). Solo lectura de transacciones existentes y precios de mercado. Risk: item 1.
