@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { api } from '../../api/client'
 import { describeApiError } from '../../api/errors'
 import type { TickerSuggestion } from '../../components/TickerSearch'
@@ -35,11 +35,18 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('')
   const [priceEdited, setPriceEdited] = useState(false)
+  const priceEditedRef = useRef(priceEdited)
   const [currency, setCurrency] = useState('USD')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [quotedTicker, setQuotedTicker] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Mantiene la última lectura de priceEdited para el efecto de cotización
+  // sin depender de un valor de clausura envejecido.
+  useEffect(() => {
+    priceEditedRef.current = priceEdited
+  }, [priceEdited])
 
   const brokers = useSyncExternalStore(subscribeCatalog, readBrokers, readBrokers)
   const categories = useSyncExternalStore(subscribeCatalog, readCategories, readCategories)
@@ -69,7 +76,7 @@ export function QuickOrderCard({ onTransactionCreated }: QuickOrderCardProps) {
         .then((data) => {
           if (!active) return
           if (data?.current_price) {
-            setPrice((prev) => (priceEdited ? prev : data.current_price ?? prev))
+            setPrice((prev) => (priceEditedRef.current ? prev : data.current_price ?? prev))
           }
           setCurrency(data?.currency ?? 'USD')
         })

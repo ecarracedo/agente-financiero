@@ -42,27 +42,24 @@ export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProp
 
   useEffect(() => {
     let active = true
-    setRatesLoading(true)
-    setRatesFailed(false)
+    // Single fetch on mount. The timeout only flips the UI to the USD fallback;
+    // a late response is still applied, so the total upgrades to ARS whenever
+    // the rates arrive.
     const timeout = setTimeout(() => {
-      if (active && rates === null && !ratesFailed) {
-        setRatesFailed(true)
-        setRatesLoading(false)
-      }
-    }, 8000)
+      if (active) setRatesLoading(false)
+    }, 5000)
     api
       .getDollarRates()
       .then((r) => {
-        if (active) {
-          setRates(r)
-          setRatesLoading(false)
-        }
+        if (!active) return
+        setRates(r)
+        setRatesFailed(false)
+        setRatesLoading(false)
       })
       .catch(() => {
-        if (active) {
-          setRatesFailed(true)
-          setRatesLoading(false)
-        }
+        if (!active) return
+        setRatesFailed(true)
+        setRatesLoading(false)
       })
     return () => {
       active = false
@@ -112,8 +109,13 @@ export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProp
   // Total ARS = ARS holdings + USD holdings converted at CCL.
   const totalArs =
     ccl && (arsMarket || totalUsd) ? Number(arsMarket ?? 0) + Number(totalUsd ?? 0) * ccl : null
-  // Fallback: if CCL never arrives, show the USD amount so the total is never blank.
-  const showUsdFallback = ratesFailed && totalUsd !== null && !ccl
+  // El total en USD está disponible tan pronto como llegan los valuations,
+  // sin esperar a las tasas de cambio. Se muestra de inmediato y se
+  // reemplaza por ARS cuando el CCL llega.
+  const usdAvailable = totalUsd !== null
+  // Fallback: mostrar USD mientras las tasas cargan o si nunca llegan, para
+  // que el total nunca quede en blanco.
+  const showUsdFallback = (ratesLoading || ratesFailed) && totalUsd !== null && !ccl
   // Combined gain: USD gain at CCL plus ARS gain, over combined invested.
   const usdInvested = primaryValuation?.currency === 'USD' ? primaryValuation.invested_value : null
   const combinedGain =
@@ -124,13 +126,10 @@ export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProp
         ? Number(gainPercent)
         : null
   const gainValue = combinedGain
-  const totalLabel = showUsdFallback ? 'USD' : 'ARS'
-  const totalValue =
-    ratesLoading
-      ? null
-      : showUsdFallback
-        ? Number(totalUsd)
-        : totalArs
+  const totalLabel = showUsdFallback ? 'USD (tasas pendientes)' : 'ARS'
+  // Cuando el CCL ya llegó se muestra el total en ARS; mientras tanto (tasas
+  // pendientes o fallidas) se muestra el total en USD para que nunca quede en blanco.
+  const totalValue = ccl ? totalArs : usdAvailable ? Number(totalUsd) : null
 
   return (
     <Card className="relative overflow-hidden border border-[#3d494c]/30 p-6 lg:p-8">
@@ -148,11 +147,7 @@ export function PortfolioSummary({ positions, valuations }: PortfolioSummaryProp
           </div>
           <div className="flex flex-wrap items-baseline gap-3">
             <h1 className="text-3xl lg:text-4xl font-bold font-mono text-white tracking-tight">
-              {ratesLoading ? (
-                <span className="animate-pulse text-[#869397]">—</span>
-              ) : totalValue !== null
-                ? `${formatMoney(totalValue)}`
-                : '—'}
+              {totalValue !== null ? `${formatMoney(totalValue)}` : '—'}
               <span className="text-sm font-normal text-[#869397] ml-2">{totalLabel}</span>
             </h1>
             {gainValue !== null ? (
