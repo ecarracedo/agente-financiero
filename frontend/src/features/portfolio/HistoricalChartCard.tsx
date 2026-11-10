@@ -15,31 +15,33 @@ export function HistoricalChartCard() {
     value: number
     cumulativeReturn: number
   }> | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
 
-  const fetchSnapshots = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const points = await api.getPortfolioSnapshots()
-      const parsed = points.map((p) => ({
-        date: p.date,
-        value: Number(p.value),
-        cumulativeReturn: Number(p.cumulative_return),
-      }))
-      setSnapshots(parsed)
-    } catch (caught) {
-      setError(caught)
-      setSnapshots(null)
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const points = await api.getPortfolioSnapshots()
+        if (!active) return
+        const parsed = points.map((p) => ({
+          date: p.date,
+          value: Number(p.value),
+          cumulativeReturn: Number(p.cumulative_return),
+        }))
+        setSnapshots(parsed)
+      } catch (caught) {
+        if (!active) return
+        setError(caught)
+        setSnapshots(null)
+      } finally {
+        if (active) setLoading(false)
+      }
+    })()
+    return () => {
+      active = false
     }
   }, [])
-
-  useEffect(() => {
-    fetchSnapshots()
-  }, [fetchSnapshots])
 
   const formatMoney = useCallback((value: number): string => {
     const parts = value.toFixed(2).split('.')
@@ -120,7 +122,7 @@ export function HistoricalChartCard() {
   const yMax = maxValue + padding
   const yMin = minValue - padding
 
-  const xStep = snapshots.length > 1 ? width / (snapshots.length - 1) : 0
+  const xStep = snapshots.length > 1 ? (width - yAxisWidth) / (snapshots.length - 1) : 0
 
   const yForValue = (value: number): number => {
     const ratio = (value - yMin) / (yMax - yMin)
@@ -185,8 +187,6 @@ export function HistoricalChartCard() {
           {/* Eje Y: etiquetas y líneas de referencia */}
           {yAxisLevels.map((val, i) => {
             const y = yForValue(val)
-            const isTop = i === yAxisLevels.length - 1
-            const isBottom = i === 0
             return (
               <g key={i}>
                 <line
