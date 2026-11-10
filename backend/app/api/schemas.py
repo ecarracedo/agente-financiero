@@ -256,6 +256,48 @@ class SplitProjectionResponse(BaseModel):
     ratio: QuantityString
 
 
+class PortfolioSnapshotResponse(BaseModel):
+    """Expose one daily portfolio snapshot with cumulative return."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    date: date
+    value: MoneyString
+    cumulative_return: str
+
+
+class SnapshotCreateRequest(BaseModel):
+    """Request to create a snapshot for a specific date."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class SnapshotEstimateRequest(BaseModel):
+    """Request to build an estimated ARS-denominated snapshot range."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    days_back: int = Field(default=30, ge=1, le=365)
+
+
+class SnapshotScheduleRequest(BaseModel):
+    """Request to configure the daily snapshot hour and timezone."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    hour: int = Field(ge=0, le=23)
+    timezone: str = Field(min_length=1, max_length=64)
+
+
+class SnapshotScheduleResponse(BaseModel):
+    """Expose the configured daily snapshot schedule."""
+
+    hour: int
+    timezone: str
+
+
 class MutationResponse(BaseModel):
     """Acknowledge a successful delete operation."""
 

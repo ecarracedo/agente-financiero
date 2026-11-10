@@ -6,6 +6,7 @@ from backend.app.application.alerts import TargetAlertUseCases
 from backend.app.application.analytics import PortfolioAnalyticsUseCases
 from backend.app.application.portfolio import PortfolioUseCases
 from backend.app.application.resources import ResourceUseCases
+from backend.app.application.snapshots import PortfolioSnapshotUseCases
 
 
 @dataclass(frozen=True)
@@ -16,3 +17,4 @@ class ApplicationServices:
     analytics: PortfolioAnalyticsUseCases
     alerts: TargetAlertUseCases
     resources: ResourceUseCases
+    snapshots: PortfolioSnapshotUseCases

@@ -82,6 +82,8 @@ class PortfolioRepositoryPort(Protocol):
         self, ticker: str, broker: str
     ) -> Sequence[TransactionRecordPort]: ...
 
+    def list_all_transactions(self) -> Sequence[TransactionRecordPort]: ...
+
     def list_recent_transactions(
         self, limit: int
     ) -> Sequence[TransactionRecordPort]: ...
@@ -92,6 +94,8 @@ class PortfolioUnitOfWorkPort(Protocol):
 
     portfolio: PortfolioRepositoryPort
     resources: ResourceRepositoryPort
+    snapshots: PortfolioSnapshotRepositoryPort
+    settings: AppSettingRepositoryPort
 
     def __enter__(self) -> Self: ...
 
@@ -103,6 +107,31 @@ class PortfolioUnitOfWorkPort(Protocol):
     ) -> bool | None: ...
 
     def commit(self) -> None: ...
+
+
+class PortfolioSnapshotRepositoryPort(Protocol):
+    """Persistence operations for daily portfolio value snapshots."""
+
+    def save_snapshot(
+        self, *, date: datetime, total_value: Decimal
+    ) -> None: ...
+
+    def list_snapshots(self) -> Sequence[PortfolioSnapshotRecord]: ...
+
+
+class PortfolioSnapshotRecord(Protocol):
+    """Read-only daily snapshot fields."""
+
+    date: datetime
+    total_value: Decimal
+
+
+class AppSettingRepositoryPort(Protocol):
+    """Persistence operations for application-wide key/value settings."""
+
+    def get_setting(self, key: str) -> str | None: ...
+
+    def set_setting(self, *, key: str, value: str) -> None: ...
 
 
 class WishlistRecordPort(Protocol):
@@ -182,6 +211,8 @@ class PortfolioReadRepositoryPort(Protocol):
     """Read-only portfolio queries required by analytics use cases."""
 
     def list_positions(self) -> list[PortfolioPosition]: ...
+
+    def list_all_transactions(self) -> Sequence[TransactionRecordPort]: ...
 
 
 class MarketDataProviderPort(Protocol):

@@ -42,7 +42,8 @@ def value_portfolio(
         grouped.setdefault(position.currency, []).append(position)
 
     results: dict[str, CurrencyValuation] = {}
-    for currency, currency_positions in grouped.items():
+    for currency in sorted(grouped.keys()):
+        currency_positions = grouped[currency]
         invested_value = sum(
             (
                 position.quantity * position.average_price

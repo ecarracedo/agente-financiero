@@ -22,6 +22,7 @@ from backend.app.application.analytics import PortfolioAnalyticsUseCases
 from backend.app.application.portfolio import PortfolioUseCases
 from backend.app.application.ports import PortfolioUnitOfWorkPort
 from backend.app.application.resources import ResourceUseCases
+from backend.app.application.snapshots import PortfolioSnapshotUseCases
 
 
 @lru_cache(maxsize=1)
@@ -80,11 +81,13 @@ def create_app(
         search_factory=yfinance._create_search,
     )
     portfolio_use_cases = PortfolioUseCases(unit_of_work_factory)
+    snapshot_use_cases = PortfolioSnapshotUseCases(unit_of_work_factory, provider)
     application.state.services = ApplicationServices(
         portfolio=portfolio_use_cases,
         analytics=PortfolioAnalyticsUseCases(portfolio_use_cases, provider),
         alerts=TargetAlertUseCases(unit_of_work_factory),
         resources=ResourceUseCases(unit_of_work_factory),
+        snapshots=snapshot_use_cases,
     )
     application.state.database_engine_provider = engine_provider
     application.include_router(auth_router)

@@ -32,6 +32,13 @@ export type CurrencyValuation = ValuationsResponse[string]
 export type DollarRates =
   paths['/api/v1/fx/dollars']['get']['responses'][200]['content']['application/json']
 
+/** One daily portfolio snapshot with cumulative return. */
+export type PortfolioSnapshot = {
+  date: string
+  value: string
+  cumulative_return: string
+}
+
 /** Chronological transaction history from `GET /api/v1/transactions`. */
 export type TransactionsResponse =
   paths['/api/v1/transactions']['get']['responses'][200]['content']['application/json']
@@ -87,6 +94,8 @@ export const api = {
   getValuations: async (): Promise<CurrencyValuation[]> =>
     Object.values(await request<ValuationsResponse>('/api/v1/valuations')),
   getDollarRates: (): Promise<DollarRates> => request<DollarRates>('/api/v1/fx/dollars'),
+  getPortfolioSnapshots: (): Promise<PortfolioSnapshot[]> =>
+    request<PortfolioSnapshot[]>('/api/v1/portfolio/snapshots'),
   listTransactions: (ticker: string, broker: string): Promise<TransactionsResponse> => {
     const query = new URLSearchParams({ ticker, broker })
     return request<TransactionsResponse>(`/api/v1/transactions?${query.toString()}`)
