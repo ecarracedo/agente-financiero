@@ -1,0 +1,7 @@
+# Local development override: publishes the API on loopback so the Vite dev
+# server can proxy /api to it. Never used by production deploys (Coolify only
+# reads compose.yaml).
+services:
+  backend:
+    ports:
+      - "127.0.0.1:8000:8000"

@@ -36,10 +36,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Publicado al host para que Vite (corriendo fuera de Docker) pueda hacer
-    # proxy de /api al backend durante el desarrollo.
-    ports:
-      - "127.0.0.1:8000:8000"
+    # The API is not published to the host: it is reachable on the Compose
+    # network only, through the frontend proxy (see frontend/nginx.conf).
     expose:
       - "8000"
     healthcheck:
