@@ -23,6 +23,7 @@ from backend.app.api.schemas import (
     SplitProjectionRequest,
     SplitProjectionResponse,
     SnapshotCreateRequest,
+    SnapshotEstimateRequest,
     SnapshotScheduleRequest,
     SnapshotScheduleResponse,
     TickerAliasCreateRequest,
@@ -187,24 +188,19 @@ def value_portfolio(request: Request) -> dict[str, object]:
 
 @router.post(
     "/portfolio/snapshots",
-    response_model=PortfolioSnapshotResponse,
+    response_model=list[PortfolioSnapshotResponse],
     tags=["portfolio"],
 )
-def create_daily_snapshot(
-    request: Request, payload: SnapshotCreateRequest | None = None
-) -> dict[str, object]:
-    """Create today's portfolio value snapshot (replaces any existing row for the date).
+def create_snapshot_estimate(
+    request: Request, payload: SnapshotEstimateRequest | None = None
+) -> list[object]:
+    """Create an estimated ARS-denominated snapshot range for the last N days.
 
-    Optionally accept a ``date`` (YYYY-MM-DD) to backfill a past day.
+    Uses current market prices (provider quote, or average cost as fallback)
+    and converts USD positions to ARS at the CCL rate. Defaults to 30 days.
     """
-    target_date = None
-    if payload is not None and payload.date is not None:
-        from datetime import date as _date
-
-        target_date = _date.fromisoformat(payload.date)
-    return _services(request).snapshots.create_daily_snapshot(
-        target_date=target_date
-    )
+    days_back = payload.days_back if payload is not None else 30
+    return _services(request).snapshots.create_estimated_range(days_back=days_back)
 
 
 @router.get(

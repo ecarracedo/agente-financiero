@@ -274,6 +274,14 @@ class SnapshotCreateRequest(BaseModel):
     date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
+class SnapshotEstimateRequest(BaseModel):
+    """Request to build an estimated ARS-denominated snapshot range."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    days_back: int = Field(default=30, ge=1, le=365)
+
+
 class SnapshotScheduleRequest(BaseModel):
     """Request to configure the daily snapshot hour and timezone."""
 

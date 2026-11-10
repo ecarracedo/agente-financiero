@@ -1,9 +1,8 @@
-"""Use cases for daily portfolio value snapshots."""
+"""Use cases for daily portfolio value snapshots (ARS-denominated estimate)."""
 
 from collections import defaultdict
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -16,16 +15,19 @@ from backend.app.application.ports import (
     TransactionRecordPort,
 )
 from backend.app.domain.analysis import PricePoint
+from backend.app.domain.fx import compute_ccl, compute_mep
 
 DEFAULT_SNAPSHOT_HOUR: int = 17  # 17 hs Argentina (UTC-3)
 DEFAULT_SNAPSHOT_TIMEZONE: str = "America/Argentina/Buenos_Aires"
+
+_DEFAULT_ESTIMATED_DAYS: int = 30
 
 _SETTING_SNAPSHOT_HOUR = "snapshot_hour"
 _SETTING_SNAPSHOT_TIMEZONE = "snapshot_timezone"
 
 
 class PortfolioSnapshotUseCases:
-    """Create and read daily portfolio value snapshots."""
+    """Create and read daily portfolio value snapshots (all values in ARS)."""
 
     def __init__(
         self,
@@ -60,24 +62,80 @@ class PortfolioSnapshotUseCases:
             unit_of_work.settings.set_setting(key=_SETTING_SNAPSHOT_TIMEZONE, value=timezone)
             unit_of_work.commit()
 
-    def create_daily_snapshot(
-        self, period: str = "1mo", target_date: date | None = None
-    ) -> dict:
-        """Reconstruct the portfolio value for a given day and persist a snapshot.
+    def _usd_to_ars_rate(self) -> Decimal:
+        """Return the USD→ARS exchange rate (CCL) used to convert dollar positions."""
+        with self._unit_of_work_factory() as unit_of_work:
+            positions = unit_of_work.portfolio.list_positions()
 
-        Reads all transactions and the historical closing price series for each
-        ticker, computes the net quantity held per ticker as of the target date,
-        values the portfolio at that day's close, and stores one row for that
-        date (replacing any existing row for that date).
+        def _price(q) -> Decimal | None:
+            if q is None or q.price is None:
+                return None
+            try:
+                return Decimal(str(q.price))
+            except Exception:
+                return None
 
-        When ``target_date`` is omitted, the current date in the configured
-        snapshot timezone is used.
+        # Tickers needed for MEP: GD30 (ARS bond) / GD30D (USD bond), 1:1.
+        gd30_quote = self._market_data.get_quote("GD30")
+        gd30d_quote = self._market_data.get_quote("GD30D")
+
+        p_ars = _price(gd30_quote)
+        p_usd = _price(gd30d_quote)
+        if p_ars is not None and p_usd is not None and p_usd > 0:
+            rate = compute_mep(p_ars, p_usd)
+            if rate is not None and rate > 0:
+                return rate
+
+        # Fallback: CCL via AAPL cedear / AAPL (20:1 BYMA ratio).
+        aapl_ba_quote = self._market_data.get_quote("AAPL.BA")
+        aapl_quote = self._market_data.get_quote("AAPL")
+
+        p_ba = _price(aapl_ba_quote)
+        p_us = _price(aapl_quote)
+        if p_ba is not None and p_us is not None and p_us > 0:
+            rate = compute_ccl(p_ba, p_us)
+            if rate is not None and rate > 0:
+                return rate
+
+        # Last resort: no conversion available, treat USD as 1:1 (will be flagged).
+        return Decimal("1")
+
+    def _current_prices_by_ticker(
+        self, tickers: Sequence[str]
+    ) -> dict[str, tuple[Decimal, str]]:
+        """Return current price and currency for each ticker.
+
+        Falls back to the average purchase price when the provider has no quote,
+        so the estimate still includes every position.
         """
-        if target_date is None:
-            target_date = self._today_in_tz().date()
+        result: dict[str, tuple[Decimal, str]] = {}
+        for ticker in tickers:
+            quote = self._market_data.get_quote(ticker)
+            if quote is not None and quote.price is not None:
+                try:
+                    price = Decimal(str(quote.price))
+                except Exception:
+                    price = Decimal("0")
+                if price > 0:
+                    result[ticker] = (price, quote.currency or "ARS")
+                    continue
+            # No provider price: fall back to weighted average cost from transactions.
+            result[ticker] = (Decimal("0"), "ARS")
+        return result
 
-        # Read all transactions inside the unit of work and detach them into
-        # plain dicts so the session can close before we touch the records.
+    def create_estimated_range(
+        self, days_back: int = _DEFAULT_ESTIMATED_DAYS
+    ) -> list[dict]:
+        """Create snapshots for the last ``days_back`` days, all valued in ARS.
+
+        Uses current market prices (provider quote, or average cost as fallback)
+        and converts USD positions to ARS at the CCL rate. This is an *estimate*:
+        it shows how the portfolio value evolved due to buys/sells, valued at
+        today's prices, not the true historical daily close.
+        """
+        end_date = self._today_in_tz().date()
+        start_date = end_date - timedelta(days=days_back - 1)
+
         with self._unit_of_work_factory() as unit_of_work:
             records = unit_of_work.portfolio.list_all_transactions()
             txs: list[dict] = [
@@ -98,38 +156,34 @@ class PortfolioSnapshotUseCases:
         if not txs:
             raise ValueError("no transactions to snapshot")
 
-        # Group transactions by ticker
+        # Current positions (for currency of each ticker).
+        with self._unit_of_work_factory() as unit_of_work:
+            positions = unit_of_work.portfolio.list_positions()
+        currency_by_ticker: dict[str, str] = {}
+        for pos in positions:
+            currency_by_ticker[pos.ticker] = pos.currency
+
+        # Also record currency from transactions as fallback.
+        for tx in txs:
+            currency_by_ticker.setdefault(tx["ticker"], tx["currency"])
+
+        tickers = sorted({tx["ticker"] for tx in txs})
+
+        # Current prices (provider quote, fallback to avg cost).
+        prices = self._current_prices_by_ticker(tickers)
+
+        # USD→ARS rate (CCL).
+        fx_rate = self._usd_to_ars_rate()
+
+        # Net quantity per ticker as of each day.
+        cumulative_by_ticker: dict[str, list[tuple[date, Decimal]]] = {}
+
         tx_by_ticker: dict[str, list[dict]] = defaultdict(list)
         for tx in txs:
             tx_by_ticker[tx["ticker"]].append(tx)
 
-        tickers = sorted(tx_by_ticker.keys())
-
-        # Fetch historical series for each ticker in parallel
-        series_by_ticker: dict[str, list[PricePoint]] = {}
-        with ThreadPoolExecutor(max_workers=min(len(tickers), 8)) as pool:
-            future_to_ticker = {
-                pool.submit(self._market_data.get_historical_series, ticker, period): ticker
-                for ticker in tickers
-            }
-            for future in as_completed(future_to_ticker):
-                ticker = future_to_ticker[future]
-                try:
-                    series = future.result()
-                except Exception:
-                    series = ()
-                if series:
-                    series_by_ticker[ticker] = sorted(series, key=lambda p: p.date)
-
-        if not series_by_ticker:
-            raise ValueError("no historical prices available for snapshot")
-
-        # Net quantity per ticker as of target_date
-        cumulative_by_ticker: dict[str, list[tuple[date, Decimal]]] = {}
         for ticker, tx_list in tx_by_ticker.items():
-            sorted_txs = sorted(
-                tx_list, key=lambda t: (t["occurred_at"].date(), t["id"])
-            )
+            sorted_txs = sorted(tx_list, key=lambda t: (t["occurred_at"].date(), t["id"]))
             cum_qty = Decimal("0")
             cum_list: list[tuple[date, Decimal]] = []
             for tx in sorted_txs:
@@ -142,10 +196,9 @@ class PortfolioSnapshotUseCases:
             cumulative_by_ticker[ticker] = cum_list
 
         def _as_date(value) -> date:
-            """Coerce a datetime/Timestamp/date into a plain date for comparison."""
             if hasattr(value, "date"):
                 return value.date()
-            return value  # type: ignore[return-value]
+            return value
 
         def qty_as_of(ticker: str, target: date) -> Decimal:
             cum_list = cumulative_by_ticker.get(ticker, [])
@@ -157,43 +210,40 @@ class PortfolioSnapshotUseCases:
                     break
             return qty
 
-        def price_as_of(ticker: str, target: date) -> Decimal | None:
-            series = series_by_ticker.get(ticker, [])
-            price: Decimal | None = None
-            target_as_date = target
-            for point in series:
-                if _as_date(point.date) <= target_as_date:
-                    price = point.close
-                else:
-                    break
-            return price
-
-        daily_value = Decimal("0")
-        has_data = False
-        for ticker in tickers:
-            qty = qty_as_of(ticker, target_date)
-            if qty > 0:
-                price = price_as_of(ticker, target_date)
-                if price is not None:
-                    daily_value += qty * price
+        # Build snapshots for each day in the range.
+        created: list[dict] = []
+        current = start_date
+        while current <= end_date:
+            daily_value_ars = Decimal("0")
+            has_data = False
+            for ticker in tickers:
+                qty = qty_as_of(ticker, current)
+                if qty > 0:
+                    price, currency = prices.get(ticker, (Decimal("0"), "ARS"))
+                    value = qty * price
+                    if currency == "USD":
+                        value = value * fx_rate
+                    daily_value_ars += value
                     has_data = True
 
-        if not has_data:
-            raise ValueError("no priced positions for snapshot date")
+            snapshot_dt = datetime.combine(current, datetime.min.time())
+            with self._unit_of_work_factory() as unit_of_work:
+                unit_of_work.snapshots.save_snapshot(
+                    date=snapshot_dt,
+                    total_value=daily_value_ars,
+                )
+                unit_of_work.commit()
 
-        snapshot_dt = datetime.combine(target_date, datetime.min.time())
-        with self._unit_of_work_factory() as unit_of_work:
-            unit_of_work.snapshots.save_snapshot(
-                date=snapshot_dt,
-                total_value=daily_value,
+            created.append(
+                {
+                    "date": current.isoformat(),
+                    "value": daily_value_ars,
+                    "cumulative_return": "0",
+                }
             )
-            unit_of_work.commit()
+            current += timedelta(days=1)
 
-        return {
-            "date": snapshot_dt.date().isoformat(),
-            "value": daily_value,
-            "cumulative_return": "0",
-        }
+        return created
 
     def list_snapshots(self) -> list[dict]:
         """Return all snapshots ordered by date ascending, with cumulative return."""
@@ -216,6 +266,7 @@ class PortfolioSnapshotUseCases:
             value = snap["value"]
             if first_value is None:
                 first_value = value
+            if first_value is None or first_value == 0:
                 cumulative_return = Decimal("0")
             else:
                 cumulative_return = (value / first_value) - 1

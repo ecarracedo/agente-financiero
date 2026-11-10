@@ -1,14 +1,13 @@
-"""Tests for portfolio daily snapshot use cases."""
+"""Tests for portfolio daily snapshot use cases (ARS estimate)."""
 
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
 from backend.app.application.snapshots import PortfolioSnapshotUseCases
-from backend.app.domain.analysis import PricePoint
 
 
-def _tx(ticker, day_offset, qty, op="BUY", tx_id=1):
+def _tx(ticker, day_offset, qty, op="BUY", tx_id=1, currency="ARS"):
 
     return SimpleNamespace(
         id=tx_id,
@@ -18,26 +17,34 @@ def _tx(ticker, day_offset, qty, op="BUY", tx_id=1):
         operation_type=op,
         quantity=Decimal(qty),
         unit_price=Decimal("100"),
-        currency="USD",
+        currency=currency,
         occurred_at=datetime(2024, 1, 1) + timedelta(days=day_offset),
     )
 
 
-def _series(closes):
-    return [
-        SimpleNamespace(date=date(2024, 1, 1) + timedelta(days=i), close=Decimal(c))
-        for i, c in enumerate(closes)
-    ]
+def _pos(ticker, qty, currency="ARS"):
+    return SimpleNamespace(
+        ticker=ticker,
+        broker="Broker A",
+        category="Acciones",
+        quantity=Decimal(qty),
+        average_price=Decimal("100"),
+        currency=currency,
+    )
 
 
 class FakePositionRepository:
-    def __init__(self, transactions=None):
+    def __init__(self, transactions=None, positions=None):
         self._transactions = list(transactions or [])
+        self._positions = list(positions or [])
         self._snapshots = {}
         self._settings = {}
 
     def list_all_transactions(self):
         return list(self._transactions)
+
+    def list_positions(self):
+        return list(self._positions)
 
     def save_snapshot(self, *, date, total_value):
         self._snapshots[date.date()] = SimpleNamespace(date=date, total_value=total_value)
@@ -53,13 +60,16 @@ class FakePositionRepository:
 
 
 class FakeMarketDataProvider:
-    def __init__(self, histories):
-        self._histories = histories
-        self.history_requests = []
+    def __init__(self, quotes=None):
+        self._quotes = dict(quotes or {})
+        self.quote_requests = []
 
-    def get_historical_series(self, ticker, period):
-        self.history_requests.append((ticker, period))
-        return tuple(self._histories.get(ticker, []))
+    def get_quote(self, ticker):
+        self.quote_requests.append(ticker)
+        q = self._quotes.get(ticker)
+        if q is None:
+            return None
+        return SimpleNamespace(price=q["price"], currency=q.get("currency", "ARS"))
 
 
 class FakeUnitOfWorkFactory:
@@ -92,40 +102,58 @@ class FakeUnitOfWorkFactory:
         return self._repo
 
 
-def test_create_daily_snapshot_persists_value():
+def test_create_estimated_range_uses_current_prices_in_ars():
+    """All positions valued at current price, converted to ARS."""
     repo = FakePositionRepository(
-        [_tx("AAPL", 0, "10"), _tx("AAPL", 5, "5", op="BUY", tx_id=2)]
+        transactions=[_tx("AAPL", 0, "10")],
+        positions=[_pos("AAPL", "10", "USD")],
+    )
+    # USD quote at 1000 ARS per USD; AAPL trades at $110 USD.
+    provider = FakeMarketDataProvider(
+        {
+            "AAPL": {"price": "110", "currency": "USD"},
+            "GD30": {"price": "1000", "currency": "ARS"},
+            "GD30D": {"price": "1", "currency": "USD"},
+        }
+    )
+    use_cases = PortfolioSnapshotUseCases(
+        FakeUnitOfWorkFactory(repo, provider), provider
+    )
+
+    result = use_cases.create_estimated_range(days_back=3)
+
+    assert len(result) == 3
+    # 10 shares * $110 * 1000 ARS/USD = 1,100,000 ARS every day (no buys/sells after day 0).
+    for entry in result:
+        assert entry["value"] == Decimal("1100000")
+
+
+def test_create_estimated_range_converts_usd_to_ars():
+    """USD positions are multiplied by the CCL rate."""
+    repo = FakePositionRepository(
+        transactions=[_tx("RUCDD", 0, "100", currency="USD")],
+        positions=[_pos("RUCDD", "100", "USD")],
     )
     provider = FakeMarketDataProvider(
-        {"AAPL": _series(["100", "101", "102", "103", "104", "105", "110"])}
+        {
+            "RUCDD": {"price": "10", "currency": "USD"},
+            "GD30": {"price": "1000", "currency": "ARS"},
+            "GD30D": {"price": "1", "currency": "USD"},
+        }
     )
     use_cases = PortfolioSnapshotUseCases(
         FakeUnitOfWorkFactory(repo, provider), provider
     )
 
-    result = use_cases.create_daily_snapshot("1mo", target_date=date(2024, 1, 7))
+    result = use_cases.create_estimated_range(days_back=1)
 
-    assert result["date"] == "2024-01-07"
-    assert result["value"] == Decimal("1650")  # 15 * 110
-
-
-def test_create_daily_snapshot_replaces_existing_date():
-    repo = FakePositionRepository([_tx("AAPL", 0, "10")])
-    provider = FakeMarketDataProvider({"AAPL": _series(["100", "110"])})
-    use_cases = PortfolioSnapshotUseCases(
-        FakeUnitOfWorkFactory(repo, provider), provider
-    )
-
-    result = use_cases.create_daily_snapshot("1mo", target_date=date(2024, 1, 1))
-    result = use_cases.create_daily_snapshot("1mo", target_date=date(2024, 1, 1))
-
-    snapshots = use_cases.list_snapshots()
-    assert len(snapshots) == 1  # idempotent: same date replaced, not duplicated
-    assert result["value"] == Decimal("1000")  # 10 * 100 for 2024-01-01
+    assert len(result) == 1
+    # 100 * $10 * 1000 ARS/USD = 1,000,000 ARS
+    assert result[0]["value"] == Decimal("1000000")
 
 
 def test_list_snapshots_computes_cumulative_return():
-    repo = FakePositionRepository([_tx("AAPL", 0, "10")])
+    repo = FakePositionRepository([])
     repo._snapshots = {
         date(2024, 1, 1): SimpleNamespace(date=datetime(2024, 1, 1), total_value=Decimal("1000")),
         date(2024, 1, 2): SimpleNamespace(date=datetime(2024, 1, 2), total_value=Decimal("1100")),

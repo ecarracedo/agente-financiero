@@ -836,9 +836,9 @@
         "tags": [
           "portfolio"
         ],
-        "summary": "Create Daily Snapshot",
-        "description": "Create today's portfolio value snapshot (replaces any existing row for the date).\n\nOptionally accept a ``date`` (YYYY-MM-DD) to backfill a past day.",
-        "operationId": "create_daily_snapshot_api_v1_portfolio_snapshots_post",
+        "summary": "Create Snapshot Estimate",
+        "description": "Create an estimated ARS-denominated snapshot range for the last N days.\n\nUses current market prices (provider quote, or average cost as fallback)\nand converts USD positions to ARS at the CCL rate. Defaults to 30 days.",
+        "operationId": "create_snapshot_estimate_api_v1_portfolio_snapshots_post",
         "parameters": [
           {
             "name": "agente_session",
@@ -863,7 +863,7 @@
               "schema": {
                 "anyOf": [
                   {
-                    "$ref": "#/components/schemas/SnapshotCreateRequest"
+                    "$ref": "#/components/schemas/SnapshotEstimateRequest"
                   },
                   {
                     "type": "null"
@@ -880,7 +880,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PortfolioSnapshotResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortfolioSnapshotResponse"
+                  },
+                  "title": "Response Create Snapshot Estimate Api V1 Portfolio Snapshots Post"
                 }
               }
             }
@@ -2885,25 +2889,20 @@
         "title": "PricePointResponse",
         "description": "Expose one dated close with a canonical money string."
       },
-      "SnapshotCreateRequest": {
+      "SnapshotEstimateRequest": {
         "properties": {
-          "date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Date"
+          "days_back": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Days Back",
+            "default": 30
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "SnapshotCreateRequest",
-        "description": "Request to create a snapshot for a specific date."
+        "title": "SnapshotEstimateRequest",
+        "description": "Request to build an estimated ARS-denominated snapshot range."
       },
       "SnapshotScheduleRequest": {
         "properties": {
