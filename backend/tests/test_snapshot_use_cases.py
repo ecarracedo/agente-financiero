@@ -3,6 +3,7 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 from backend.app.application.snapshots import PortfolioSnapshotUseCases
 
@@ -184,3 +185,137 @@ def test_get_and_set_snapshot_schedule():
 
     assert use_cases.get_snapshot_hour() == 9
     assert use_cases.get_snapshot_timezone() == "America/New_York"
+
+
+def test_create_today_snapshot_writes_only_todays_value():
+    """The daily job must add today's row without rewriting history."""
+    repo = FakePositionRepository(
+        transactions=[_tx("AAPL", 0, "10")],
+        positions=[_pos("AAPL", "10", "USD")],
+    )
+    provider = FakeMarketDataProvider(
+        {
+            "AAPL": {"price": "110", "currency": "USD"},
+            "GD30": {"price": "1000", "currency": "ARS"},
+            "GD30D": {"price": "1", "currency": "USD"},
+        }
+    )
+    use_cases = PortfolioSnapshotUseCases(
+        FakeUnitOfWorkFactory(repo, provider), provider
+    )
+    today = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date()
+
+    result = use_cases.create_today_snapshot()
+
+    assert result["date"] == today.isoformat()
+    assert result["value"] == Decimal("1100000")
+    assert [snapshot.date.date() for snapshot in repo.list_snapshots()] == [today]
+
+
+def test_is_snapshot_due_waits_for_the_configured_hour():
+    """Nothing is written before the configured hour in the configured timezone."""
+    repo = FakePositionRepository([])
+    provider = FakeMarketDataProvider({})
+    use_cases = PortfolioSnapshotUseCases(
+        FakeUnitOfWorkFactory(repo, provider), provider
+    )
+    afternoon = datetime(2026, 11, 11, 16, 59)
+    evening = datetime(2026, 11, 11, 17, 0)
+
+    assert use_cases.is_snapshot_due(now=afternoon) is False
+    assert use_cases.is_snapshot_due(now=evening) is True
+
+
+def test_is_snapshot_due_is_false_once_today_is_saved():
+    """A restarted process must not duplicate today's snapshot."""
+    repo = FakePositionRepository([])
+    provider = FakeMarketDataProvider({})
+    use_cases = PortfolioSnapshotUseCases(
+        FakeUnitOfWorkFactory(repo, provider), provider
+    )
+    repo._snapshots = {
+        date(2026, 11, 11): SimpleNamespace(
+            date=datetime(2026, 11, 11), total_value=Decimal("1000")
+        )
+    }
+
+    assert use_cases.is_snapshot_due(now=datetime(2026, 11, 11, 23, 0)) is False
+
+
+def test_backfill_missing_days_writes_only_the_gaps():
+    """Recovery fills the missing past days and never touches existing rows."""
+    repo = FakePositionRepository(
+        transactions=[_tx("AAPL", 0, "10")],
+        positions=[_pos("AAPL", "10", "USD")],
+    )
+    provider = FakeMarketDataProvider(
+        {
+            "AAPL": {"price": "110", "currency": "USD"},
+            "GD30": {"price": "1000", "currency": "ARS"},
+            "GD30D": {"price": "1", "currency": "USD"},
+        }
+    )
+    use_cases = PortfolioSnapshotUseCases(
+        FakeUnitOfWorkFactory(repo, provider), provider
+    )
+    now = datetime(2026, 11, 11, 20, 0)
+    repo._snapshots = {
+        date(2026, 11, 8): SimpleNamespace(
+            date=datetime(2026, 11, 8), total_value=Decimal("999")
+        ),
+        date(2026, 11, 10): SimpleNamespace(
+            date=datetime(2026, 11, 10), total_value=Decimal("998")
+        ),
+    }
+
+    result = use_cases.backfill_missing_days(days_back=3, now=now)
+
+    assert [entry["date"] for entry in result] == ["2026-11-09"]
+    assert repo._snapshots[date(2026, 11, 8)].total_value == Decimal("999")
+    assert repo._snapshots[date(2026, 11, 10)].total_value == Decimal("998")
+    assert repo._snapshots[date(2026, 11, 9)].total_value == Decimal("1100000")
+
+
+def test_backfill_missing_days_leaves_today_to_the_daily_job():
+    """Today is written by the hourly path, never by the recovery pass."""
+    repo = FakePositionRepository(
+        transactions=[_tx("AAPL", 0, "10")],
+        positions=[_pos("AAPL", "10", "USD")],
+    )
+    provider = FakeMarketDataProvider(
+        {
+            "AAPL": {"price": "110", "currency": "USD"},
+            "GD30": {"price": "1000", "currency": "ARS"},
+            "GD30D": {"price": "1", "currency": "USD"},
+        }
+    )
+    use_cases = PortfolioSnapshotUseCases(
+        FakeUnitOfWorkFactory(repo, provider), provider
+    )
+
+    result = use_cases.backfill_missing_days(
+        days_back=2, now=datetime(2026, 11, 11, 20, 0)
+    )
+
+    assert [entry["date"] for entry in result] == ["2026-11-09", "2026-11-10"]
+    assert "2026-11-11" not in {snapshot.date.date().isoformat() for snapshot in repo.list_snapshots()}
+
+
+def test_backfill_missing_days_returns_empty_when_the_window_is_complete():
+    """A complete recent history costs no market data request."""
+    repo = FakePositionRepository([])
+    provider = FakeMarketDataProvider({})
+    use_cases = PortfolioSnapshotUseCases(
+        FakeUnitOfWorkFactory(repo, provider), provider
+    )
+    repo._snapshots = {
+        date(2026, 11, 9): SimpleNamespace(date=datetime(2026, 11, 9), total_value=Decimal("1")),
+        date(2026, 11, 10): SimpleNamespace(date=datetime(2026, 11, 10), total_value=Decimal("1")),
+    }
+
+    result = use_cases.backfill_missing_days(
+        days_back=2, now=datetime(2026, 11, 11, 20, 0)
+    )
+
+    assert result == []
+    assert provider.quote_requests == []

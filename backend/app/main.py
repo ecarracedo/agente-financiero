@@ -1,5 +1,7 @@
 """FastAPI application entry point."""
 
+import asyncio
+from contextlib import asynccontextmanager, suppress
 from functools import lru_cache
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -22,6 +24,7 @@ from backend.app.application.analytics import PortfolioAnalyticsUseCases
 from backend.app.application.portfolio import PortfolioUseCases
 from backend.app.application.ports import PortfolioUnitOfWorkPort
 from backend.app.application.resources import ResourceUseCases
+from backend.app.application.snapshot_scheduler import PortfolioSnapshotScheduler
 from backend.app.application.snapshots import PortfolioSnapshotUseCases
 
 
@@ -35,13 +38,13 @@ def create_app(
     database_engine: Engine | None = None,
     market_data_provider=None,
     auth_enabled: bool = True,
+    snapshot_scheduler_enabled: bool = True,
 ) -> FastAPI:
     """Create the financial agent API application.
 
     Returns:
         A configured FastAPI application with process health reporting.
     """
-    application = FastAPI(title="Financial Agent API", version="0.1.0")
     def engine_provider() -> Engine:
         """Return the injected engine or lazily create the default one."""
         return (
@@ -82,6 +85,33 @@ def create_app(
     )
     portfolio_use_cases = PortfolioUseCases(unit_of_work_factory)
     snapshot_use_cases = PortfolioSnapshotUseCases(unit_of_work_factory, provider)
+    snapshot_scheduler = (
+        PortfolioSnapshotScheduler(snapshot_use_cases)
+        if snapshot_scheduler_enabled
+        else None
+    )
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        """Keep the daily snapshot scheduler running while the API serves."""
+        task = (
+            asyncio.create_task(
+                snapshot_scheduler.run(), name="portfolio-snapshot-scheduler"
+            )
+            if snapshot_scheduler is not None
+            else None
+        )
+        try:
+            yield
+        finally:
+            if task is not None:
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+
+    application = FastAPI(
+        title="Financial Agent API", version="0.1.0", lifespan=lifespan
+    )
     application.state.services = ApplicationServices(
         portfolio=portfolio_use_cases,
         analytics=PortfolioAnalyticsUseCases(portfolio_use_cases, provider),
@@ -90,6 +120,7 @@ def create_app(
         snapshots=snapshot_use_cases,
     )
     application.state.database_engine_provider = engine_provider
+    application.state.snapshot_scheduler = snapshot_scheduler
     application.include_router(auth_router)
     if auth_enabled:
         application.include_router(
