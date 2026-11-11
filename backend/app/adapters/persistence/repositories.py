@@ -20,9 +20,43 @@ from backend.app.application.ports import (
     PortfolioSnapshotRecord,
     PortfolioSnapshotRepositoryPort,
 )
-from backend.app.domain.alerts import AlertIntent, TargetAlertSettings
+from backend.app.domain.alerts import (
+    AlertIntent,
+    AlertScope,
+    ConfiguredAlert,
+    TargetAlertSettings,
+)
 from backend.app.domain.portfolio import PortfolioPosition
 from backend.app.domain.tickers import normalize_ticker
+
+
+def _configured_alert(
+    record: PortfolioPositionRecord | WishlistRecord, scope: AlertScope
+) -> ConfiguredAlert | None:
+    """Project a stored alert row, or ``None`` when it cannot be evaluated.
+
+    A row whose stored intent no longer exists in the enum, or whose target is
+    not positive, is legacy data: it stays inactive and is never listed, the
+    same way it produces no alert during a check.
+    """
+    if record.target_price is None or record.alert_intent is None:
+        return None
+    if record.target_price <= 0:
+        return None
+    try:
+        intent = AlertIntent(record.alert_intent)
+    except ValueError:
+        return None
+    return ConfiguredAlert(
+        scope=scope,
+        ticker=record.ticker,
+        target_price=record.target_price,
+        intent=intent,
+        broker=getattr(record, "broker", None),
+        category=getattr(record, "category", None),
+        currency=getattr(record, "currency", None),
+        last_observed_price=record.last_observed_price,
+    )
 
 
 class SqlAlchemyPortfolioRepository:
@@ -192,6 +226,41 @@ class SqlAlchemyPortfolioRepository:
         record.last_observed_price = price
         return True
 
+    def clear_position_alert(
+        self, ticker: str, broker: str, category: str
+    ) -> bool:
+        """Clear a configured alert, keeping the position itself."""
+        statement = select(PortfolioPositionRecord).where(
+            PortfolioPositionRecord.ticker == ticker.strip().upper(),
+            PortfolioPositionRecord.broker == broker.strip(),
+            PortfolioPositionRecord.category == category,
+        )
+        record = self._session.scalar(statement)
+        if record is None or (
+            record.target_price is None and record.alert_intent is None
+        ):
+            return False
+        record.target_price = None
+        record.alert_intent = None
+        record.last_observed_price = None
+        return True
+
+    def list_position_alerts(self) -> tuple[ConfiguredAlert, ...]:
+        """List configured portfolio alerts, skipping rows that cannot be evaluated."""
+        statement = (
+            select(PortfolioPositionRecord)
+            .where(
+                PortfolioPositionRecord.target_price.is_not(None),
+                PortfolioPositionRecord.alert_intent.is_not(None),
+            )
+            .order_by(PortfolioPositionRecord.ticker, PortfolioPositionRecord.broker)
+        )
+        projected = (
+            _configured_alert(record, AlertScope.PORTFOLIO)
+            for record in self._session.scalars(statement)
+        )
+        return tuple(alert for alert in projected if alert is not None)
+
     def add_transaction(
         self,
         *,
@@ -329,6 +398,37 @@ class SqlAlchemyResourceRepository:
             return False
         record.last_observed_price = price
         return True
+
+    def clear_wishlist_alert(self, ticker: str) -> bool:
+        """Clear a configured wishlist alert, keeping the wishlist entry."""
+        statement = select(WishlistRecord).where(
+            WishlistRecord.ticker == ticker.strip().upper()
+        )
+        record = self._session.scalar(statement)
+        if record is None or (
+            record.target_price is None and record.alert_intent is None
+        ):
+            return False
+        record.target_price = None
+        record.alert_intent = None
+        record.last_observed_price = None
+        return True
+
+    def list_wishlist_alerts(self) -> tuple[ConfiguredAlert, ...]:
+        """List configured wishlist alerts, skipping rows that cannot be evaluated."""
+        statement = (
+            select(WishlistRecord)
+            .where(
+                WishlistRecord.target_price.is_not(None),
+                WishlistRecord.alert_intent.is_not(None),
+            )
+            .order_by(WishlistRecord.ticker)
+        )
+        projected = (
+            _configured_alert(record, AlertScope.WISHLIST)
+            for record in self._session.scalars(statement)
+        )
+        return tuple(alert for alert in projected if alert is not None)
 
     def list_wishlist(self) -> list[WishlistRecord]:
         """Return wishlist entries in ticker order."""

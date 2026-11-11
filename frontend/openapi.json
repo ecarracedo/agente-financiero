@@ -1261,6 +1261,60 @@
         }
       }
     },
+    "/api/v1/alerts": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "List Alerts",
+        "description": "Return every configured portfolio and wishlist alert.",
+        "operationId": "list_alerts_api_v1_alerts_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlertResponse"
+                  },
+                  "title": "Response List Alerts Api V1 Alerts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/portfolio/{ticker}/alert": {
       "put": {
         "tags": [
@@ -1315,6 +1369,87 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfiguredResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Delete Portfolio Alert",
+        "description": "Remove a portfolio alert without deleting the position.",
+        "operationId": "delete_portfolio_alert_api_v1_portfolio__ticker__alert_delete",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "title": "Ticker"
+            }
+          },
+          {
+            "name": "broker",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "title": "Broker"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "title": "Category"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResponse"
                 }
               }
             }
@@ -1701,6 +1836,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfiguredResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Delete Wishlist Alert",
+        "description": "Remove a wishlist alert without deleting the wishlist entry.",
+        "operationId": "delete_wishlist_alert_api_v1_wishlist__ticker__alert_delete",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "title": "Ticker"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResponse"
                 }
               }
             }
@@ -2264,13 +2458,95 @@
       "AlertIntent": {
         "type": "string",
         "enum": [
-          "NEUTRAL",
-          "STOP_LOSS",
           "BUY",
           "SELL"
         ],
         "title": "AlertIntent",
-        "description": "Supported meanings for a configured target price."
+        "description": "Trade direction a configured target price is waiting for."
+      },
+      "AlertResponse": {
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/AlertScope"
+          },
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "broker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broker"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "target_price": {
+            "type": "string",
+            "title": "Target Price"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/AlertIntent"
+          },
+          "last_observed_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Observed Price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scope",
+          "ticker",
+          "broker",
+          "category",
+          "currency",
+          "target_price",
+          "intent",
+          "last_observed_price"
+        ],
+        "title": "AlertResponse",
+        "description": "Expose one configured alert with the identity of the asset it watches."
+      },
+      "AlertScope": {
+        "type": "string",
+        "enum": [
+          "portfolio",
+          "wishlist"
+        ],
+        "title": "AlertScope",
+        "description": "Which collection a monitored asset belongs to."
       },
       "BibliographyCreateRequest": {
         "properties": {

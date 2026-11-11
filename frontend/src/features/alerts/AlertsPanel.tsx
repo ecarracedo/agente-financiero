@@ -30,6 +30,8 @@ export interface AlertsPanelProps {
   category?: string | null
   /** Which alert endpoints to use. */
   scope: 'portfolio' | 'wishlist'
+  /** Alert already configured for this target, used to prefill the form. */
+  alert?: { target_price: string; intent: AlertIntent } | null
   /** Notify the host that a target was saved so the chart can overlay it. */
   onTargetConfigured?: (ticker: string, targetPrice: string) => void
 }
@@ -79,10 +81,11 @@ export function AlertsPanel({
   broker = null,
   category = null,
   scope,
+  alert = null,
   onTargetConfigured,
 }: AlertsPanelProps) {
-  const [intent, setIntent] = useState<AlertIntent>('NEUTRAL')
-  const [targetPrice, setTargetPrice] = useState('')
+  const [intent, setIntent] = useState<AlertIntent>(alert?.intent ?? 'BUY')
+  const [targetPrice, setTargetPrice] = useState(alert?.target_price ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -171,8 +174,8 @@ export function AlertsPanel({
 
   return (
     <Card>
-      <section aria-labelledby="alerts-heading" className="space-y-4">
-        <h3 id="alerts-heading" className="text-base font-semibold text-gray-900 dark:text-gray-50">
+      <section aria-labelledby="target-alert-heading" className="space-y-4">
+        <h3 id="target-alert-heading" className="text-base font-semibold text-gray-900 dark:text-gray-50">
           Target alert
         </h3>
         <AlertConfigForm

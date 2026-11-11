@@ -42,7 +42,7 @@ export function AlertConfigForm({
     <form onSubmit={onSubmit} noValidate>
       <SelectField
         id="alert-intent"
-        label="Intent"
+        label="Type"
         value={intent}
         options={INTENT_OPTIONS}
         onChange={(value) => onIntentChange(value as AlertIntent)}

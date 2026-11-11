@@ -55,22 +55,22 @@ The system MUST provide holdings valuation, gain/loss, historical market data, t
 - THEN high/low and moving-average signals are returned
 - AND missing historical data produces an explicit unknown result
 
-### Requirement: Configurable target alert intent
+### Requirement: Configurable target alert type
 
-The system MUST allow each target alert to be configured as `NEUTRAL`, `STOP_LOSS`, `BUY`, or `SELL`, and MUST emit the corresponding distinct message only when the price crosses its target in the configured direction. `NEUTRAL` MUST trigger on a crossing in either direction; `STOP_LOSS` and `BUY` MUST trigger on a downward crossing; `SELL` MUST trigger on an upward crossing. Remaining beyond a target MUST NOT repeatedly trigger the same crossing.
+The system MUST allow each target alert to be configured as `BUY` or `SELL`, and MUST emit the corresponding distinct message only when the price crosses its target in the configured direction. `BUY` MUST trigger on a downward crossing; `SELL` MUST trigger on an upward crossing. Remaining beyond a target MUST NOT repeatedly trigger the same crossing. Every configured alert MUST be listable, reporting its scope, asset, target price, and type, and MUST be removable without deleting the position or wishlist entry it monitors.
 
-#### Scenario: Neutral alert crosses target either way
+#### Scenario: Buy alert crosses target downward
 
-- GIVEN a neutral target and consecutive prices on opposite sides of the target
-- WHEN the price crosses the target upward or downward
-- THEN a neutral target-reached alert is emitted
-- AND no buy, stop-loss, or sell message is used
+- GIVEN a BUY target and consecutive prices on opposite sides of the target
+- WHEN the price crosses the target downward
+- THEN a buy target-reached alert is emitted
+- AND crossing in the opposite direction does not trigger it
 
-#### Scenario: Directional alert uses its configured message
+#### Scenario: Sell alert crosses target upward
 
-- GIVEN a STOP_LOSS, BUY, or SELL target alert
-- WHEN consecutive prices cross the target in its configured direction
-- THEN the alert emits the distinct message for its configured intent
+- GIVEN a SELL target and consecutive prices on opposite sides of the target
+- WHEN the price crosses the target upward
+- THEN a sell target-reached alert is emitted
 - AND crossing in the opposite direction does not trigger it
 
 #### Scenario: Price remains beyond a crossed target
@@ -78,6 +78,14 @@ The system MUST allow each target alert to be configured as `NEUTRAL`, `STOP_LOS
 - GIVEN an alert has triggered on a target crossing
 - WHEN subsequent prices remain beyond the target on the same side
 - THEN the same crossing does not repeatedly emit the alert
+
+#### Scenario: List and remove configured alerts
+
+- GIVEN alerts configured on portfolio positions and wishlist entries
+- WHEN the configured alerts are requested
+- THEN every alert reports its scope, asset, target price, and type, portfolio entries first and ticker-ordered
+- WHEN one alert is removed
+- THEN it stops monitoring and its position or wishlist entry remains
 
 ### Requirement: Supporting resources
 

@@ -54,14 +54,18 @@ def test_missing_market_price_is_not_valued_as_zero():
     assert totals["USD"].unpriced_tickers == ("AAPL",)
 
 
+def test_alert_intent_offers_only_buy_and_sell():
+    """An alert is asset plus target price plus one of the two trade directions."""
+    assert {intent.value for intent in AlertIntent} == {"BUY", "SELL"}
+
+
 @pytest.mark.parametrize(
     ("previous", "current", "intent", "expected_message"),
     [
-        (Decimal("9"), Decimal("10"), AlertIntent.NEUTRAL, "Precio objetivo alcanzado."),
-        (Decimal("11"), Decimal("10"), AlertIntent.NEUTRAL, "Precio objetivo alcanzado."),
         (Decimal("11"), Decimal("10"), AlertIntent.BUY, "Precio objetivo de compra alcanzado."),
-        (Decimal("11"), Decimal("10"), AlertIntent.STOP_LOSS, "Stop-loss alcanzado."),
+        (Decimal("12"), Decimal("10"), AlertIntent.BUY, "Precio objetivo de compra alcanzado."),
         (Decimal("9"), Decimal("10"), AlertIntent.SELL, "Precio objetivo de venta alcanzado."),
+        (Decimal("8"), Decimal("10"), AlertIntent.SELL, "Precio objetivo de venta alcanzado."),
     ],
 )
 def test_target_alert_emits_intent_message_on_configured_crossing(
@@ -80,7 +84,8 @@ def test_target_alert_emits_intent_message_on_configured_crossing(
     [
         (Decimal("9"), Decimal("10"), AlertIntent.BUY),
         (Decimal("11"), Decimal("10"), AlertIntent.SELL),
-        (Decimal("10"), Decimal("9"), AlertIntent.NEUTRAL),
+        (Decimal("10"), Decimal("9"), AlertIntent.BUY),
+        (Decimal("10"), Decimal("11"), AlertIntent.SELL),
     ],
 )
 def test_wrong_direction_or_no_cross_does_not_emit_alert(previous, current, intent):
@@ -92,13 +97,25 @@ def test_remaining_beyond_target_does_not_repeat_crossing():
     """Subsequent prices on the same side do not produce duplicate crossings."""
     assert (
         evaluate_target_alert(
-            Decimal("9"), Decimal("10"), Decimal("10"), AlertIntent.NEUTRAL
+            Decimal("11"), Decimal("10"), Decimal("10"), AlertIntent.BUY
         )
         is not None
     )
     assert (
         evaluate_target_alert(
-            Decimal("10"), Decimal("11"), Decimal("10"), AlertIntent.NEUTRAL
+            Decimal("10"), Decimal("9"), Decimal("10"), AlertIntent.BUY
+        )
+        is None
+    )
+    assert (
+        evaluate_target_alert(
+            Decimal("9"), Decimal("10"), Decimal("10"), AlertIntent.SELL
+        )
+        is not None
+    )
+    assert (
+        evaluate_target_alert(
+            Decimal("10"), Decimal("11"), Decimal("10"), AlertIntent.SELL
         )
         is None
     )

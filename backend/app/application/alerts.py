@@ -5,10 +5,21 @@ from decimal import Decimal
 from backend.app.application.ports import PortfolioUnitOfWorkFactory
 from backend.app.domain.alerts import (
     AlertIntent,
+    AlertScope,
+    ConfiguredAlert,
     TargetAlertEvent,
     TargetAlertSettings,
     evaluate_target_alert,
 )
+
+
+def _alert_order(alert: ConfiguredAlert) -> tuple[int, str, str]:
+    """Order alerts by scope, then ticker, then broker."""
+    return (
+        0 if alert.scope is AlertScope.PORTFOLIO else 1,
+        alert.ticker,
+        alert.broker or "",
+    )
 
 
 class TargetAlertUseCases:
@@ -107,3 +118,30 @@ class TargetAlertUseCases:
             repository.update_wishlist_alert_price(ticker, current_price)
             unit_of_work.commit()
             return event
+
+    def list_alerts(self) -> tuple[ConfiguredAlert, ...]:
+        """List every configured alert, portfolio first and ticker A to Z."""
+        with self._unit_of_work_factory() as unit_of_work:
+            alerts = (
+                *unit_of_work.portfolio.list_position_alerts(),
+                *unit_of_work.resources.list_wishlist_alerts(),
+            )
+        return tuple(sorted(alerts, key=_alert_order))
+
+    def delete_portfolio_alert(
+        self, ticker: str, broker: str, category: str
+    ) -> bool:
+        """Remove a portfolio alert, keeping the position and its holdings."""
+        with self._unit_of_work_factory() as unit_of_work:
+            cleared = unit_of_work.portfolio.clear_position_alert(
+                ticker, broker, category
+            )
+            unit_of_work.commit()
+            return cleared
+
+    def delete_wishlist_alert(self, ticker: str) -> bool:
+        """Remove a wishlist alert, keeping the wishlist entry itself."""
+        with self._unit_of_work_factory() as unit_of_work:
+            cleared = unit_of_work.resources.clear_wishlist_alert(ticker)
+            unit_of_work.commit()
+            return cleared

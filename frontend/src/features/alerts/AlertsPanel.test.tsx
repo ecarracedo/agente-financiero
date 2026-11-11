@@ -7,16 +7,17 @@ import { alertApi } from './alertApi'
 
 vi.mock('./alertApi', () => ({
   ALERT_INTENTS: [
-    { value: 'NEUTRAL', label: 'Neutral' },
-    { value: 'STOP_LOSS', label: 'Stop-loss' },
     { value: 'BUY', label: 'Buy' },
     { value: 'SELL', label: 'Sell' },
   ],
   alertApi: {
+    list: vi.fn(),
     configurePortfolio: vi.fn(),
     checkPortfolio: vi.fn(),
     configureWishlist: vi.fn(),
     checkWishlist: vi.fn(),
+    deletePortfolio: vi.fn(),
+    deleteWishlist: vi.fn(),
   },
 }))
 
@@ -40,7 +41,7 @@ describe('AlertsPanel', () => {
       />,
     )
 
-    fireEvent.change(screen.getByLabelText('Intent'), { target: { value: 'STOP_LOSS' } })
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'SELL' } })
     fireEvent.change(screen.getByLabelText('Target price'), { target: { value: '140.00' } })
     fireEvent.click(screen.getByRole('button', { name: /save alert/i }))
 
@@ -49,7 +50,7 @@ describe('AlertsPanel', () => {
         broker: 'IBKR',
         category: 'Stock',
         target_price: '140.00',
-        intent: 'STOP_LOSS',
+        intent: 'SELL',
       }),
     )
     expect(onTargetConfigured).toHaveBeenCalledWith('AAPL', '140.00')
@@ -108,7 +109,7 @@ describe('AlertsPanel', () => {
     vi.mocked(alertApi.configureWishlist).mockResolvedValue({ configured: true })
     vi.mocked(alertApi.checkWishlist).mockResolvedValue({
       current_price: '310.00',
-      event: { intent: 'NEUTRAL', message: 'Precio objetivo alcanzado.' },
+      event: { intent: 'SELL', message: 'Precio objetivo de venta alcanzado.' },
     })
 
     render(<AlertsPanel ticker="MSFT" currency={null} scope="wishlist" />)
@@ -119,14 +120,16 @@ describe('AlertsPanel', () => {
     await waitFor(() =>
       expect(alertApi.configureWishlist).toHaveBeenCalledWith('MSFT', {
         target_price: '300.00',
-        intent: 'NEUTRAL',
+        intent: 'BUY',
       }),
     )
 
     fireEvent.click(screen.getByRole('button', { name: /check alert/i }))
 
     await waitFor(() => expect(alertApi.checkWishlist).toHaveBeenCalledWith('MSFT'))
-    expect(await screen.findByText('Precio objetivo alcanzado.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Precio objetivo de venta alcanzado.'),
+    ).toBeInTheDocument()
   })
 
   it('labels the observed price with its single currency and never sums currencies', async () => {
@@ -143,6 +146,22 @@ describe('AlertsPanel', () => {
 
     expect(await screen.findByText(/150,00 USD/)).toBeInTheDocument()
     expect(screen.queryByText(/total/i)).not.toBeInTheDocument()
+  })
+
+  it('prefills the saved alert type and target price', () => {
+    render(
+      <AlertsPanel
+        ticker="AAPL"
+        currency="USD"
+        broker="IBKR"
+        category="Stock"
+        scope="portfolio"
+        alert={{ target_price: '140.00', intent: 'SELL' }}
+      />,
+    )
+
+    expect(screen.getByLabelText('Type')).toHaveValue('SELL')
+    expect(screen.getByLabelText('Target price')).toHaveValue('140.00')
   })
 
   it('shows a message and sends nothing when the target price is empty', async () => {

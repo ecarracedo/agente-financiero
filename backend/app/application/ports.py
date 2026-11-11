@@ -8,7 +8,7 @@ from decimal import Decimal
 from types import TracebackType
 from typing import Callable, Protocol, Self
 
-from backend.app.domain.alerts import TargetAlertSettings
+from backend.app.domain.alerts import ConfiguredAlert, TargetAlertSettings
 from backend.app.domain.analysis import PricePoint, QuoteSnapshot
 from backend.app.domain.portfolio import PortfolioPosition
 from backend.app.domain.tickers import TickerMatch
@@ -60,6 +60,12 @@ class PortfolioRepositoryPort(Protocol):
     def update_position_alert_price(
         self, ticker: str, broker: str, category: str, price: Decimal
     ) -> bool: ...
+
+    def clear_position_alert(
+        self, ticker: str, broker: str, category: str
+    ) -> bool: ...
+
+    def list_position_alerts(self) -> tuple[ConfiguredAlert, ...]: ...
 
     def add_transaction(
         self,
@@ -205,6 +211,10 @@ class ResourceRepositoryPort(Protocol):
     def get_wishlist_alert(self, ticker: str) -> TargetAlertSettings | None: ...
 
     def update_wishlist_alert_price(self, ticker: str, price: Decimal) -> bool: ...
+
+    def clear_wishlist_alert(self, ticker: str) -> bool: ...
+
+    def list_wishlist_alerts(self) -> tuple[ConfiguredAlert, ...]: ...
 
 
 class PortfolioReadRepositoryPort(Protocol):
