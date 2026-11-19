@@ -39,7 +39,7 @@ export function AlertConfigForm({
   onSubmit,
 }: AlertConfigFormProps) {
   return (
-    <form onSubmit={onSubmit} noValidate>
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
       <SelectField
         id="alert-intent"
         label="Type"
@@ -47,6 +47,7 @@ export function AlertConfigForm({
         options={INTENT_OPTIONS}
         onChange={(value) => onIntentChange(value as AlertIntent)}
         error={fieldErrors.intent}
+        density="compact"
       />
       <TextField
         id="alert-target"
@@ -55,11 +56,12 @@ export function AlertConfigForm({
         onChange={onTargetPriceChange}
         inputMode="decimal"
         error={fieldErrors.target_price}
+        density="compact"
       />
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-lg bg-[#06b6d4] px-4 py-2 text-sm font-semibold text-[#003640] hover:bg-[#4cd7f6] disabled:opacity-50 transition-all shadow-md"
+        className="w-full py-2 bg-[#06b6d4] hover:bg-[#4cd7f6] text-[#003640] text-xs font-semibold rounded-lg shadow-md disabled:opacity-50 transition-all cursor-pointer"
       >
         {submitting ? 'Saving…' : 'Save alert'}
       </button>

@@ -181,9 +181,9 @@ export function AlertsPanel({
       : null
 
   return (
-    <Card>
-      <section aria-labelledby="target-alert-heading" className="space-y-4">
-        <h3 id="target-alert-heading" className="text-base font-semibold text-gray-900 dark:text-gray-50">
+    <Card className="bg-[#181c24]/80 backdrop-blur-md rounded-xl shadow-md border-[#3d494c]/20">
+      <section aria-labelledby="target-alert-heading" className="flex flex-col gap-4">
+        <h3 id="target-alert-heading" className="text-base font-semibold text-white font-headline">
           Target alert
         </h3>
         <AlertConfigForm
@@ -220,23 +220,23 @@ export function AlertsPanel({
           type="button"
           onClick={handleCheck}
           disabled={ticker === ''}
-          className="rounded-lg border border-[#3d494c]/60 bg-[#1c2028] px-4 py-2 text-sm font-semibold text-white hover:bg-[#262a33] hover:text-[#4cd7f6] transition-all disabled:opacity-50"
+          className="w-full py-2 bg-[#1c2028] hover:bg-[#262a33] text-[#bcc9cd] hover:text-white border border-[#3d494c]/30 text-xs font-mono uppercase font-bold rounded-lg transition-all disabled:opacity-50 cursor-pointer"
         >
           Check alert
         </button>
         {saved ? <SuccessState message="Alert saved." /> : null}
         {saveError ? <ErrorState message={saveError} /> : null}
-      {observedPrice !== null ? (
-        <p>
-          Current price:{' '}
-          {currency !== null && currency !== '' ? (
-            <CurrencyAmount amount={observedPrice} currency={currency} />
-          ) : (
-            <span>{observedPrice}</span>
-          )}
-        </p>
-      ) : null}
-      <AlertStatus state={checkState} />
+        {observedPrice !== null ? (
+          <p className="text-xs font-mono text-[#869397]">
+            Current price:{' '}
+            {currency !== null && currency !== '' ? (
+              <CurrencyAmount amount={observedPrice} currency={currency} />
+            ) : (
+              <span>{observedPrice}</span>
+            )}
+          </p>
+        ) : null}
+        <AlertStatus state={checkState} />
       </section>
     </Card>
   )

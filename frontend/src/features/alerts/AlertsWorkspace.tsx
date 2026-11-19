@@ -312,28 +312,26 @@ export function AlertsWorkspace() {
       {/* Main 2-Column Grid: Form (col 4-5) & Table (col 7-8) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Creación Rápida de Alerta */}
-        <div className="lg:col-span-5 xl:col-span-4 bg-surface-container-low/95 backdrop-blur-md p-6 rounded-xl shadow-xl flex flex-col gap-4 border border-outline-variant/35 sticky top-20">
-          <div className="flex items-center justify-between pb-3 border-b border-outline-variant/25">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
-                🔔
-              </div>
-              <h3 className="text-base font-semibold text-on-surface">Creación Rápida de Alerta</h3>
+        <div className="lg:col-span-5 xl:col-span-4 bg-[#181c24]/80 backdrop-blur-md rounded-xl p-6 shadow-md flex flex-col gap-4 border border-[#3d494c]/20 sticky top-20">
+          <div className="flex items-center justify-between pb-3 border-b border-[#3d494c]/20">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#4cd7f6] text-[20px]">notifications</span>
+              <h3 className="text-base font-semibold text-white font-headline">Creación Rápida de Alerta</h3>
             </div>
-            <span className="text-[11px] font-mono text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-mono uppercase text-[#4cd7f6] font-semibold">
               Configurador
             </span>
           </div>
 
-          <div className="space-y-3">
-            <div>
-              <span className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-1">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-mono text-[#869397] uppercase">
                 Scope
               </span>
               <div
                 role="group"
                 aria-label="Scope"
-                className="flex gap-1 p-1 rounded-lg bg-surface-container border border-outline-variant/30"
+                className="flex items-center gap-1 bg-[#1c2028] p-1 rounded-lg"
               >
                 {SCOPE_OPTIONS.map((option) => (
                   <button
@@ -341,10 +339,10 @@ export function AlertsWorkspace() {
                     type="button"
                     aria-pressed={scope === option.value}
                     onClick={() => handleScopeChange(option.value)}
-                    className={`flex-1 px-2 py-1.5 rounded-md text-xs font-mono transition-colors cursor-pointer ${
+                    className={`flex-1 py-1 text-center text-xs font-mono uppercase rounded font-bold transition-all cursor-pointer ${
                       scope === option.value
-                        ? 'bg-primary text-on-primary font-bold'
-                        : 'text-on-surface-variant hover:bg-surface-container-high'
+                        ? 'bg-[#4cd7f6] text-[#003640]'
+                        : 'text-[#bcc9cd] hover:text-white'
                     }`}
                   >
                     {option.label}
@@ -354,42 +352,42 @@ export function AlertsWorkspace() {
             </div>
 
             {scope === 'portfolio' ? (
-              <div>
-                <label htmlFor="alert-position" className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-1">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="alert-position" className="text-[10px] font-mono text-[#869397] uppercase">
                   Posición de cartera
                 </label>
                 <select
                   id="alert-position"
                   value={selectedKey}
                   onChange={(event) => setSelectedKey(event.target.value)}
-                  className="w-full py-2.5 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-sm focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                  className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none cursor-pointer"
                 >
-                  <option value="">Seleccionar posición</option>
+                  <option value="" className="bg-[#181c24] text-white">Seleccionar posición</option>
                   {targets
                     .filter((target) => target.scope === 'portfolio')
                     .map((target) => (
-                      <option key={target.key} value={target.key}>
+                      <option key={target.key} value={target.key} className="bg-[#181c24] text-white">
                         {target.ticker} — {target.broker ?? ''}
                       </option>
                     ))}
                 </select>
               </div>
             ) : scope === 'wishlist' ? (
-              <div>
-                <label htmlFor="alert-position" className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-1">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="alert-position" className="text-[10px] font-mono text-[#869397] uppercase">
                   Activo de wishlist
                 </label>
                 <select
                   id="alert-position"
                   value={selectedKey}
                   onChange={(event) => setSelectedKey(event.target.value)}
-                  className="w-full py-2.5 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-sm focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                  className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none cursor-pointer"
                 >
-                  <option value="">Seleccionar activo</option>
+                  <option value="" className="bg-[#181c24] text-white">Seleccionar activo</option>
                   {targets
                     .filter((target) => target.scope === 'wishlist')
                     .map((target) => (
-                      <option key={target.key} value={target.key}>
+                      <option key={target.key} value={target.key} className="bg-[#181c24] text-white">
                         {target.ticker}
                       </option>
                     ))}
@@ -407,7 +405,7 @@ export function AlertsWorkspace() {
           </div>
 
           {selected !== null ? (
-            <div className="pt-2 border-t border-outline-variant/20">
+            <div className="pt-4 border-t border-[#3d494c]/20">
               <AlertsPanel
                 key={selected.key}
                 ticker={selected.ticker}
@@ -431,8 +429,8 @@ export function AlertsWorkspace() {
               />
             </div>
           ) : (
-            <div className="p-4 rounded-lg bg-surface-container/40 border border-outline-variant/20 text-center text-xs text-on-surface-variant space-y-1">
-              <p className="font-semibold text-on-surface">Sin activo seleccionado</p>
+            <div className="p-4 rounded-lg bg-[#1c2028]/40 border border-[#3d494c]/20 text-center text-xs font-mono text-[#869397] flex flex-col gap-1">
+              <p className="font-semibold text-white">Sin activo seleccionado</p>
               <p>Elige una posición de la lista o ingresa un ticker libre para fijar su precio objetivo.</p>
             </div>
           )}

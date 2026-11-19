@@ -134,4 +134,18 @@ describe('FormControls', () => {
       )
     })
   })
+
+  describe('density', () => {
+    it('applies the Registrar Transacciones scale when density is compact', () => {
+      render(<TextField id="compact" label="Target price" value="" onChange={() => {}} density="compact" />)
+
+      expect(screen.getByLabelText('Target price')).toHaveClass('text-xs', 'font-mono', 'px-2.5', 'py-1.5')
+    })
+
+    it('keeps the original scale by default', () => {
+      render(<TextField id="default" label="Target price" value="" onChange={() => {}} />)
+
+      expect(screen.getByLabelText('Target price')).toHaveClass('text-sm', 'px-3', 'py-2')
+    })
+  })
 })

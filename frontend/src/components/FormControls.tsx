@@ -29,6 +29,28 @@ function messageIds(id: string, hasDescription: boolean, hasError: boolean) {
   }
 }
 
+/**
+ * Visual scale of a field. `default` keeps the original form scale; `compact`
+ * follows the Registrar Transacciones card baseline (10px labels, 12px mono
+ * controls, tighter padding). No behavior or accessibility changes.
+ */
+export type FieldDensity = 'default' | 'compact'
+
+const FIELD_CLASSES = {
+  default: {
+    group: 'space-y-1',
+    label: 'block text-xs font-semibold uppercase tracking-wider text-[#bcc9cd] font-mono',
+    control:
+      'w-full px-3 py-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/60 text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6] transition-all text-sm',
+  },
+  compact: {
+    group: 'flex flex-col gap-1',
+    label: 'block text-[10px] font-mono text-[#869397] uppercase',
+    control:
+      'w-full px-2.5 py-1.5 rounded-lg bg-[#1c2028] border border-[#3d494c]/30 text-white placeholder-[#869397] focus:outline-none transition-all text-xs font-mono',
+  },
+} as const
+
 export interface TextFieldProps {
   id: string
   label: string
@@ -41,6 +63,8 @@ export interface TextFieldProps {
   description?: string
   /** Validation failure; marks the field invalid and is linked to it. */
   error?: string
+  /** Visual scale; defaults to the original form scale. */
+  density?: FieldDensity
 }
 
 /** Labeled single-line text input. */
@@ -54,12 +78,14 @@ export function TextField({
   inputMode,
   description,
   error,
+  density = 'default',
 }: TextFieldProps) {
   const { descriptionId, errorId } = messageIds(id, description !== undefined, error !== undefined)
+  const classes = FIELD_CLASSES[density]
 
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-[#bcc9cd] font-mono">
+    <div className={classes.group}>
+      <label htmlFor={id} className={classes.label}>
         {label}
       </label>
       <input
@@ -71,7 +97,7 @@ export function TextField({
         onBlur={onBlur}
         aria-invalid={error !== undefined ? true : undefined}
         aria-describedby={describedBy(descriptionId, errorId)}
-        className="w-full px-3 py-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/60 text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6] transition-all text-sm"
+        className={classes.control}
       />
       {description !== undefined ? (
         <span id={descriptionId} className="block text-xs text-[#869397]">
@@ -154,6 +180,8 @@ export interface SelectFieldProps {
   description?: string
   /** Validation failure; marks the field invalid and is linked to it. */
   error?: string
+  /** Visual scale; defaults to the original form scale. */
+  density?: FieldDensity
 }
 
 /** Labeled native select. */
@@ -165,12 +193,14 @@ export function SelectField({
   onChange,
   description,
   error,
+  density = 'default',
 }: SelectFieldProps) {
   const { descriptionId, errorId } = messageIds(id, description !== undefined, error !== undefined)
+  const classes = FIELD_CLASSES[density]
 
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-[#bcc9cd] font-mono">
+    <div className={classes.group}>
+      <label htmlFor={id} className={classes.label}>
         {label}
       </label>
       <select
@@ -179,7 +209,7 @@ export function SelectField({
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={error !== undefined ? true : undefined}
         aria-describedby={describedBy(descriptionId, errorId)}
-        className="w-full px-3 py-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/60 text-white focus:outline-none focus:border-[#4cd7f6] focus:ring-1 focus:ring-[#4cd7f6] transition-all text-sm"
+        className={classes.control}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
