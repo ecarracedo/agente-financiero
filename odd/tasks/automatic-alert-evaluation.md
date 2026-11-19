@@ -52,7 +52,7 @@ backend/tests` and `npm test` in `frontend/`.
 - T7 — ✅ done (`01ed5e4`) — frontend: `alertApi.listEvents/acknowledgeEvent/evaluate`, MSW handlers and
   fixtures, and the workspace triggered list with acknowledge and "Check now" (S6). Tests in
   `frontend/src/features/alerts/`.
-- T8 — ✅ done (`<T8>`) — docs: `CHANGELOG.md`, `CHANGELOG_es.md`, canonical OpenSpec requirements (S8).
+- T8 — ✅ done (`29eaa06`) — docs: `CHANGELOG.md`, `CHANGELOG_es.md`, canonical OpenSpec requirements (S8).
 
 ## Log
 
