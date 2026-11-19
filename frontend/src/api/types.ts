@@ -253,6 +253,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/portfolio/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Snapshots
+         * @description Return all daily snapshots ordered by date, with cumulative return.
+         */
+        get: operations["list_snapshots_api_v1_portfolio_snapshots_get"];
+        put?: never;
+        /**
+         * Create Snapshot Estimate
+         * @description Create an estimated ARS-denominated snapshot range for the last N days.
+         *
+         *     Uses current market prices (provider quote, or average cost as fallback)
+         *     and converts USD positions to ARS at the CCL rate. Defaults to 30 days.
+         */
+        post: operations["create_snapshot_estimate_api_v1_portfolio_snapshots_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portfolio/snapshot/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Snapshot Schedule
+         * @description Return the configured snapshot hour and timezone.
+         */
+        get: operations["get_snapshot_schedule_api_v1_portfolio_snapshot_schedule_get"];
+        /**
+         * Set Snapshot Schedule
+         * @description Configure the snapshot hour and timezone.
+         */
+        put: operations["set_snapshot_schedule_api_v1_portfolio_snapshot_schedule_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fx/dollars": {
         parameters: {
             query?: never;
@@ -313,6 +364,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Alerts
+         * @description Return every configured portfolio and wishlist alert.
+         */
+        get: operations["list_alerts_api_v1_alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/portfolio/{ticker}/alert": {
         parameters: {
             query?: never;
@@ -327,7 +398,11 @@ export interface paths {
          */
         put: operations["configure_portfolio_alert_api_v1_portfolio__ticker__alert_put"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Portfolio Alert
+         * @description Remove a portfolio alert without deleting the position.
+         */
+        delete: operations["delete_portfolio_alert_api_v1_portfolio__ticker__alert_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -431,7 +506,11 @@ export interface paths {
          */
         put: operations["configure_wishlist_alert_api_v1_wishlist__ticker__alert_put"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Wishlist Alert
+         * @description Remove a wishlist alert without deleting the wishlist entry.
+         */
+        delete: operations["delete_wishlist_alert_api_v1_wishlist__ticker__alert_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -545,6 +624,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/percent-of-par-tickers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Percent Of Par Tickers
+         * @description Return the tickers the user flagged as quoted per 100 nominal units.
+         */
+        get: operations["list_percent_of_par_tickers_api_v1_percent_of_par_tickers_get"];
+        /**
+         * Set Percent Of Par Tickers
+         * @description Replace the flagged per-100-nominal ticker list after validation.
+         */
+        put: operations["set_percent_of_par_tickers_api_v1_percent_of_par_tickers_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/splits": {
         parameters: {
             query?: never;
@@ -620,10 +723,36 @@ export interface components {
         };
         /**
          * AlertIntent
-         * @description Supported meanings for a configured target price.
+         * @description Trade direction a configured target price is waiting for.
          * @enum {string}
          */
-        AlertIntent: "NEUTRAL" | "STOP_LOSS" | "BUY" | "SELL";
+        AlertIntent: "BUY" | "SELL";
+        /**
+         * AlertResponse
+         * @description Expose one configured alert with the identity of the asset it watches.
+         */
+        AlertResponse: {
+            scope: components["schemas"]["AlertScope"];
+            /** Ticker */
+            ticker: string;
+            /** Broker */
+            broker: string | null;
+            /** Category */
+            category: string | null;
+            /** Currency */
+            currency: string | null;
+            /** Target Price */
+            target_price: string;
+            intent: components["schemas"]["AlertIntent"];
+            /** Last Observed Price */
+            last_observed_price: string | null;
+        };
+        /**
+         * AlertScope
+         * @description Which collection a monitored asset belongs to.
+         * @enum {string}
+         */
+        AlertScope: "portfolio" | "wishlist";
         /**
          * BibliographyCreateRequest
          * @description Validate a bibliography resource and optional metadata.
@@ -768,6 +897,22 @@ export interface components {
             deleted: boolean;
         };
         /**
+         * PercentOfParTickersRequest
+         * @description Body replacing the flagged per-100-nominal ticker list.
+         */
+        PercentOfParTickersRequest: {
+            /** Tickers */
+            tickers: string[];
+        };
+        /**
+         * PercentOfParTickersResponse
+         * @description Expose the tickers flagged as quoted per 100 nominal units.
+         */
+        PercentOfParTickersResponse: {
+            /** Tickers */
+            tickers: string[];
+        };
+        /**
          * PortfolioAlertRequest
          * @description Configure target price and intent for a portfolio position.
          */
@@ -806,6 +951,21 @@ export interface components {
             category?: string | null;
         };
         /**
+         * PortfolioSnapshotResponse
+         * @description Expose one daily portfolio snapshot with cumulative return.
+         */
+        PortfolioSnapshotResponse: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Value */
+            value: string;
+            /** Cumulative Return */
+            cumulative_return: string;
+        };
+        /**
          * PositionAlertCheckRequest
          * @description Identify a broker/category position whose alert should be evaluated.
          */
@@ -827,6 +987,37 @@ export interface components {
             date: string;
             /** Close */
             close: string;
+        };
+        /**
+         * SnapshotEstimateRequest
+         * @description Request to build an estimated ARS-denominated snapshot range.
+         */
+        SnapshotEstimateRequest: {
+            /**
+             * Days Back
+             * @default 30
+             */
+            days_back: number;
+        };
+        /**
+         * SnapshotScheduleRequest
+         * @description Request to configure the daily snapshot hour and timezone.
+         */
+        SnapshotScheduleRequest: {
+            /** Hour */
+            hour: number;
+            /** Timezone */
+            timezone: string;
+        };
+        /**
+         * SnapshotScheduleResponse
+         * @description Expose the configured daily snapshot schedule.
+         */
+        SnapshotScheduleResponse: {
+            /** Hour */
+            hour: number;
+            /** Timezone */
+            timezone: string;
         };
         /**
          * SplitProjectionRequest
@@ -1512,6 +1703,138 @@ export interface operations {
             };
         };
     };
+    list_snapshots_api_v1_portfolio_snapshots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioSnapshotResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_snapshot_estimate_api_v1_portfolio_snapshots_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SnapshotEstimateRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioSnapshotResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_snapshot_schedule_api_v1_portfolio_snapshot_schedule_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotScheduleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_snapshot_schedule_api_v1_portfolio_snapshot_schedule_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnapshotScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotScheduleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_dollar_rates_api_v1_fx_dollars_get: {
         parameters: {
             query?: never;
@@ -1612,6 +1935,37 @@ export interface operations {
             };
         };
     };
+    list_alerts_api_v1_alerts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     configure_portfolio_alert_api_v1_portfolio__ticker__alert_put: {
         parameters: {
             query?: never;
@@ -1636,6 +1990,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConfiguredResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_portfolio_alert_api_v1_portfolio__ticker__alert_delete: {
+        parameters: {
+            query: {
+                broker: string;
+                category: string;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1846,6 +2236,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConfiguredResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_wishlist_alert_api_v1_wishlist__ticker__alert_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2077,6 +2500,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_percent_of_par_tickers_api_v1_percent_of_par_tickers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PercentOfParTickersResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_percent_of_par_tickers_api_v1_percent_of_par_tickers_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PercentOfParTickersRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PercentOfParTickersResponse"];
                 };
             };
             /** @description Validation Error */

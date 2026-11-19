@@ -6,10 +6,8 @@ from enum import Enum
 
 
 class AlertIntent(str, Enum):
-    """Supported meanings for a configured target price."""
+    """Trade direction a configured target price is waiting for."""
 
-    NEUTRAL = "NEUTRAL"
-    STOP_LOSS = "STOP_LOSS"
     BUY = "BUY"
     SELL = "SELL"
 
@@ -38,9 +36,33 @@ class TargetAlertSettings:
             raise ValueError("last observed price must be non-negative")
 
 
+class AlertScope(str, Enum):
+    """Which collection a monitored asset belongs to."""
+
+    PORTFOLIO = "portfolio"
+    WISHLIST = "wishlist"
+
+
+@dataclass(frozen=True)
+class ConfiguredAlert:
+    """One configured alert with the identity of the asset it watches.
+
+    A read projection: ``broker``, ``category`` and ``currency`` describe a
+    portfolio position and stay ``None`` for a wishlist entry, which carries no
+    such attributes.
+    """
+
+    scope: AlertScope
+    ticker: str
+    target_price: Decimal
+    intent: AlertIntent
+    broker: str | None = None
+    category: str | None = None
+    currency: str | None = None
+    last_observed_price: Decimal | None = None
+
+
 _MESSAGES = {
-    AlertIntent.NEUTRAL: "Precio objetivo alcanzado.",
-    AlertIntent.STOP_LOSS: "Stop-loss alcanzado.",
     AlertIntent.BUY: "Precio objetivo de compra alcanzado.",
     AlertIntent.SELL: "Precio objetivo de venta alcanzado.",
 }
@@ -54,15 +76,15 @@ def evaluate_target_alert(
 ) -> TargetAlertEvent | None:
     """Return an alert only when consecutive prices cross its target.
 
-    Neutral alerts trigger in either direction; buy and stop-loss alerts
-    trigger downward, and sell alerts trigger upward. A price remaining on
-    the same side of the target is not a crossing and produces no repeat.
+    A buy alert triggers downward and a sell alert triggers upward. A price
+    remaining on the same side of the target is not a crossing and produces no
+    repeat.
 
     Args:
         previous_price: The quote immediately before the current quote.
         current_price: The latest quote.
         target_price: Configured target threshold.
-        intent: User-selected meaning and direction for the target.
+        intent: Trade direction the target is waiting for.
 
     Returns:
         An intent-specific event for a valid crossing, otherwise ``None``.
@@ -73,10 +95,8 @@ def evaluate_target_alert(
     crossed_down = previous_price > target_price >= current_price
     crossed_up = previous_price < target_price <= current_price
 
-    triggered = (
-        (intent is AlertIntent.NEUTRAL and (crossed_down or crossed_up))
-        or (intent in (AlertIntent.STOP_LOSS, AlertIntent.BUY) and crossed_down)
-        or (intent is AlertIntent.SELL and crossed_up)
+    triggered = (intent is AlertIntent.BUY and crossed_down) or (
+        intent is AlertIntent.SELL and crossed_up
     )
     if not triggered:
         return None

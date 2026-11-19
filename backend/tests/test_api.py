@@ -176,6 +176,41 @@ def test_ticker_alias_endpoints_support_create_list_delete(api_client):
     assert client.get("/api/v1/ticker-aliases").json() == []
 
 
+def test_percent_of_par_tickers_endpoint_round_trips(api_client):
+    """Flagged per-100-nominal tickers are normalized, replaced and listed."""
+    client, _ = api_client
+
+    empty = client.get("/api/v1/percent-of-par-tickers")
+    assert empty.status_code == 200
+    assert empty.json() == {"tickers": []}
+
+    saved = client.put(
+        "/api/v1/percent-of-par-tickers",
+        json={"tickers": [" yfcoo.ba ", "S13N6.BA"]},
+    )
+    assert saved.status_code == 200
+    assert saved.json() == {"tickers": ["YFCOO.BA", "S13N6.BA"]}
+    assert client.get("/api/v1/percent-of-par-tickers").json() == {
+        "tickers": ["YFCOO.BA", "S13N6.BA"]
+    }
+
+    replaced = client.put("/api/v1/percent-of-par-tickers", json={"tickers": []})
+    assert replaced.status_code == 200
+    assert replaced.json() == {"tickers": []}
+
+
+def test_percent_of_par_tickers_endpoint_rejects_invalid_values(api_client):
+    """An invalid ticker is rejected and nothing is stored."""
+    client, _ = api_client
+
+    response = client.put(
+        "/api/v1/percent-of-par-tickers", json={"tickers": ["bad ticker"]}
+    )
+
+    assert response.status_code == 422
+    assert client.get("/api/v1/percent-of-par-tickers").json() == {"tickers": []}
+
+
 def test_valuation_and_analysis_endpoints_preserve_currency(api_client):
     """Valuation and analysis routes return currency-grouped Decimal data."""
     client, market_data = api_client
@@ -315,6 +350,107 @@ def test_wishlist_alert_endpoint_adds_a_missing_wishlist_entry(api_client):
     assert response.json() == {"configured": True}
     assert [item["ticker"] for item in wishlist] == ["NVDA"]
     assert wishlist[0]["target_price"] == "500"
+
+
+def test_alert_listing_reports_every_configured_alert(api_client):
+    """Listing returns configured portfolio and wishlist alerts in a stable order."""
+    client, _ = api_client
+    client.post("/api/v1/transactions", json=operation("MSFT", "BUY", 1, 100, 1))
+    client.post("/api/v1/transactions", json=operation("AAPL", "BUY", 1, 100, 1))
+
+    client.put(
+        "/api/v1/portfolio/AAPL/alert",
+        json={
+            "broker": "Broker A",
+            "category": "Acciones",
+            "target_price": "150",
+            "intent": "BUY",
+        },
+    )
+    client.put(
+        "/api/v1/portfolio/MSFT/alert",
+        json={
+            "broker": "Broker A",
+            "category": "Acciones",
+            "target_price": "300",
+            "intent": "SELL",
+        },
+    )
+    client.put(
+        "/api/v1/wishlist/NVDA/alert",
+        json={"target_price": "500", "intent": "BUY"},
+    )
+
+    response = client.get("/api/v1/alerts")
+
+    assert response.status_code == 200
+    alerts = response.json()
+    assert [(alert["scope"], alert["ticker"]) for alert in alerts] == [
+        ("portfolio", "AAPL"),
+        ("portfolio", "MSFT"),
+        ("wishlist", "NVDA"),
+    ]
+    assert alerts[0]["intent"] == "BUY"
+    assert alerts[0]["target_price"] == "150"
+    assert alerts[0]["broker"] == "Broker A"
+    assert alerts[0]["category"] == "Acciones"
+    assert alerts[0]["currency"] == "USD"
+    assert alerts[0]["last_observed_price"] is None
+    assert alerts[1]["intent"] == "SELL"
+    assert alerts[2]["broker"] is None
+    assert alerts[2]["category"] is None
+    assert alerts[2]["currency"] is None
+
+
+def test_deleting_a_portfolio_alert_keeps_the_position(api_client):
+    """Deleting an alert stops monitoring it and leaves the holding untouched."""
+    client, _ = api_client
+    client.post("/api/v1/transactions", json=operation("AAPL", "BUY", 2, 10, 1))
+    client.put(
+        "/api/v1/portfolio/AAPL/alert",
+        json={
+            "broker": "Broker A",
+            "category": "Acciones",
+            "target_price": "10",
+            "intent": "BUY",
+        },
+    )
+
+    deleted = client.delete(
+        "/api/v1/portfolio/AAPL/alert",
+        params={"broker": "Broker A", "category": "Acciones"},
+    )
+    repeated = client.delete(
+        "/api/v1/portfolio/AAPL/alert",
+        params={"broker": "Broker A", "category": "Acciones"},
+    )
+
+    assert deleted.status_code == 200
+    assert deleted.json() == {"deleted": True}
+    assert repeated.status_code == 404
+    assert client.get("/api/v1/alerts").json() == []
+    positions = client.get("/api/v1/portfolio").json()
+    assert [position["ticker"] for position in positions] == ["AAPL"]
+    assert positions[0]["quantity"] == "2"
+
+
+def test_deleting_a_wishlist_alert_keeps_the_wishlist_entry(api_client):
+    """Deleting a wishlist alert keeps the entry and reports a missing alert."""
+    client, _ = api_client
+    client.put(
+        "/api/v1/wishlist/NVDA/alert",
+        json={"target_price": "500", "intent": "BUY"},
+    )
+
+    deleted = client.delete("/api/v1/wishlist/NVDA/alert")
+    repeated = client.delete("/api/v1/wishlist/NVDA/alert")
+    wishlist = client.get("/api/v1/wishlist").json()
+
+    assert deleted.status_code == 200
+    assert deleted.json() == {"deleted": True}
+    assert repeated.status_code == 404
+    assert [item["ticker"] for item in wishlist] == ["NVDA"]
+    assert wishlist[0]["target_price"] is None
 
 
 def test_resource_and_split_endpoints_are_exposed_in_openapi(api_client):

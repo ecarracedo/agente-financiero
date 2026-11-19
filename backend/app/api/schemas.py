@@ -11,7 +11,7 @@ from backend.app.api.serialization import (
     OptionalMoneyString,
     QuantityString,
 )
-from backend.app.domain.alerts import AlertIntent
+from backend.app.domain.alerts import AlertIntent, AlertScope
 
 
 class TransactionRequest(BaseModel):
@@ -232,6 +232,20 @@ class TickerAliasCreateRequest(BaseModel):
     provider: str = "ppi"
 
 
+class PercentOfParTickersResponse(BaseModel):
+    """Expose the tickers flagged as quoted per 100 nominal units."""
+
+    tickers: list[str]
+
+
+class PercentOfParTickersRequest(BaseModel):
+    """Body replacing the flagged per-100-nominal ticker list."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tickers: list[str]
+
+
 class TargetAlertEventResponse(BaseModel):
     """Expose one intent-specific target crossing notification."""
 
@@ -246,6 +260,21 @@ class AlertCheckResponse(BaseModel):
 
     current_price: MoneyString
     event: TargetAlertEventResponse | None
+
+
+class AlertResponse(BaseModel):
+    """Expose one configured alert with the identity of the asset it watches."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    scope: AlertScope
+    ticker: str
+    broker: str | None
+    category: str | None
+    currency: str | None
+    target_price: MoneyString
+    intent: AlertIntent
+    last_observed_price: OptionalMoneyString
 
 
 class SplitProjectionResponse(BaseModel):

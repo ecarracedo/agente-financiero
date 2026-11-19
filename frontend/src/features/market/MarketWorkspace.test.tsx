@@ -17,16 +17,17 @@ vi.mock('./marketApi', () => ({
 
 vi.mock('../alerts/alertApi', () => ({
   ALERT_INTENTS: [
-    { value: 'NEUTRAL', label: 'Neutral' },
-    { value: 'STOP_LOSS', label: 'Stop-loss' },
     { value: 'BUY', label: 'Buy' },
     { value: 'SELL', label: 'Sell' },
   ],
   alertApi: {
+    list: vi.fn(),
     configurePortfolio: vi.fn(),
     checkPortfolio: vi.fn(),
     configureWishlist: vi.fn(),
     checkWishlist: vi.fn(),
+    deletePortfolio: vi.fn(),
+    deleteWishlist: vi.fn(),
   },
 }))
 
@@ -204,7 +205,7 @@ describe('MarketWorkspace', () => {
     await waitFor(() =>
       expect(alertApi.configureWishlist).toHaveBeenCalledWith('NVDA', {
         target_price: '500',
-        intent: 'NEUTRAL',
+        intent: 'BUY',
       }),
     )
     expect(await screen.findByText('Alert saved.')).toBeInTheDocument()

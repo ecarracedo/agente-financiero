@@ -66,6 +66,14 @@ export type TickerAliasResponse =
 export type TickerAliasCreateRequest =
   paths['/api/v1/ticker-aliases']['post']['requestBody']['content']['application/json']
 
+/** Response from `GET/PUT /api/v1/percent-of-par-tickers`. */
+export type PercentOfParTickersResponse =
+  paths['/api/v1/percent-of-par-tickers']['get']['responses'][200]['content']['application/json']
+
+/** Body replacing the flagged per-100-nominal ticker list. */
+export type PercentOfParTickersRequest =
+  paths['/api/v1/percent-of-par-tickers']['put']['requestBody']['content']['application/json']
+
 /** Typed convenience wrappers over the backend contract. */
 export const api = {
   health: (): Promise<HealthResponse> => request<HealthResponse>('/health'),
@@ -129,5 +137,15 @@ export const api = {
   deleteTickerAlias: (aliasId: number): Promise<MutationResponse> =>
     request<MutationResponse>(`/api/v1/ticker-aliases/${aliasId}`, {
       method: 'DELETE',
+    }),
+  listPercentOfParTickers: (): Promise<PercentOfParTickersResponse> =>
+    request<PercentOfParTickersResponse>('/api/v1/percent-of-par-tickers'),
+  setPercentOfParTickers: (
+    payload: PercentOfParTickersRequest,
+  ): Promise<PercentOfParTickersResponse> =>
+    request<PercentOfParTickersResponse>('/api/v1/percent-of-par-tickers', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     }),
 }

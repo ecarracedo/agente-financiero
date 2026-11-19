@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useLocation } from 'react-router'
 
 import { api } from '../../api/client'
 import type { PortfolioPosition, TickerAliasResponse } from '../../api/client'
@@ -188,6 +189,9 @@ export function SettingsPage() {
     null,
   )
   const [aliasSaving, setAliasSaving] = useState(false)
+  const [perHundred, setPerHundred] = useState<string[]>([])
+  const [perHundredDraft, setPerHundredDraft] = useState('')
+  const [perHundredSaving, setPerHundredSaving] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -204,6 +208,27 @@ export function SettingsPage() {
       active = false
     }
   }, [])
+
+  // Every workspace stays mounted behind the router shell, so the flagged list
+  // is fetched only when the user actually opens Configuración. Loading it on
+  // every mount would add a request to every other workspace's test too.
+  const location = useLocation()
+  const settingsVisible = location.pathname.startsWith('/configuracion')
+  useEffect(() => {
+    if (!settingsVisible) return
+    let active = true
+    api
+      .listPercentOfParTickers()
+      .then((response) => {
+        if (active) setPerHundred(response.tickers)
+      })
+      .catch(() => {
+        // Keep the empty list when the settings source is unavailable.
+      })
+    return () => {
+      active = false
+    }
+  }, [settingsVisible])
 
   const aliasByTicker = new Map(
     aliases.map((alias) => [alias.broker_ticker.toUpperCase(), alias]),
@@ -263,6 +288,38 @@ export function SettingsPage() {
     } catch {
       // Keep the row when the delete fails.
     }
+  }
+
+  /**
+   * Persist the flagged per-100-nominal ticker list.
+   *
+   * Returns whether the backend accepted the write so the caller can clear its
+   * draft only on success.
+   */
+  async function savePercentOfPar(next: string[]): Promise<boolean> {
+    setPerHundredSaving(true)
+    try {
+      const saved = await api.setPercentOfParTickers({ tickers: next })
+      setPerHundred(saved.tickers)
+      return true
+    } catch {
+      // Keep the previous list when the write fails.
+      return false
+    } finally {
+      setPerHundredSaving(false)
+    }
+  }
+
+  async function addPercentOfPar() {
+    const candidate = perHundredDraft.trim().toUpperCase()
+    if (candidate === '' || perHundred.includes(candidate)) return
+    if (await savePercentOfPar([...perHundred, candidate])) {
+      setPerHundredDraft('')
+    }
+  }
+
+  async function removePercentOfPar(ticker: string) {
+    await savePercentOfPar(perHundred.filter((entry) => entry !== ticker))
   }
 
   return (
@@ -435,6 +492,76 @@ export function SettingsPage() {
                     type="button"
                     aria-label={`Quitar alias ${alias.broker_ticker}`}
                     onClick={() => void removeAlias(alias)}
+                    className="text-[#869397] hover:text-[#ff7f8b] transition-colors"
+                  >
+                    <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+                      close
+                    </span>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-[#181c24]/80 backdrop-blur-md rounded-xl border border-[#3d494c]/30 overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#3d494c]/20">
+          <h2 className="text-sm font-semibold text-white">Cotización cada 100 nominales</h2>
+          <p className="text-xs text-[#869397] mt-1">
+            Las ONs y letras de BYMA cotizan por cada 100 nominales y Yahoo no lo informa:
+            marcá acá los tickers que deben dividirse por 100 para que el valor de la
+            posición sea correcto.
+          </p>
+        </div>
+        <div className="px-6 py-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="per-hundred-ticker" className="text-xs text-[#869397]">
+              Ticker a marcar
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="per-hundred-ticker"
+                aria-label="Ticker cotizado cada 100 nominales"
+                type="text"
+                value={perHundredDraft}
+                onChange={(event) => setPerHundredDraft(event.target.value)}
+                placeholder="Ej.: YFCOO.BA"
+                className="flex-1 bg-[#1c2028] px-3 py-1.5 rounded-lg border border-[#3d494c]/40 text-sm text-white placeholder-[#869397] focus:outline-none focus:border-[#4cd7f6]"
+              />
+              <button
+                type="button"
+                aria-label="Agregar ticker"
+                onClick={() => void addPercentOfPar()}
+                disabled={perHundredSaving}
+                className="px-3 py-1.5 rounded-lg bg-[#4cd7f6]/10 border border-[#4cd7f6]/30 text-xs font-mono text-[#4cd7f6] hover:bg-[#4cd7f6]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Agregar
+              </button>
+            </div>
+            <p className="text-[11px] text-[#869397]">
+              Aplica a la cotización actual y al histórico. Los instrumentos que ya
+              resuelve PPI no se ven afectados.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-2 border-t border-[#3d494c]/20">
+            <span className="text-[10px] font-mono uppercase tracking-wide text-[#869397]">
+              Tickers marcados
+            </span>
+            {perHundred.length === 0 ? (
+              <p className="text-xs text-[#869397]">Ningún ticker marcado.</p>
+            ) : (
+              perHundred.map((ticker) => (
+                <div
+                  key={ticker}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-[#1c2028] border border-[#3d494c]/40 px-3 py-2 text-xs font-mono text-[#bcc9cd]"
+                >
+                  <span className="text-[#4cd7f6]">{ticker}</span>
+                  <button
+                    type="button"
+                    aria-label={`Quitar ticker ${ticker}`}
+                    onClick={() => void removePercentOfPar(ticker)}
                     className="text-[#869397] hover:text-[#ff7f8b] transition-colors"
                   >
                     <span aria-hidden="true" className="material-symbols-outlined text-[14px]">

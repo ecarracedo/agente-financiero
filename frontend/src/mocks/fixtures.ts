@@ -184,6 +184,36 @@ export const tickerSearchResults = [
 }
 
 /**
+ * AlertResponse[]: one configured portfolio alert and one configured wishlist
+ * alert, in the order the backend lists them (portfolio first, ticker A to Z).
+ *
+ * A wishlist entry carries no broker, category or currency; the API reports
+ * them as null rather than inventing a default.
+ */
+export const configuredAlerts = [
+  {
+    scope: 'portfolio' as const,
+    ticker: 'AAPL',
+    broker: 'ECO',
+    category: 'Acciones',
+    currency: 'USD',
+    target_price: '190.00',
+    intent: 'BUY' as const,
+    last_observed_price: null,
+  },
+  {
+    scope: 'wishlist' as const,
+    ticker: 'NVDA',
+    broker: null,
+    category: null,
+    currency: null,
+    target_price: '120.00',
+    intent: 'SELL' as const,
+    last_observed_price: null,
+  },
+]
+
+/**
  * AlertCheckResponse with a crossing event.
  *
  * A check reports the price it observed plus the event the backend derived; it

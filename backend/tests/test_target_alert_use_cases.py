@@ -3,8 +3,10 @@
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import update
 from sqlalchemy.orm import sessionmaker
 
+from backend.app.adapters.persistence.models import PortfolioPositionRecord
 from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
 from backend.app.application.alerts import TargetAlertUseCases
 from backend.app.domain.alerts import AlertIntent
@@ -115,7 +117,7 @@ def test_wishlist_alert_updates_an_existing_entry_without_duplicating_it(session
         unit_of_work.commit()
 
     use_cases = alert_use_cases(session)
-    use_cases.configure_wishlist_alert("AAPL", Decimal("10"), AlertIntent.STOP_LOSS)
+    use_cases.configure_wishlist_alert("AAPL", Decimal("10"), AlertIntent.SELL)
 
     with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
         tickers = [record.ticker for record in unit_of_work.resources.list_wishlist()]
@@ -124,7 +126,7 @@ def test_wishlist_alert_updates_an_existing_entry_without_duplicating_it(session
     assert tickers == ["AAPL"]
     assert settings is not None
     assert settings.target_price == Decimal("10")
-    assert settings.intent is AlertIntent.STOP_LOSS
+    assert settings.intent is AlertIntent.SELL
 
 
 def test_wishlist_buy_alert_persists_crossing_state(session):
@@ -144,6 +146,115 @@ def test_wishlist_buy_alert_persists_crossing_state(session):
     assert event is not None
     assert event.intent is AlertIntent.BUY
     assert repeated is None
+
+
+def test_list_alerts_returns_only_configured_alerts_in_scope_then_ticker_order(session):
+    """Listing returns configured alerts, portfolio first, ticker A to Z within a scope."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        for ticker in ("MSFT", "AAPL", "GOOG"):
+            unit_of_work.portfolio.save_position(
+                PortfolioPosition(
+                    ticker=ticker,
+                    broker="Broker A",
+                    category="Acciones",
+                    quantity=Decimal("1"),
+                    average_price=Decimal("100"),
+                    currency="USD",
+                )
+            )
+        unit_of_work.resources.add_wishlist_item("NVDA")
+        unit_of_work.resources.add_wishlist_item("AMD")
+        unit_of_work.commit()
+
+    use_cases = alert_use_cases(session)
+    use_cases.configure_portfolio_alert(
+        "MSFT", "Broker A", "Acciones", Decimal("300"), AlertIntent.SELL
+    )
+    use_cases.configure_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("150"), AlertIntent.BUY
+    )
+    use_cases.configure_wishlist_alert("NVDA", Decimal("500"), AlertIntent.BUY)
+
+    alerts = use_cases.list_alerts()
+
+    assert [(alert.scope, alert.ticker) for alert in alerts] == [
+        ("portfolio", "AAPL"),
+        ("portfolio", "MSFT"),
+        ("wishlist", "NVDA"),
+    ]
+    apple, microsoft, nvidia = alerts
+    assert apple.target_price == Decimal("150")
+    assert apple.intent is AlertIntent.BUY
+    assert apple.broker == "Broker A"
+    assert apple.category == "Acciones"
+    assert apple.currency == "USD"
+    assert apple.last_observed_price is None
+    assert microsoft.intent is AlertIntent.SELL
+    assert nvidia.broker is None
+    assert nvidia.category is None
+    assert nvidia.currency is None
+    assert nvidia.target_price == Decimal("500")
+
+
+def test_list_alerts_skips_rows_whose_stored_intent_no_longer_exists(session):
+    """A row saved with a removed intent stays inactive and is not listed."""
+    seed_position(session)
+    use_cases = alert_use_cases(session)
+    use_cases.configure_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("10"), AlertIntent.BUY
+    )
+    session.execute(
+        update(PortfolioPositionRecord).values(alert_intent="STOP_LOSS")
+    )
+    session.commit()
+
+    assert use_cases.list_alerts() == ()
+
+
+def test_delete_portfolio_alert_clears_the_alert_and_keeps_the_position(session):
+    """Deleting a portfolio alert leaves the holding in place and unmonitored."""
+    seed_position(session)
+    use_cases = alert_use_cases(session)
+    use_cases.configure_portfolio_alert(
+        "AAPL", "Broker A", "Acciones", Decimal("10"), AlertIntent.BUY
+    )
+
+    assert use_cases.delete_portfolio_alert("AAPL", "Broker A", "Acciones") is True
+
+    assert use_cases.list_alerts() == ()
+    with SqlAlchemyPortfolioUnitOfWork(sessionmaker(bind=session.get_bind())) as unit_of_work:
+        assert unit_of_work.portfolio.get_position("AAPL", "Broker A", "Acciones") is not None
+        assert unit_of_work.portfolio.get_position_alert("AAPL", "Broker A", "Acciones") is None
+
+
+def test_delete_unconfigured_portfolio_alert_reports_nothing_deleted(session):
+    """Deleting an alert that was never configured reports no deletion."""
+    seed_position(session)
+
+    assert (
+        alert_use_cases(session).delete_portfolio_alert("AAPL", "Broker A", "Acciones")
+        is False
+    )
+
+
+def test_delete_wishlist_alert_clears_the_alert_and_keeps_the_entry(session):
+    """Deleting a wishlist alert keeps the wishlist entry and stops monitoring it."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    use_cases = alert_use_cases(session)
+    use_cases.configure_wishlist_alert("NVDA", Decimal("500"), AlertIntent.BUY)
+
+    assert use_cases.delete_wishlist_alert("NVDA") is True
+
+    assert use_cases.list_alerts() == ()
+    with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
+        assert [record.ticker for record in unit_of_work.resources.list_wishlist()] == ["NVDA"]
+        assert unit_of_work.resources.get_wishlist_alert("NVDA") is None
+
+
+def test_delete_unconfigured_wishlist_alert_reports_nothing_deleted(session):
+    """Deleting a wishlist alert that was never configured reports no deletion."""
+    assert alert_use_cases(session).delete_wishlist_alert("NVDA") is False
 
 
 @pytest.mark.parametrize(

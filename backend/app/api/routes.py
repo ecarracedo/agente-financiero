@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.app.api.schemas import (
     AlertCheckResponse,
+    AlertResponse,
     BibliographyCreateRequest,
     BibliographyItemResponse,
     ConfiguredResponse,
@@ -15,6 +16,8 @@ from backend.app.api.schemas import (
     DollarRatesResponse,
     MarketAnalysisResponse,
     MutationResponse,
+    PercentOfParTickersRequest,
+    PercentOfParTickersResponse,
     PortfolioAlertRequest,
     PortfolioPositionResponse,
     PortfolioPositionUpdateRequest,
@@ -285,6 +288,16 @@ def analyze_ticker(
     return result
 
 
+@router.get(
+    "/alerts",
+    response_model=list[AlertResponse],
+    tags=["alerts"],
+)
+def list_alerts(request: Request) -> tuple:
+    """Return every configured portfolio and wishlist alert."""
+    return _services(request).alerts.list_alerts()
+
+
 @router.put(
     "/portfolio/{ticker}/alert",
     response_model=ConfiguredResponse,
@@ -327,6 +340,26 @@ def check_portfolio_alert(
         canonical_ticker, payload.broker, payload.category, current_price
     )
     return {"current_price": current_price, "event": event}
+
+
+@router.delete(
+    "/portfolio/{ticker}/alert",
+    response_model=MutationResponse,
+    tags=["alerts"],
+)
+def delete_portfolio_alert(
+    ticker: TickerPath,
+    request: Request,
+    broker: str = Query(min_length=1, max_length=120),
+    category: str = Query(min_length=1, max_length=80),
+) -> dict[str, bool]:
+    """Remove a portfolio alert without deleting the position."""
+    deleted = _services(request).alerts.delete_portfolio_alert(
+        _canonical_ticker(ticker), broker, category
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="alert not found")
+    return {"deleted": True}
 
 
 @router.get(
@@ -419,6 +452,19 @@ def check_wishlist_alert(ticker: TickerPath, request: Request) -> dict[str, obje
     return {"current_price": current_price, "event": event}
 
 
+@router.delete(
+    "/wishlist/{ticker}/alert",
+    response_model=MutationResponse,
+    tags=["alerts"],
+)
+def delete_wishlist_alert(ticker: TickerPath, request: Request) -> dict[str, bool]:
+    """Remove a wishlist alert without deleting the wishlist entry."""
+    deleted = _services(request).alerts.delete_wishlist_alert(_canonical_ticker(ticker))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="alert not found")
+    return {"deleted": True}
+
+
 @router.get(
     "/bibliography",
     response_model=list[BibliographyItemResponse],
@@ -494,6 +540,34 @@ def delete_ticker_alias(alias_id: int, request: Request) -> dict[str, bool]:
         raise HTTPException(status_code=404, detail="ticker alias not found")
     _services(request).analytics.invalidate_ppi_cache()
     return {"deleted": True}
+
+
+@router.get(
+    "/percent-of-par-tickers",
+    response_model=PercentOfParTickersResponse,
+    tags=["market"],
+)
+def list_percent_of_par_tickers(request: Request) -> PercentOfParTickersResponse:
+    """Return the tickers the user flagged as quoted per 100 nominal units."""
+    return PercentOfParTickersResponse(
+        tickers=_services(request).percent_of_par.list_tickers()
+    )
+
+
+@router.put(
+    "/percent-of-par-tickers",
+    response_model=PercentOfParTickersResponse,
+    tags=["market"],
+)
+def set_percent_of_par_tickers(
+    payload: PercentOfParTickersRequest, request: Request
+) -> PercentOfParTickersResponse:
+    """Replace the flagged per-100-nominal ticker list after validation."""
+    try:
+        tickers = _services(request).percent_of_par.set_tickers(payload.tickers)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    return PercentOfParTickersResponse(tickers=tickers)
 
 
 @router.post(

@@ -9,7 +9,7 @@
 import { request } from '../../api/http'
 import type { components } from '../../api/types'
 
-/** Supported meanings for a configured target price. */
+/** Trade direction a configured target price is waiting for. */
 export type AlertIntent = components['schemas']['AlertIntent']
 
 /** One intent-specific target crossing notification. */
@@ -17,6 +17,9 @@ export type TargetAlertEvent = components['schemas']['TargetAlertEventResponse']
 
 /** Alert evaluation response with the canonical observed price. */
 export type AlertCheck = components['schemas']['AlertCheckResponse']
+
+/** One configured alert with the identity of the asset it watches. */
+export type ConfiguredAlert = components['schemas']['AlertResponse']
 
 /** Body for `PUT /api/v1/portfolio/{ticker}/alert`. */
 export type PortfolioAlertBody = components['schemas']['PortfolioAlertRequest']
@@ -30,10 +33,11 @@ export type PositionAlertCheckBody = components['schemas']['PositionAlertCheckRe
 /** Acknowledge a successful alert configuration. */
 export type Configured = components['schemas']['ConfiguredResponse']
 
+/** Acknowledge a successful alert removal. */
+export type AlertRemoved = components['schemas']['MutationResponse']
+
 /** Intent values with their display labels. */
 export const ALERT_INTENTS: { value: AlertIntent; label: string }[] = [
-  { value: 'NEUTRAL', label: 'Neutral' },
-  { value: 'STOP_LOSS', label: 'Stop-loss' },
   { value: 'BUY', label: 'Buy' },
   { value: 'SELL', label: 'Sell' },
 ]
@@ -49,6 +53,7 @@ function jsonInit(method: string, body: unknown): RequestInit {
 
 /** Typed alert operations used by the alerts workspace. */
 export const alertApi = {
+  list: (): Promise<ConfiguredAlert[]> => request<ConfiguredAlert[]>('/api/v1/alerts'),
   configurePortfolio: (
     ticker: string,
     body: PortfolioAlertBody,
@@ -75,4 +80,19 @@ export const alertApi = {
       `/api/v1/wishlist/${encodeURIComponent(ticker)}/alert/check`,
       { method: 'POST' },
     ),
+  deletePortfolio: (
+    ticker: string,
+    broker: string,
+    category: string,
+  ): Promise<AlertRemoved> => {
+    const query = new URLSearchParams({ broker, category })
+    return request<AlertRemoved>(
+      `/api/v1/portfolio/${encodeURIComponent(ticker)}/alert?${query.toString()}`,
+      { method: 'DELETE' },
+    )
+  },
+  deleteWishlist: (ticker: string): Promise<AlertRemoved> =>
+    request<AlertRemoved>(`/api/v1/wishlist/${encodeURIComponent(ticker)}/alert`, {
+      method: 'DELETE',
+    }),
 }

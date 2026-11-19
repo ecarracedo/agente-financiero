@@ -21,6 +21,11 @@ from backend.app.api.routes import router as api_router
 from backend.app.api.services import ApplicationServices
 from backend.app.application.alerts import TargetAlertUseCases
 from backend.app.application.analytics import PortfolioAnalyticsUseCases
+from backend.app.application.percent_of_par import (
+    SETTING_KEY,
+    PercentOfParUseCases,
+    parse_tickers,
+)
 from backend.app.application.portfolio import PortfolioUseCases
 from backend.app.application.ports import PortfolioUnitOfWorkPort
 from backend.app.application.resources import ResourceUseCases
@@ -59,8 +64,6 @@ def create_app(
             sessionmaker(bind=engine_provider())
         )
 
-    yfinance = YFinanceMarketDataProvider()
-
     def _load_ppi_aliases() -> dict[str, str]:
         """Load user-defined FCI aliases from the database."""
         from backend.app.adapters.persistence.database import create_database_engine
@@ -77,11 +80,26 @@ def create_app(
         finally:
             session.close()
 
+    def _load_percent_of_par_tickers() -> list[str]:
+        """Load the user-flagged per-100-nominal tickers from app settings."""
+        from backend.app.adapters.persistence.repositories import (
+            SqlAlchemyAppSettingRepository,
+        )
+        engine = database_engine if database_engine is not None else _default_database_engine()
+        session = sessionmaker(bind=engine)()
+        try:
+            raw = SqlAlchemyAppSettingRepository(session).get_setting(SETTING_KEY)
+            return parse_tickers(raw)
+        finally:
+            session.close()
+
+    yfinance = YFinanceMarketDataProvider(percent_of_par=_load_percent_of_par_tickers)
     ppi = PpiMarketDataProvider(aliases_provider=_load_ppi_aliases)
     provider = market_data_provider or CompositeMarketDataProvider(
         ppi_provider=ppi,
         yfinance_factory=yfinance._create_ticker,
         search_factory=yfinance._create_search,
+        percent_of_par=_load_percent_of_par_tickers,
     )
     portfolio_use_cases = PortfolioUseCases(unit_of_work_factory)
     snapshot_use_cases = PortfolioSnapshotUseCases(unit_of_work_factory, provider)
@@ -118,6 +136,7 @@ def create_app(
         alerts=TargetAlertUseCases(unit_of_work_factory),
         resources=ResourceUseCases(unit_of_work_factory),
         snapshots=snapshot_use_cases,
+        percent_of_par=PercentOfParUseCases(unit_of_work_factory),
     )
     application.state.database_engine_provider = engine_provider
     application.state.snapshot_scheduler = snapshot_scheduler

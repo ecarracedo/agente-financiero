@@ -40,7 +40,7 @@ The portfolio workspace MUST start from the positions the backend reports, with 
 
 ### Requirement: Market visualization and alerts
 
-The frontend MUST display chart-ready historical data, current price changes, target lines, transaction markers, and alert states. Users MUST be able to configure a target alert as neutral, stop-loss, buy, or sell and see its intent-specific message when triggered.
+The frontend MUST display chart-ready historical data, current price changes, target lines, transaction markers, and alert states. Users MUST be able to configure a target alert as buy or sell and see its type-specific message when triggered. The alerts workspace MUST list every configured alert and MUST prefill the selected target's saved type and target price.
 
 #### Scenario: View a stock chart
 
@@ -56,12 +56,13 @@ The frontend MUST display chart-ready historical data, current price changes, ta
 - AND unavailable market data is shown as unavailable rather than as zero
 - AND values in different currencies are not visually presented as one converted total
 
-#### Scenario: Configure a target alert intent
+#### Scenario: Configure a target alert type
 
 - GIVEN a portfolio holding with a target price
-- WHEN the user selects neutral, stop-loss, buy, or sell
-- THEN the selected intent is saved with the target
+- WHEN the user selects buy or sell
+- THEN the selected type is saved with the target
 - AND the corresponding message is displayed when its crossing condition occurs
+- AND the selected target's saved type and target price are prefilled in the form
 
 ### Requirement: Framework independence
 

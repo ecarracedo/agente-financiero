@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw'
 
 import type { MutationResponse, PortfolioPosition, PortfolioSnapshot, TickerAliasResponse, TransactionSummary } from '../api/client'
-import type { AlertCheck } from '../features/alerts/alertApi'
+import type { AlertCheck, ConfiguredAlert } from '../features/alerts/alertApi'
 import type { BibliographyItem } from '../features/bibliography/bibliographyApi'
 import type { SplitProjection } from '../features/tools/split/splitApi'
 import type { WishlistItem } from '../features/wishlist/wishlistApi'
@@ -11,6 +11,7 @@ import {
   analysisAAPL,
   analysisPAMP,
   bibliography,
+  configuredAlerts,
   dollarRates,
   portfolioItems,
   splitResult,
@@ -144,6 +145,16 @@ export const handlers = [
     HttpResponse.json<MutationResponse>({ deleted: true }),
   ),
 
+  // The flagged list starts empty and the PUT echoes what was sent, so a test
+  // sees exactly the tickers it saved without leaking state across cases.
+  http.get(`${BASE}/api/v1/percent-of-par-tickers`, () =>
+    HttpResponse.json({ tickers: [] }),
+  ),
+  http.put(`${BASE}/api/v1/percent-of-par-tickers`, async ({ request }) => {
+    const body = (await request.json()) as { tickers: string[] }
+    return HttpResponse.json({ tickers: body.tickers })
+  }),
+
   http.get(`${BASE}/api/v1/analysis/:ticker`, ({ params }) => {
     const ticker = String(params.ticker)
     if (ticker === 'ZZZZ') return HttpResponse.json(unknownAnalysis)
@@ -163,9 +174,18 @@ export const handlers = [
     )
   }),
 
+  // Every configured alert, portfolio first and wishlist after.
+  http.get(`${BASE}/api/v1/alerts`, () =>
+    HttpResponse.json<ConfiguredAlert[]>(configuredAlerts),
+  ),
+
   // A portfolio alert is configured per ticker.
   http.put(`${BASE}/api/v1/portfolio/:ticker/alert`, () =>
     HttpResponse.json({ configured: true }),
+  ),
+  // Removing an alert keeps the position; the route only clears the alert.
+  http.delete(`${BASE}/api/v1/portfolio/:ticker/alert`, () =>
+    HttpResponse.json<MutationResponse>({ deleted: true }),
   ),
   // The check carries the observed price and the derived event, or null.
   http.post(`${BASE}/api/v1/portfolio/:ticker/alert/check`, ({ params }) => {
@@ -195,6 +215,10 @@ export const handlers = [
   // A wishlist alert is configured per ticker.
   http.put(`${BASE}/api/v1/wishlist/:ticker/alert`, () =>
     HttpResponse.json({ configured: true }),
+  ),
+  // Removing a wishlist alert keeps the wishlist entry itself.
+  http.delete(`${BASE}/api/v1/wishlist/:ticker/alert`, () =>
+    HttpResponse.json<MutationResponse>({ deleted: true }),
   ),
   // This check sends no request body, so there is nothing to read from it.
   http.post(`${BASE}/api/v1/wishlist/:ticker/alert/check`, () =>

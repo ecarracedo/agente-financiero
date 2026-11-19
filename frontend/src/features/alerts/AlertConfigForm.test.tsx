@@ -4,10 +4,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { AlertConfigForm } from './AlertConfigForm'
 
 describe('AlertConfigForm', () => {
-  it('offers all four alert intents', () => {
+  it('offers only the buy and sell alert types', () => {
     render(
       <AlertConfigForm
-        intent="NEUTRAL"
+        intent="BUY"
         targetPrice=""
         submitting={false}
         onIntentChange={vi.fn()}
@@ -17,16 +17,16 @@ describe('AlertConfigForm', () => {
     )
 
     const options = screen.getAllByRole('option').map((option) => option.textContent)
-    expect(options).toEqual(['Neutral', 'Stop-loss', 'Buy', 'Sell'])
+    expect(options).toEqual(['Buy', 'Sell'])
   })
 
-  it('reports the selected intent and target price', () => {
+  it('reports the selected type and target price', () => {
     const onIntentChange = vi.fn()
     const onTargetPriceChange = vi.fn()
 
     render(
       <AlertConfigForm
-        intent="NEUTRAL"
+        intent="BUY"
         targetPrice=""
         submitting={false}
         onIntentChange={onIntentChange}
@@ -35,10 +35,10 @@ describe('AlertConfigForm', () => {
       />,
     )
 
-    fireEvent.change(screen.getByLabelText('Intent'), { target: { value: 'BUY' } })
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'SELL' } })
     fireEvent.change(screen.getByLabelText('Target price'), { target: { value: '200.00' } })
 
-    expect(onIntentChange).toHaveBeenCalledWith('BUY')
+    expect(onIntentChange).toHaveBeenCalledWith('SELL')
     expect(onTargetPriceChange).toHaveBeenCalledWith('200.00')
   })
 })

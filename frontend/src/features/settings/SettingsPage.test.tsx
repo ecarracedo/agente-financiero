@@ -216,4 +216,37 @@ describe('SettingsPage', () => {
       )
     })
   })
+
+  /**
+   * Per-100-nominal ticker flag.
+   *
+   * Yahoo reports BYMA ONs as equities, so the user declares which tickers quote
+   * per 100 nominal units; the backend divides their prices by 100.
+   */
+  describe('cotización cada 100 nominales', () => {
+    it('starts with no flagged tickers', async () => {
+      renderWithRouter({ initialEntries: ['/configuracion'] })
+
+      const settings = within(await settingsSection())
+
+      expect(
+        await settings.findByText('Ningún ticker marcado.'),
+      ).toBeInTheDocument()
+    })
+
+    it('flags a ticker and shows it in the list', async () => {
+      renderWithRouter({ initialEntries: ['/configuracion'] })
+
+      const settings = within(await settingsSection())
+      const input = await settings.findByLabelText('Ticker cotizado cada 100 nominales')
+
+      fireEvent.change(input, { target: { value: ' yfcoo.ba ' } })
+      fireEvent.click(settings.getByRole('button', { name: 'Agregar ticker' }))
+
+      await waitFor(() =>
+        expect(settings.getByText('YFCOO.BA')).toBeInTheDocument(),
+      )
+      expect(settings.getByRole('button', { name: 'Quitar ticker YFCOO.BA' })).toBeInTheDocument()
+    })
+  })
 })
