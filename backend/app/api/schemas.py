@@ -277,6 +277,31 @@ class AlertResponse(BaseModel):
     last_observed_price: OptionalMoneyString
 
 
+class TriggeredAlertResponse(BaseModel):
+    """Expose one persisted crossing with the asset it fired for."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    scope: AlertScope
+    ticker: str
+    broker: str | None
+    category: str | None
+    currency: str | None
+    target_price: MoneyString
+    intent: AlertIntent
+    observed_price: MoneyString
+    message: str
+    triggered_at: datetime
+    acknowledged_at: datetime | None
+
+
+class AcknowledgedResponse(BaseModel):
+    """Acknowledge that a triggered event was marked as seen."""
+
+    acknowledged: bool
+
+
 class SplitProjectionResponse(BaseModel):
     """Expose a split projection with canonical string amounts."""
 

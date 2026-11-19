@@ -384,6 +384,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alerts/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Alert Events
+         * @description Return triggered crossings newest first, hiding acknowledged by default.
+         */
+        get: operations["list_alert_events_api_v1_alerts_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/events/{event_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge Alert Event
+         * @description Mark one triggered crossing as seen without touching its alert.
+         */
+        post: operations["acknowledge_alert_event_api_v1_alerts_events__event_id__acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate Alerts
+         * @description Run one evaluation pass and return the crossings it just recorded.
+         */
+        post: operations["evaluate_alerts_api_v1_alerts_evaluate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/portfolio/{ticker}/alert": {
         parameters: {
             query?: never;
@@ -712,6 +772,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AcknowledgedResponse
+         * @description Acknowledge that a triggered event was marked as seen.
+         */
+        AcknowledgedResponse: {
+            /** Acknowledged */
+            acknowledged: boolean;
+        };
         /**
          * AlertCheckResponse
          * @description Expose an alert evaluation with its canonical observed price.
@@ -1185,6 +1253,37 @@ export interface components {
              * Format: date-time
              */
             occurred_at: string;
+        };
+        /**
+         * TriggeredAlertResponse
+         * @description Expose one persisted crossing with the asset it fired for.
+         */
+        TriggeredAlertResponse: {
+            /** Id */
+            id: number;
+            scope: components["schemas"]["AlertScope"];
+            /** Ticker */
+            ticker: string;
+            /** Broker */
+            broker: string | null;
+            /** Category */
+            category: string | null;
+            /** Currency */
+            currency: string | null;
+            /** Target Price */
+            target_price: string;
+            intent: components["schemas"]["AlertIntent"];
+            /** Observed Price */
+            observed_price: string;
+            /** Message */
+            message: string;
+            /**
+             * Triggered At
+             * Format: date-time
+             */
+            triggered_at: string;
+            /** Acknowledged At */
+            acknowledged_at: string | null;
         };
         /**
          * UpdatedResponse
@@ -1953,6 +2052,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlertResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_alert_events_api_v1_alerts_events_get: {
+        parameters: {
+            query?: {
+                include_acknowledged?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggeredAlertResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_alert_event_api_v1_alerts_events__event_id__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: number;
+            };
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcknowledgedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluate_alerts_api_v1_alerts_evaluate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggeredAlertResponse"][];
                 };
             };
             /** @description Validation Error */
