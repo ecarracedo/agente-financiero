@@ -49,9 +49,10 @@ backend/tests` and `npm test` in `frontend/`.
   `alert_scheduler_enabled` (S1, S7). Tests in `backend/tests/test_alert_scheduler.py`.
 - T5 — ✅ done (`284a096`) — API: response schema plus the three routes (S4, S5). Tests in `backend/tests/test_api.py`.
 - T6 — ✅ done (`284a096`) — regenerate `frontend/openapi.json` and `frontend/src/api/types.ts` (S8).
-- T7 — pending — frontend: `alertApi.listEvents/acknowledgeEvent/evaluate`, MSW handlers and fixtures, and
-  the workspace triggered list with acknowledge and "Check now" (S6).
-- T8 — pending — docs: `CHANGELOG.md`, `CHANGELOG_es.md`, canonical OpenSpec requirements (S8).
+- T7 — ✅ done (`01ed5e4`) — frontend: `alertApi.listEvents/acknowledgeEvent/evaluate`, MSW handlers and
+  fixtures, and the workspace triggered list with acknowledge and "Check now" (S6). Tests in
+  `frontend/src/features/alerts/`.
+- T8 — ✅ done (`<T8>`) — docs: `CHANGELOG.md`, `CHANGELOG_es.md`, canonical OpenSpec requirements (S8).
 
 ## Log
 
@@ -72,5 +73,8 @@ backend/tests` and `npm test` in `frontend/`.
   (`AlertMonitorUseCases` with one quote per ticker and per-ticker isolation, `TargetAlertScheduler`
   poll loop, `alert_scheduler_enabled` lifespan wiring) and `284a096` (three routes, response
   schemas, regenerated `frontend/openapi.json` and `frontend/src/api/types.ts`).
-  `python -m pytest backend/tests` → **282 passed**, including the API drift guard. T7 (frontend
-  workspace) and T8 (CHANGELOG/OpenSpec) remain open.
+  `python -m pytest backend/tests` → **282 passed**, including the API drift guard. T7 landed in
+  `01ed5e4` (workspace shows triggered events, Acknowledge action, "Check now";
+  `npx vitest run src/features/alerts` → 6/6 passed; `npm run lint` clean; `npm test` full suite
+  passes except a pre-existing flaky `AssetDistributionCard` test that also fails at baseline
+  without these changes).
