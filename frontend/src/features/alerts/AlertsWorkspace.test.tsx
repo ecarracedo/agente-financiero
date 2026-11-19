@@ -95,4 +95,23 @@ describe('AlertsWorkspace', () => {
 
     await waitFor(() => expect(evaluated).toEqual(['evaluate']))
   })
+
+  it('allows configuring an alert for an asset outside portfolio and wishlist', async () => {
+    render(<AlertsWorkspace />)
+
+    await screen.findByText('AAPL · ECO · Acciones')
+
+    fireEvent.change(screen.getByLabelText('Position'), {
+      target: { value: 'custom' },
+    })
+
+    const customInput = screen.getByPlaceholderText(/Ej: TSLA/)
+    expect(customInput).toBeInTheDocument()
+
+    fireEvent.change(customInput, { target: { value: 'TSLA' } })
+
+    expect(await screen.findByRole('heading', { name: 'Target alert' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Type')).toBeInTheDocument()
+    expect(screen.getByLabelText('Target price')).toBeInTheDocument()
+  })
 })
