@@ -19,6 +19,8 @@ from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUni
 from backend.app.api.auth import auth_router, require_user
 from backend.app.api.routes import router as api_router
 from backend.app.api.services import ApplicationServices
+from backend.app.application.alert_monitor import AlertMonitorUseCases
+from backend.app.application.alert_scheduler import TargetAlertScheduler
 from backend.app.application.alerts import TargetAlertUseCases
 from backend.app.application.analytics import PortfolioAnalyticsUseCases
 from backend.app.application.percent_of_par import (
@@ -44,6 +46,7 @@ def create_app(
     market_data_provider=None,
     auth_enabled: bool = True,
     snapshot_scheduler_enabled: bool = True,
+    alert_scheduler_enabled: bool = True,
 ) -> FastAPI:
     """Create the financial agent API application.
 
@@ -103,27 +106,34 @@ def create_app(
     )
     portfolio_use_cases = PortfolioUseCases(unit_of_work_factory)
     snapshot_use_cases = PortfolioSnapshotUseCases(unit_of_work_factory, provider)
+    alert_use_cases = TargetAlertUseCases(unit_of_work_factory)
+    alert_monitor = AlertMonitorUseCases(alert_use_cases, provider)
     snapshot_scheduler = (
         PortfolioSnapshotScheduler(snapshot_use_cases)
         if snapshot_scheduler_enabled
         else None
     )
+    alert_scheduler = (
+        TargetAlertScheduler(alert_monitor) if alert_scheduler_enabled else None
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        """Keep the daily snapshot scheduler running while the API serves."""
-        task = (
-            asyncio.create_task(
-                snapshot_scheduler.run(), name="portfolio-snapshot-scheduler"
+        """Keep the snapshot and alert schedulers running while the API serves."""
+        tasks = [
+            asyncio.create_task(scheduler.run(), name=name)
+            for scheduler, name in (
+                (snapshot_scheduler, "portfolio-snapshot-scheduler"),
+                (alert_scheduler, "target-alert-scheduler"),
             )
-            if snapshot_scheduler is not None
-            else None
-        )
+            if scheduler is not None
+        ]
         try:
             yield
         finally:
-            if task is not None:
+            for task in tasks:
                 task.cancel()
+            for task in tasks:
                 with suppress(asyncio.CancelledError):
                     await task
 
@@ -133,13 +143,15 @@ def create_app(
     application.state.services = ApplicationServices(
         portfolio=portfolio_use_cases,
         analytics=PortfolioAnalyticsUseCases(portfolio_use_cases, provider),
-        alerts=TargetAlertUseCases(unit_of_work_factory),
+        alerts=alert_use_cases,
+        monitor=alert_monitor,
         resources=ResourceUseCases(unit_of_work_factory),
         snapshots=snapshot_use_cases,
         percent_of_par=PercentOfParUseCases(unit_of_work_factory),
     )
     application.state.database_engine_provider = engine_provider
     application.state.snapshot_scheduler = snapshot_scheduler
+    application.state.alert_scheduler = alert_scheduler
     application.include_router(auth_router)
     if auth_enabled:
         application.include_router(

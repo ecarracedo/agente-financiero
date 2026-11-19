@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from backend.app.application.alerts import TargetAlertUseCases
+from backend.app.application.alert_monitor import AlertMonitorUseCases
 from backend.app.application.analytics import PortfolioAnalyticsUseCases
 from backend.app.application.percent_of_par import PercentOfParUseCases
 from backend.app.application.portfolio import PortfolioUseCases
@@ -17,6 +18,7 @@ class ApplicationServices:
     portfolio: PortfolioUseCases
     analytics: PortfolioAnalyticsUseCases
     alerts: TargetAlertUseCases
+    monitor: AlertMonitorUseCases
     resources: ResourceUseCases
     snapshots: PortfolioSnapshotUseCases
     percent_of_par: PercentOfParUseCases
