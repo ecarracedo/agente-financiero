@@ -26,7 +26,7 @@ describe('AlertsWorkspace', () => {
 
     await screen.findByText('AAPL · ECO · Acciones')
 
-    fireEvent.change(screen.getByLabelText('Position'), {
+    fireEvent.change(screen.getByLabelText('Posición de cartera'), {
       target: { value: 'portfolio:ECO:AAPL' },
     })
 
@@ -101,17 +101,34 @@ describe('AlertsWorkspace', () => {
 
     await screen.findByText('AAPL · ECO · Acciones')
 
-    fireEvent.change(screen.getByLabelText('Position'), {
-      target: { value: 'custom' },
-    })
+    const scopeGroup = screen.getByRole('group', { name: 'Scope' })
+    fireEvent.click(within(scopeGroup).getByRole('button', { name: 'Otro activo' }))
 
-    const customInput = screen.getByPlaceholderText(/Ej: TSLA/)
-    expect(customInput).toBeInTheDocument()
+    const search = screen.getByLabelText('Buscar activo')
+    fireEvent.change(search, { target: { value: 'NV' } })
 
-    fireEvent.change(customInput, { target: { value: 'TSLA' } })
+    const suggestion = await screen.findByRole('option', { name: /NVDA/ })
+    fireEvent.click(suggestion)
 
     expect(await screen.findByRole('heading', { name: 'Target alert' })).toBeInTheDocument()
     expect(screen.getByLabelText('Type')).toBeInTheDocument()
-    expect(screen.getByLabelText('Target price')).toBeInTheDocument()
+    expect(screen.getByLabelText('Target price')).toHaveValue('120.00')
+  })
+
+  it('shows the current quote and prefills the target price for an unsaved asset', async () => {
+    render(<AlertsWorkspace />)
+
+    await screen.findByText('AAPL · ECO · Acciones')
+
+    const scopeGroup = screen.getByRole('group', { name: 'Scope' })
+    fireEvent.click(within(scopeGroup).getByRole('button', { name: 'Otro activo' }))
+
+    fireEvent.change(screen.getByLabelText('Buscar activo'), {
+      target: { value: 'TSLA' },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Target alert' })).toBeInTheDocument()
+    expect(await screen.findByText(/Cotización actual:/)).toHaveTextContent('190,00')
+    expect(await screen.findByLabelText('Target price')).toHaveValue('190.00')
   })
 })

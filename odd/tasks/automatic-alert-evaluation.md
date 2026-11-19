@@ -53,6 +53,7 @@ backend/tests` and `npm test` in `frontend/`.
   fixtures, and the workspace triggered list with acknowledge and "Check now" (S6). Tests in
   `frontend/src/features/alerts/`.
 - T8 — ✅ done (`29eaa06`) — docs: `CHANGELOG.md`, `CHANGELOG_es.md`, canonical OpenSpec requirements (S8).
+- T9 — ✅ done (`8c63eb9`) — consumer UI: compact scope control inside the quick-creation card, scope-dependent position/wishlist/asset-search field, and the live quote shown and prefilled in Target alert (S6). Tests in `frontend/src/features/alerts/` and `frontend/src/app/routes.test.tsx`.
 
 ## Log
 
@@ -78,3 +79,6 @@ backend/tests` and `npm test` in `frontend/`.
   `npx vitest run src/features/alerts` → 6/6 passed; `npm run lint` clean; `npm test` full suite
   passes except a pre-existing flaky `AssetDistributionCard` test that also fails at baseline
   without these changes).
+
+- **L5** — User request, verbatim: "Dentro de Creador de alerta, tiene que seleccionar scope y dependiendo de la seleccion otro campo con la posicion si es cartera, con whishlist lo mismo y si quiero buscar un activo que me permita buscarlo igual que cuando busco un activo en registrar transacciones"; "ese scope que hay ahi no me gusta"; "En target Alert cuando elijo el precio me tiene que aparecer la cotizacion actual".
+- **L6** — T9 evidence (2026-11-19): removed the detached top-of-page scope bar; the card now owns a three-way segmented scope control and shows only the matching dependent field, reusing `TickerSearch` for "Otro activo". The quote from `marketApi.getAnalysis` is passed to `AlertsPanel` as `initialTargetPrice` and rendered as "Cotización actual"; a user edit wins over the quote, and a saved alert wins over both. `npx vitest run src/features/alerts` → 23/23; `npx vitest run --maxWorkers=1` → 198/198; `npm run lint` clean; `python -m pytest tests -q` → 282 passed (from `backend/`). The parallel full suite still shows an intermittent `AssetDistributionCard` timing failure present at baseline.

@@ -31,6 +31,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
 - **Interfaz Streamlit y runtime `finance.db` retirados**: se eliminó la app Streamlit de una página (`main.py`, `src/`), el esquema SQLite `finance.db` y sus scripts de migración, la suite `tests/` de la raíz, `requirements.txt`, `debug_wishlist.py` y `test.ipynb`. El runtime soportado es el stack en contenedores FastAPI + React documentado en el README. `finance.db` permanece en disco como fuente de migración no trackeada para [`docs/operations/migration.md`](docs/operations/migration.md) y no se borra. La ruta yfinance ÷100 que vivía solo en `src/` ahora está implementada en los adapters del backend (ver Corregido).
 
 ### Cambiado
+- **Creación rápida de alertas**: el selector de scope ahora está dentro de la tarjeta "Creación Rápida de Alerta" como un control compacto. Cartera y Wishlist muestran solo sus propias posiciones; "Otro activo" reutiliza la búsqueda de activos de transacciones (`TickerSearch` con sugerencias del proveedor) en lugar de un ticker libre. La cotización actual se muestra al configurar el precio objetivo y lo precarga para activos sin alerta guardada.
 - **Script de arranque**: `scripts/start.sh` reemplaza a `scripts/start-demo.sh` y levanta el servidor de desarrollo de Vite contra el backend real en lugar de los datos de demo (MSW).
 
 ### Corregido

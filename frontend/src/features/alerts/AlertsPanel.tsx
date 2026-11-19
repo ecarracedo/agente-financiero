@@ -84,15 +84,21 @@ export function AlertsPanel({
   category = null,
   scope,
   alert = null,
+  initialTargetPrice,
   onTargetConfigured,
 }: AlertsPanelProps) {
   const [intent, setIntent] = useState<AlertIntent>(alert?.intent ?? 'BUY')
-  const [targetPrice, setTargetPrice] = useState(props.initialTargetPrice ?? (alert?.target_price ?? ''))
+  const [editedPrice, setEditedPrice] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [checkState, setCheckState] = useState<AlertCheckState>({ kind: 'idle' })
+
+  // The live quote can arrive after this panel mounts, so the target is derived
+  // rather than copied into state: a user edit wins, then a saved alert, then
+  // the current quote.
+  const targetPrice = editedPrice ?? (alert?.target_price ?? initialTargetPrice ?? '')
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -190,7 +196,7 @@ export function AlertsPanel({
             setSaved(false)
           }}
           onTargetPriceChange={(value) => {
-            setTargetPrice(value)
+            setEditedPrice(value)
             setSaved(false)
             setFieldErrors((current) => {
               const next = { ...current }
@@ -200,6 +206,16 @@ export function AlertsPanel({
           }}
           onSubmit={handleSave}
         />
+        {initialTargetPrice ? (
+          <p className="text-xs font-mono text-[#869397]">
+            Cotización actual:{' '}
+            {currency !== null && currency !== '' ? (
+              <CurrencyAmount amount={initialTargetPrice} currency={currency} />
+            ) : (
+              <span>{initialTargetPrice}</span>
+            )}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={handleCheck}

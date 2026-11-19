@@ -13,8 +13,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { describeApiError } from '../../api/errors'
-import { ErrorState, LoadingState } from '../../components/AsyncStates'
+import { ErrorState } from '../../components/AsyncStates'
 import { CurrencyAmount } from '../../components/CurrencyAmount'
+import { TickerSearch } from '../../components/TickerSearch'
 import { AlertsPanel } from './AlertsPanel'
 import type { ConfiguredAlert, TriggeredAlertEvent } from './alertApi'
 import { ALERT_INTENTS, alertApi } from './alertApi'
@@ -55,64 +56,26 @@ function alertOrigin(alert: ConfiguredAlert): string {
   return [alert.broker, alert.category].filter(Boolean).join(' · ')
 }
 
-/** Describe where a configured alert came from. */
-function alertOrigin(alert: ConfiguredAlert): string {
-  if (alert.scope === 'wishlist') return 'wishlist'
-  return [alert.broker, alert.category].filter(Boolean).join(' · ')
-}
-
 /** Display label for a stored trade direction. */
 function intentLabel(intent: ConfiguredAlert['intent']): string {
   return ALERT_INTENTS.find((option) => option.value === intent)?.label ?? intent
 }
 
-/** Render the scope selector at the top of the workspace. */
-function ScopeSelector({
-  scope,
-  setScope,
-  selectedKey,
-  setSelectedKey,
-  targets,
-}: {
-  scope: Scope
-  setScope: (s: Scope) => void
-  selectedKey: string
-  setSelectedKey: (s: string) => void
-  targets: AlertTarget[]
-}) {
-  const portfolioTargets = targets.filter((t) => t.scope === 'portfolio')
-  const wishlistTargets = targets.filter((t) => t.scope === 'wishlist')
+/** Compact scope choices shown inside the quick-creation card. */
+const SCOPE_OPTIONS: ReadonlyArray<{ value: Scope; label: string }> = [
+  { value: 'portfolio', label: 'Cartera' },
+  { value: 'wishlist', label: 'Wishlist' },
+  { value: 'custom', label: 'Otro activo' },
+]
 
-  return (
-    <div className="mb-4">
-      <label htmlFor="scope-selector" className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-2">
-        Scope
-      </label>
-      <select id="scope-selector"
-        value={scope}
-        onChange={(e) => {
-          const newScope = e.target.value as Scope
-          setScope(newScope)
-          if (newScope === 'portfolio') {
-            setSelectedKey(
-              portfolioTargets.length > 0 ? portfolioTargets[0].key : ''
-            )
-          } else if (newScope === 'wishlist') {
-            setSelectedKey(
-              wishlistTargets.length > 0 ? wishlistTargets[0].key : ''
-            )
-          } else {
-            setSelectedKey('')
-          }
-        }}
-        className="w-full py-2.5 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-sm focus:outline-none focus:border-primary transition-colors cursor-pointer"
-      >
-        <option value="portfolio">Cartera</option>
-        <option value="wishlist">Wishlist</option>
-        <option value="custom">Otro activo</option>
-      </select>
-    </div>
-  )
+/** Delay before a selected ticker becomes a live quote request. */
+const QUOTE_DEBOUNCE_MS = 400
+
+/** Resolved live quote for one ticker, used to prefill the target price. */
+interface LiveQuote {
+  ticker: string
+  price: string
+  currency: string | null
 }
 
 export function AlertsWorkspace() {
@@ -121,10 +84,12 @@ export function AlertsWorkspace() {
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
   const [eventsChecking, setEventsChecking] = useState(false)
+  const [scope, setScope] = useState<Scope>('portfolio')
   const [eventError, setEventError] = useState<string | null>(null)
   const [acknowledging, setAcknowledging] = useState<number | null>(null)
   const [selectedKey, setSelectedKey] = useState('')
   const [customTicker, setCustomTicker] = useState('')
+  const [quote, setQuote] = useState<LiveQuote | null>(null)
   const [tabFilter, setTabFilter] = useState<TabFilter>('all')
   const [searchFilter, setSearchFilter] = useState('')
 
@@ -237,6 +202,47 @@ export function AlertsWorkspace() {
                 alert.category === selected.category)),
         ) ?? null)
 
+  const selectedTicker = selected?.ticker ?? ''
+
+  // The target-price field starts from the live quote, so the user configures an
+  // alert against the current market price instead of an empty input. Debounced
+  // to one provider call per settled selection; a failure keeps manual entry.
+  useEffect(() => {
+    if (selectedTicker === '') return
+    let active = true
+    const timer = setTimeout(() => {
+      marketApi
+        .getAnalysis(selectedTicker, '1mo')
+        .then((data) => {
+          if (!active || data.current_price === null) return
+          setQuote({
+            ticker: selectedTicker,
+            price: data.current_price,
+            currency: data.currency,
+          })
+        })
+        .catch(() => {
+          // Provider unavailable: the target price stays editable by hand.
+        })
+    }, QUOTE_DEBOUNCE_MS)
+
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [selectedTicker])
+
+  function handleScopeChange(next: Scope) {
+    setScope(next)
+    setQuote(null)
+    if (next === 'custom') {
+      setSelectedKey('custom')
+      setCustomTicker('')
+    } else {
+      setSelectedKey('')
+    }
+  }
+
   async function handleRemove(alert: ConfiguredAlert) {
     setRemoveError(null)
     setRemoving(alertKey(alert))
@@ -302,21 +308,6 @@ export function AlertsWorkspace() {
       </div>
 
       {error !== null ? <ErrorState message={error} /> : null}
-      {error === null && loaded === null ? <LoadingState /> : null}
-
-      {/* Scope Selector Row */}
-      <div className="mb-4">
-        <ScopeSelector
-          scope={scope}
-          setScope={setScope}
-          selectedKey={selectedKey}
-          setSelectedKey={setSelectedKey}
-          targets={targets}
-        />
-      </div>
-
-      {/* Main 2-Column Grid: Form (col 4-5) & Table (col 7-8) */}
-      {error === null && loaded === null ? <LoadingState /> : null}
 
       {/* Main 2-Column Grid: Form (col 4-5) & Table (col 7-8) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -336,58 +327,83 @@ export function AlertsWorkspace() {
 
           <div className="space-y-3">
             <div>
-              <label htmlFor="alert-position" className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-1">
-                Position
-              </label>
-              <select
-                id="alert-position"
-                value={selectedKey}
-                onChange={(event) => setSelectedKey(event.target.value)}
-                className="w-full py-2.5 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-sm focus:outline-none focus:border-primary transition-colors cursor-pointer"
+              <span className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-1">
+                Scope
+              </span>
+              <div
+                role="group"
+                aria-label="Scope"
+                className="flex gap-1 p-1 rounded-lg bg-surface-container border border-outline-variant/30"
               >
-                <option value="">Select a position</option>
-                <optgroup label="Cartera">
+                {SCOPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={scope === option.value}
+                    onClick={() => handleScopeChange(option.value)}
+                    className={`flex-1 px-2 py-1.5 rounded-md text-xs font-mono transition-colors cursor-pointer ${
+                      scope === option.value
+                        ? 'bg-primary text-on-primary font-bold'
+                        : 'text-on-surface-variant hover:bg-surface-container-high'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {scope === 'portfolio' ? (
+              <div>
+                <label htmlFor="alert-position" className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-1">
+                  Posición de cartera
+                </label>
+                <select
+                  id="alert-position"
+                  value={selectedKey}
+                  onChange={(event) => setSelectedKey(event.target.value)}
+                  className="w-full py-2.5 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-sm focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                >
+                  <option value="">Seleccionar posición</option>
                   {targets
-                    .filter((t) => t.scope === 'portfolio')
+                    .filter((target) => target.scope === 'portfolio')
                     .map((target) => (
                       <option key={target.key} value={target.key}>
                         {target.ticker} — {target.broker ?? ''}
                       </option>
                     ))}
-                </optgroup>
-                <optgroup label="Wishlist">
+                </select>
+              </div>
+            ) : scope === 'wishlist' ? (
+              <div>
+                <label htmlFor="alert-position" className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-1">
+                  Activo de wishlist
+                </label>
+                <select
+                  id="alert-position"
+                  value={selectedKey}
+                  onChange={(event) => setSelectedKey(event.target.value)}
+                  className="w-full py-2.5 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-sm focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                >
+                  <option value="">Seleccionar activo</option>
                   {targets
-                    .filter((t) => t.scope === 'wishlist')
+                    .filter((target) => target.scope === 'wishlist')
                     .map((target) => (
                       <option key={target.key} value={target.key}>
-                        {target.ticker} — wishlist
+                        {target.ticker}
                       </option>
                     ))}
-                </optgroup>
-                <optgroup label="Activo Fuera de Cartera">
-                  <option value="custom">+ Ingresar otro activo (fuera de cartera)...</option>
-                </optgroup>
-              </select>
-            </div>
-
-            {isCustom ? (
-              <div className="space-y-1">
-                <label htmlFor="custom-ticker-input" className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block">
-                  Ticker del instrumento
-                </label>
-                <input
-                  id="custom-ticker-input"
-                  type="text"
-                  placeholder="Ej: TSLA, BTC-USD, S13N6..."
-                  value={customTicker}
-                  onChange={(e) => setCustomTicker(e.target.value.toUpperCase())}
-                  className="w-full py-2 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-sm uppercase font-mono focus:outline-none focus:border-primary transition-colors"
-                />
-                <span className="text-[11px] text-outline block">
-                  Se agregará al wishlist y se evaluará automáticamente por el scheduler.
-                </span>
+                </select>
               </div>
-            ) : null}
+            ) : (
+              <TickerSearch
+                id="alert-ticker-search"
+                label="Buscar activo"
+                value={customTicker}
+                onChange={(value) => setCustomTicker(value.toUpperCase())}
+                search={marketApi.searchTickers}
+              />
+            )}
           </div>
 
           {selected !== null ? (
@@ -395,11 +411,18 @@ export function AlertsWorkspace() {
               <AlertsPanel
                 key={selected.key}
                 ticker={selected.ticker}
-                currency={selected.currency}
+                currency={
+                  quote?.ticker === selected.ticker
+                    ? quote.currency
+                    : selected.currency
+                }
                 broker={selected.broker}
                 category={selected.category}
                 scope={selected.scope}
                 alert={selectedAlert}
+                initialTargetPrice={
+                  quote?.ticker === selected.ticker ? quote.price : undefined
+                }
                 onTargetConfigured={() => {
                   void refresh().catch((cause: unknown) =>
                     setRemoveError(describeApiError(cause)),

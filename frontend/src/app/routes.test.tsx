@@ -48,7 +48,9 @@ describe('workspace routes', () => {
   it('reaches alerts without opening the market workspace', async () => {
     renderWithRouter({ initialEntries: ['/alerts'] })
 
-    expect(await screen.findByRole('heading', { name: 'Alerts' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /Centro de Alertas/ }),
+    ).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Market' })).not.toBeInTheDocument()
   })
 })
