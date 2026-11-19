@@ -26,6 +26,9 @@ import { api } from '../../api/client'
 
 type Scope = 'portfolio' | 'wishlist' | 'custom'
 
+/** Scopes the backend understands; the UI-only `custom` choice maps to `wishlist`. */
+type TargetScope = Exclude<Scope, 'custom'>
+
 /** A selectable alert target: one position or one wishlist entry. */
 interface AlertTarget {
   key: string
@@ -33,7 +36,7 @@ interface AlertTarget {
   currency: string | null
   broker: string | null
   category: string | null
-  scope: Scope
+  scope: TargetScope
 }
 
 interface Loaded {
