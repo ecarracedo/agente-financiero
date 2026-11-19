@@ -168,3 +168,22 @@ class AuthSessionRecord(Base):
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
+
+
+class AlertEventRecord(Base):
+    """One detected crossing, persisted for the user to see what fired while away."""
+
+    __tablename__ = "alert_event_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    scope: Mapped[str] = mapped_column(String(16), nullable=False)
+    ticker: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    target_price: Mapped[Decimal] = mapped_column(Numeric(30, 10), nullable=False)
+    intent: Mapped[str] = mapped_column(String(16), nullable=False)
+    observed_price: Mapped[Decimal] = mapped_column(Numeric(30, 10), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    broker: Mapped[str | None] = mapped_column(String(120))
+    category: Mapped[str | None] = mapped_column(String(80))
+    currency: Mapped[str | None] = mapped_column(String(3))
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -8,7 +8,14 @@ from decimal import Decimal
 from types import TracebackType
 from typing import Callable, Protocol, Self
 
-from backend.app.domain.alerts import ConfiguredAlert, TargetAlertSettings
+from backend.app.domain.alerts import (
+    AlertIntent,
+    AlertScope,
+    ConfiguredAlert,
+    TargetAlertEvent,
+    TargetAlertSettings,
+    TriggeredAlert,
+)
 from backend.app.domain.analysis import PricePoint, QuoteSnapshot
 from backend.app.domain.portfolio import PortfolioPosition
 from backend.app.domain.tickers import TickerMatch
@@ -102,6 +109,7 @@ class PortfolioUnitOfWorkPort(Protocol):
     resources: ResourceRepositoryPort
     snapshots: PortfolioSnapshotRepositoryPort
     settings: AppSettingRepositoryPort
+    alert_events: AlertEventRepositoryPort
 
     def __enter__(self) -> Self: ...
 
@@ -237,6 +245,28 @@ class MarketDataProviderPort(Protocol):
     def search_symbols(
         self, query: str, limit: int = ...
     ) -> Sequence[TickerMatch]: ...
+
+
+class AlertEventRepositoryPort(Protocol):
+    """Persistence operations for triggered alert events."""
+
+    def record_event(
+        self,
+        alert: ConfiguredAlert,
+        event: TargetAlertEvent,
+        observed_price: Decimal,
+        triggered_at: datetime,
+    ) -> TriggeredAlert: ...
+
+    def list_events(
+        self,
+        *,
+        include_acknowledged: bool = False,
+    ) -> tuple[TriggeredAlert, ...]: ...
+
+    def acknowledge_event(
+        self, event_id: int, acknowledged_at: datetime
+    ) -> bool: ...
 
 
 PortfolioUnitOfWorkFactory = Callable[[], PortfolioUnitOfWorkPort]

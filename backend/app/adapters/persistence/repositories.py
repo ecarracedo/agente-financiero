@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.adapters.persistence.models import (
+    AlertEventRecord,
     AppSettingRecord,
     BibliographyRecord,
     PortfolioDailySnapshotRecord,
@@ -16,6 +17,7 @@ from backend.app.adapters.persistence.models import (
     WishlistRecord,
 )
 from backend.app.application.ports import (
+    AlertEventRepositoryPort,
     AppSettingRepositoryPort,
     PortfolioSnapshotRecord,
     PortfolioSnapshotRepositoryPort,
@@ -24,7 +26,9 @@ from backend.app.domain.alerts import (
     AlertIntent,
     AlertScope,
     ConfiguredAlert,
+    TargetAlertEvent,
     TargetAlertSettings,
+    TriggeredAlert,
 )
 from backend.app.domain.portfolio import PortfolioPosition
 from backend.app.domain.tickers import normalize_ticker
@@ -573,3 +577,80 @@ class SqlAlchemyAppSettingRepository:
             self._session.add(record)
         else:
             record.value = value
+
+
+class SqlAlchemyAlertEventRepository:
+    """Persist and list triggered alert crossings."""
+
+    def __init__(self, session: Session) -> None:
+        """Initialize the repository with a caller-managed SQLAlchemy session."""
+        self._session = session
+
+    def record_event(
+        self,
+        alert: ConfiguredAlert,
+        event: TargetAlertEvent,
+        observed_price: Decimal,
+        triggered_at: datetime,
+    ) -> TriggeredAlert:
+        """Persist one crossing and return its projected read model."""
+        record = AlertEventRecord(
+            scope=alert.scope.value,
+            ticker=alert.ticker,
+            target_price=alert.target_price,
+            intent=event.intent.value,
+            observed_price=observed_price,
+            message=event.message,
+            triggered_at=triggered_at,
+            broker=alert.broker,
+            category=alert.category,
+            currency=alert.currency,
+        )
+        self._session.add(record)
+        self._session.flush()
+        return _triggered_alert(record)
+
+    def list_events(
+        self, *, include_acknowledged: bool = False
+    ) -> tuple[TriggeredAlert, ...]:
+        """Return triggered events newest first, hiding acknowledged ones by default."""
+        statement = select(AlertEventRecord).order_by(
+            AlertEventRecord.triggered_at.desc()
+        )
+        if not include_acknowledged:
+            statement = statement.where(AlertEventRecord.acknowledged_at.is_(None))
+        return tuple(
+            _triggered_alert(record)
+            for record in self._session.scalars(statement)
+        )
+
+    def acknowledge_event(
+        self, event_id: int, acknowledged_at: datetime
+    ) -> bool:
+        """Mark one event as seen; returns False when no such event exists."""
+        statement = select(AlertEventRecord).where(
+            AlertEventRecord.id == event_id
+        )
+        record = self._session.scalar(statement)
+        if record is None:
+            return False
+        record.acknowledged_at = acknowledged_at
+        return True
+
+
+def _triggered_alert(record: AlertEventRecord) -> TriggeredAlert:
+    """Project a stored event row, or None when it cannot be evaluated."""
+    return TriggeredAlert(
+        id=record.id,
+        scope=AlertScope(record.scope),
+        ticker=record.ticker,
+        target_price=record.target_price,
+        intent=AlertIntent(record.intent),
+        observed_price=record.observed_price,
+        message=record.message,
+        triggered_at=record.triggered_at,
+        broker=record.broker,
+        category=record.category,
+        currency=record.currency,
+        acknowledged_at=record.acknowledged_at,
+    )

@@ -7,12 +7,14 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from backend.app.adapters.persistence.repositories import (
+    SqlAlchemyAlertEventRepository,
     SqlAlchemyAppSettingRepository,
     SqlAlchemyPortfolioRepository,
     SqlAlchemyPortfolioSnapshotRepository,
     SqlAlchemyResourceRepository,
 )
 from backend.app.application.ports import (
+    AlertEventRepositoryPort,
     AppSettingRepositoryPort,
     PortfolioRepositoryPort,
     PortfolioSnapshotRepositoryPort,
@@ -27,6 +29,7 @@ class SqlAlchemyPortfolioUnitOfWork:
     resources: ResourceRepositoryPort
     snapshots: PortfolioSnapshotRepositoryPort
     settings: AppSettingRepositoryPort
+    alert_events: AlertEventRepositoryPort
 
     def __init__(self, session_factory: Callable[[], Session]) -> None:
         """Initialize with a factory that creates an isolated session."""
@@ -41,6 +44,7 @@ class SqlAlchemyPortfolioUnitOfWork:
         self.resources = SqlAlchemyResourceRepository(self._session)
         self.snapshots = SqlAlchemyPortfolioSnapshotRepository(self._session)
         self.settings = SqlAlchemyAppSettingRepository(self._session)
+        self.alert_events = SqlAlchemyAlertEventRepository(self._session)
         return self
 
     def commit(self) -> None:
