@@ -36,6 +36,12 @@ export type Configured = components['schemas']['ConfiguredResponse']
 /** Acknowledge a successful alert removal. */
 export type AlertRemoved = components['schemas']['MutationResponse']
 
+/** One persisted crossing, listed so the user can see what fired. */
+export type TriggeredAlertEvent = components['schemas']['TriggeredAlertEventResponse']
+
+/** Response acknowledging that one triggered event was marked as seen. */
+export type AcknowledgedResponse = components['schemas']['AcknowledgedResponse']
+
 /** Intent values with their display labels. */
 export const ALERT_INTENTS: { value: AlertIntent; label: string }[] = [
   { value: 'BUY', label: 'Buy' },
@@ -95,4 +101,12 @@ export const alertApi = {
     request<AlertRemoved>(`/api/v1/wishlist/${encodeURIComponent(ticker)}/alert`, {
       method: 'DELETE',
     }),
+  listEvents: (includeAcknowledged = false): Promise<TriggeredAlertEvent[]> =>
+    request(
+      `/api/v1/alerts/events${includeAcknowledged ? '?include_acknowledged=true' : ''}`,
+    ),
+  acknowledgeEvent: (eventId: number): Promise<AcknowledgedResponse> =>
+    request(`/api/v1/alerts/events/${eventId}/acknowledge`, { method: 'POST' }),
+  evaluate: (): Promise<TriggeredAlertEvent[]> =>
+    request('/api/v1/alerts/evaluate', { method: 'POST' }),
 }

@@ -13,7 +13,7 @@ import { describeApiError } from '../../api/errors'
 import { ErrorState, LoadingState } from '../../components/AsyncStates'
 import { CurrencyAmount } from '../../components/CurrencyAmount'
 import { AlertsPanel } from './AlertsPanel'
-import type { ConfiguredAlert } from './alertApi'
+import type { ConfiguredAlert, TriggeredAlertEvent } from './alertApi'
 import { ALERT_INTENTS, alertApi } from './alertApi'
 import { marketApi } from '../market/marketApi'
 import type { WishlistItem } from '../market/marketApi'
@@ -36,6 +36,7 @@ interface Loaded {
   portfolio: PortfolioPosition[]
   wishlist: WishlistItem[]
   alerts: ConfiguredAlert[]
+  events: TriggeredAlertEvent[]
 }
 
 /** Identify one configured alert across both scopes. */
@@ -66,16 +67,20 @@ export function AlertsWorkspace() {
   const [error, setError] = useState<string | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [eventsChecking, setEventsChecking] = useState(false)
+  const [eventError, setEventError] = useState<string | null>(null)
+  const [acknowledging, setAcknowledging] = useState<number | null>(null)
   const [selectedKey, setSelectedKey] = useState('')
 
   const fetchData = useCallback(
     async (): Promise<Loaded> => {
-      const [portfolio, wishlist, alerts] = await Promise.all([
+      const [portfolio, wishlist, alerts, events] = await Promise.all([
         api.listPortfolio(),
         marketApi.listWishlist(),
         alertApi.list(),
+        alertApi.listEvents(),
       ])
-      return { portfolio, wishlist, alerts }
+      return { portfolio, wishlist, alerts, events }
     },
     [],
   )
@@ -97,6 +102,34 @@ export function AlertsWorkspace() {
       active = false
     }
   }, [fetchData])
+
+  async function handleCheckNow() {
+    setEventError(null)
+    setEventsChecking(true)
+    try {
+      await alertApi.evaluate()
+      const events = await alertApi.listEvents()
+      setLoaded((previous) => previous && { ...previous, events })
+    } catch (cause) {
+      setEventError(describeApiError(cause))
+    } finally {
+      setEventsChecking(false)
+    }
+  }
+
+  async function handleAcknowledge(event: TriggeredAlertEvent) {
+    setEventError(null)
+    setAcknowledging(event.id)
+    try {
+      await alertApi.acknowledgeEvent(event.id)
+      const events = await alertApi.listEvents()
+      setLoaded((previous) => previous && { ...previous, events })
+    } catch (cause) {
+      setEventError(describeApiError(cause))
+    } finally {
+      setAcknowledging(null)
+    }
+  }
 
   const targets: AlertTarget[] = loaded
     ? [
@@ -195,6 +228,43 @@ export function AlertsWorkspace() {
           </ul>
         </section>
       ) : null}
+
+      <section aria-labelledby="triggered-alerts-heading">
+        <h3 id="triggered-alerts-heading">Triggered alerts</h3>
+        {eventError !== null ? <ErrorState message={eventError} /> : null}
+        {loaded !== null && loaded.events.length > 0 ? (
+          <ul>
+            {loaded.events.map((event) => (
+              <li key={event.id}>
+                <span>
+                  {event.ticker} · {event.message}{' '}
+                  {new Date(event.triggered_at).toLocaleTimeString('es-AR')}
+                </span>{' '}
+                <span>
+                  {event.currency !== null ? (
+                    <CurrencyAmount amount={event.observed_price} currency={event.currency} />
+                  ) : (
+                    event.observed_price
+                  )}
+                </span>{' '}
+                <button
+                  type="button"
+                  onClick={() => void handleAcknowledge(event)}
+                  disabled={acknowledging === event.id}
+                >
+                  Acknowledge
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {loaded !== null && loaded.events.length === 0 ? (
+          <p>No triggered alerts right now.</p>
+        ) : null}
+        <button type="button" onClick={() => void handleCheckNow()} disabled={eventsChecking}>
+          Check now
+        </button>
+      </section>
 
       {error === null && loaded !== null && targets.length === 0 ? (
         <p>No positions or wishlist entries are available to configure an alert.</p>

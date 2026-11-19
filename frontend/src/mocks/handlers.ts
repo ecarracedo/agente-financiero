@@ -1,13 +1,19 @@
 import { http, HttpResponse } from 'msw'
 
 import type { MutationResponse, PortfolioPosition, PortfolioSnapshot, TickerAliasResponse, TransactionSummary } from '../api/client'
-import type { AlertCheck, ConfiguredAlert } from '../features/alerts/alertApi'
+import type {
+  AcknowledgedResponse,
+  AlertCheck,
+  ConfiguredAlert,
+  TriggeredAlertEvent,
+} from '../features/alerts/alertApi'
 import type { BibliographyItem } from '../features/bibliography/bibliographyApi'
 import type { SplitProjection } from '../features/tools/split/splitApi'
 import type { WishlistItem } from '../features/wishlist/wishlistApi'
 import {
   alertCheckClear,
   alertCheckTriggered,
+  triggeredAlertEvents,
   analysisAAPL,
   analysisPAMP,
   bibliography,
@@ -223,6 +229,19 @@ export const handlers = [
   // This check sends no request body, so there is nothing to read from it.
   http.post(`${BASE}/api/v1/wishlist/:ticker/alert/check`, () =>
     HttpResponse.json<AlertCheck>(alertCheckTriggered),
+  ),
+
+  // Triggered events the user has not acknowledged yet, newest first.
+  http.get(`${BASE}/api/v1/alerts/events`, () =>
+    HttpResponse.json<TriggeredAlertEvent[]>(triggeredAlertEvents),
+  ),
+  // The id is opaque to the mock; acknowledging succeeds for every event.
+  http.post(`${BASE}/api/v1/alerts/events/:event_id/acknowledge`, () =>
+    HttpResponse.json<AcknowledgedResponse>({ acknowledged: true }),
+  ),
+  // One on-demand pass records its crossings; the mock reuses the fixture list.
+  http.post(`${BASE}/api/v1/alerts/evaluate`, () =>
+    HttpResponse.json<TriggeredAlertEvent[]>(triggeredAlertEvents),
   ),
 
   http.get(`${BASE}/api/v1/bibliography`, () =>

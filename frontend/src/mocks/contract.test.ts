@@ -96,6 +96,8 @@ describe('MSW harness matches the OpenAPI contract', () => {
         '/api/v1/portfolio/{ticker}/alert/check',
         '/api/v1/wishlist/{ticker}/alert',
         '/api/v1/wishlist/{ticker}/alert/check',
+        '/api/v1/alerts/events',
+        '/api/v1/alerts/evaluate',
       ]
       const registered = registeredPaths().map(toContractShape)
 
