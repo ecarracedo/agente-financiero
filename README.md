@@ -85,6 +85,8 @@ docker compose up -d --build --wait
 - The frontend container serves the built SPA with Nginx and proxies `/api` to the backend on the same origin, so the browser makes no cross-origin request. It proxies `/health` and `/ready` the same way, so a probe on the published origin reads the real status instead of the SPA's entry point. The image bakes `VITE_API_BASE_URL` at build time, so keep it equal to the published frontend origin and rebuild after changing it.
 - `/health` reports the process; `/ready` reports the database and answers 503 while PostgreSQL is down. When that happens the web interface shows its error state instead of stale numbers.
 
+To publish the stack under your own domain with TLS (Coolify, DNS, build variables and the container-port rule), see [`docs/operations/deploy.md`](docs/operations/deploy.md).
+
 Development layers an override over the same base file. It reloads the backend from the mounted source, runs the Vite dev server on `http://localhost:${WEB_DEV_PORT}` and keeps its data in a separate `postgres_dev_data` volume:
 
 ```bash
@@ -184,6 +186,8 @@ docker compose up -d --build --wait
 - El backend aplica `alembic upgrade head` antes de levantar Uvicorn, y primero espera a que la base esté sana.
 - El contenedor del frontend sirve la SPA compilada con Nginx y proxya `/api` al backend en el mismo origen, así que el navegador no hace ninguna petición cross-origin. También proxya `/health` y `/ready`, así que una sonda sobre el origen público lee el estado real y no la entrada de la SPA. La imagen fija `VITE_API_BASE_URL` en tiempo de build, así que mantenelo igual al origen público del frontend y recompilá tras cambiarlo.
 - `/health` reporta el proceso; `/ready` reporta la base y responde 503 mientras PostgreSQL está caído. Cuando eso pasa, la interfaz web muestra su estado de error en lugar de números viejos.
+
+Para publicar el stack con un dominio propio y TLS (Coolify, DNS, variables de build y la regla del puerto del contenedor), ver [`docs/operations/deploy.md`](docs/operations/deploy.md).
 
 El desarrollo superpone un override sobre el mismo archivo base. Recarga el backend desde el código montado, levanta el servidor de desarrollo de Vite en `http://localhost:${WEB_DEV_PORT}` y guarda sus datos en un volumen `postgres_dev_data` aparte:
 

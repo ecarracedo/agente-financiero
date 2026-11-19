@@ -40,7 +40,7 @@ The portfolio workspace MUST start from the positions the backend reports, with 
 
 ### Requirement: Market visualization and alerts
 
-The frontend MUST display chart-ready historical data, current price changes, target lines, transaction markers, and alert states. Users MUST be able to configure a target alert as buy or sell and see its type-specific message when triggered. The alerts workspace MUST list every configured alert and MUST prefill the selected target's saved type and target price.
+The frontend MUST display chart-ready historical data, current price changes, target lines, transaction markers, and alert states. Users MUST be able to configure a target alert as buy or sell and see its type-specific message when triggered. The alerts workspace MUST list every configured alert and MUST prefill the selected target's saved type and target price. The alerts workspace MUST list every triggered event the backend returns, each with its message, observed price, and detection time, and each MUST have an acknowledge action. A Check now action MUST run a pass through the backend.
 
 #### Scenario: View a stock chart
 
@@ -55,6 +55,20 @@ The frontend MUST display chart-ready historical data, current price changes, ta
 - THEN the frontend displays the corresponding alert state
 - AND unavailable market data is shown as unavailable rather than as zero
 - AND values in different currencies are not visually presented as one converted total
+
+#### Scenario: Acknowledge a triggered event
+
+- GIVEN triggered events are listed by the alerts workspace
+- WHEN the user acknowledges one
+- THEN the event leaves the list of pending events
+- AND the alert it fired for remains configured
+
+#### Scenario: Run a pass on demand
+
+- GIVEN the alerts workspace is open
+- WHEN the user clicks "Check now"
+- THEN the frontend runs one evaluation pass through the backend
+- AND the workspace refreshes with the events recorded by the pass
 
 #### Scenario: Configure a target alert type
 

@@ -234,6 +234,42 @@ export const alertCheckClear = {
   event: null,
 }
 
+/**
+ * TriggeredAlertResponse[]: one crossed portfolio event and one crossed
+ * wishlist event, newest first as the backend lists them. The events the
+ * workspace renders stay visible until the user acknowledges them.
+ */
+export const triggeredAlertEvents = [
+  {
+    id: 1,
+    scope: 'portfolio' as const,
+    ticker: 'AAPL',
+    broker: 'ECO',
+    category: 'Acciones',
+    currency: 'USD',
+    target_price: '190.00',
+    intent: 'BUY' as const,
+    observed_price: '188.00',
+    message: 'Precio objetivo de compra alcanzado.',
+    triggered_at: '2026-11-19T10:30:00Z',
+    acknowledged_at: null,
+  },
+  {
+    id: 2,
+    scope: 'wishlist' as const,
+    ticker: 'NVDA',
+    broker: null,
+    category: null,
+    currency: null,
+    target_price: '120.00',
+    intent: 'SELL' as const,
+    observed_price: '127.00',
+    message: 'Precio objetivo de venta alcanzado.',
+    triggered_at: '2026-11-19T09:45:00Z',
+    acknowledged_at: null,
+  },
+]
+
 /** BibliographyItemResponse */
 export const bibliography = [
   {

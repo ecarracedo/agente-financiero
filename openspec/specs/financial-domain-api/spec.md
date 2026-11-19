@@ -55,6 +55,31 @@ The system MUST provide holdings valuation, gain/loss, historical market data, t
 - THEN high/low and moving-average signals are returned
 - AND missing historical data produces an explicit unknown result
 
+### Requirement: Triggered alert events
+
+The system MUST persist each detected crossing as a triggered alert event with its scope, asset, broker, category, currency, target price, type, observed price, message, and detection time, so the user can see what fired while the app is closed. Each crossing MUST persist exactly once, and a price that stays beyond its target MUST NOT create a new event. `GET /api/v1/alerts/events` MUST return pending events newest first and accept `include_acknowledged`; `POST /api/v1/alerts/events/{id}/acknowledge` MUST mark one event as acknowledged (200) or report 404, and acknowledging an event MUST NOT touch the alert or its position. `POST /api/v1/alerts/evaluate` MUST run one evaluation pass and return the events it recorded.
+
+#### Scenario: Crossing is stored once
+
+- GIVEN a configured alert and a crossing
+- WHEN the price crosses the target
+- THEN the event is persisted with the asset identity, observed price, and detection time
+- AND a repeated price beyond the target does not persist another event
+
+#### Scenario: List and acknowledge events
+
+- GIVEN events exist
+- WHEN `GET /api/v1/alerts/events` is called
+- THEN pending events are returned newest first
+- WHEN `POST /api/v1/alerts/events/{id}/acknowledge` is called for one event
+- THEN the event is acknowledged (200) and a later call for the same id reports 404
+- AND the alert and its position remain unchanged
+
+#### Scenario: On-demand evaluation returns recorded events
+
+- GIVEN an evaluation pass is run through `POST /api/v1/alerts/evaluate`
+- THEN the response carries the events recorded by that pass only
+
 ### Requirement: Configurable target alert type
 
 The system MUST allow each target alert to be configured as `BUY` or `SELL`, and MUST emit the corresponding distinct message only when the price crosses its target in the configured direction. `BUY` MUST trigger on a downward crossing; `SELL` MUST trigger on an upward crossing. Remaining beyond a target MUST NOT repeatedly trigger the same crossing. Every configured alert MUST be listable, reporting its scope, asset, target price, and type, and MUST be removable without deleting the position or wishlist entry it monitors.

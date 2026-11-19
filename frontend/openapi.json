@@ -1315,6 +1315,183 @@
         }
       }
     },
+    "/api/v1/alerts/events": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "List Alert Events",
+        "description": "Return triggered crossings newest first, hiding acknowledged by default.",
+        "operationId": "list_alert_events_api_v1_alerts_events_get",
+        "parameters": [
+          {
+            "name": "include_acknowledged",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Acknowledged"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TriggeredAlertResponse"
+                  },
+                  "title": "Response List Alert Events Api V1 Alerts Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/alerts/events/{event_id}/acknowledge": {
+      "post": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Acknowledge Alert Event",
+        "description": "Mark one triggered crossing as seen without touching its alert.",
+        "operationId": "acknowledge_alert_event_api_v1_alerts_events__event_id__acknowledge_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcknowledgedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/alerts/evaluate": {
+      "post": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Evaluate Alerts",
+        "description": "Run one evaluation pass and return the crossings it just recorded.",
+        "operationId": "evaluate_alerts_api_v1_alerts_evaluate_post",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TriggeredAlertResponse"
+                  },
+                  "title": "Response Evaluate Alerts Api V1 Alerts Evaluate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/portfolio/{ticker}/alert": {
       "put": {
         "tags": [
@@ -2538,6 +2715,20 @@
   },
   "components": {
     "schemas": {
+      "AcknowledgedResponse": {
+        "properties": {
+          "acknowledged": {
+            "type": "boolean",
+            "title": "Acknowledged"
+          }
+        },
+        "type": "object",
+        "required": [
+          "acknowledged"
+        ],
+        "title": "AcknowledgedResponse",
+        "description": "Acknowledge that a triggered event was marked as seen."
+      },
       "AlertCheckResponse": {
         "properties": {
           "current_price": {
@@ -3737,6 +3928,103 @@
         ],
         "title": "TransactionSummaryResponse",
         "description": "Expose one transaction with canonical string amounts."
+      },
+      "TriggeredAlertResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/AlertScope"
+          },
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "broker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broker"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "target_price": {
+            "type": "string",
+            "title": "Target Price"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/AlertIntent"
+          },
+          "observed_price": {
+            "type": "string",
+            "title": "Observed Price"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "triggered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Triggered At"
+          },
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "scope",
+          "ticker",
+          "broker",
+          "category",
+          "currency",
+          "target_price",
+          "intent",
+          "observed_price",
+          "message",
+          "triggered_at",
+          "acknowledged_at"
+        ],
+        "title": "TriggeredAlertResponse",
+        "description": "Expose one persisted crossing with the asset it fired for."
       },
       "UpdatedResponse": {
         "properties": {

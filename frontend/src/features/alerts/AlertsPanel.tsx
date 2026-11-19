@@ -32,6 +32,8 @@ export interface AlertsPanelProps {
   scope: 'portfolio' | 'wishlist'
   /** Alert already configured for this target, used to prefill the form. */
   alert?: { target_price: string; intent: AlertIntent } | null
+  /** Initial target price to display when no alert is configured yet. */
+  initialTargetPrice?: string
   /** Notify the host that a target was saved so the chart can overlay it. */
   onTargetConfigured?: (ticker: string, targetPrice: string) => void
 }
@@ -82,15 +84,21 @@ export function AlertsPanel({
   category = null,
   scope,
   alert = null,
+  initialTargetPrice,
   onTargetConfigured,
 }: AlertsPanelProps) {
   const [intent, setIntent] = useState<AlertIntent>(alert?.intent ?? 'BUY')
-  const [targetPrice, setTargetPrice] = useState(alert?.target_price ?? '')
+  const [editedPrice, setEditedPrice] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [checkState, setCheckState] = useState<AlertCheckState>({ kind: 'idle' })
+
+  // The live quote can arrive after this panel mounts, so the target is derived
+  // rather than copied into state: a user edit wins, then a saved alert, then
+  // the current quote.
+  const targetPrice = editedPrice ?? (alert?.target_price ?? initialTargetPrice ?? '')
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -173,9 +181,9 @@ export function AlertsPanel({
       : null
 
   return (
-    <Card>
-      <section aria-labelledby="target-alert-heading" className="space-y-4">
-        <h3 id="target-alert-heading" className="text-base font-semibold text-gray-900 dark:text-gray-50">
+    <Card className="bg-[#181c24]/80 backdrop-blur-md rounded-xl shadow-md border-[#3d494c]/20">
+      <section aria-labelledby="target-alert-heading" className="flex flex-col gap-4">
+        <h3 id="target-alert-heading" className="text-base font-semibold text-white font-headline">
           Target alert
         </h3>
         <AlertConfigForm
@@ -188,7 +196,7 @@ export function AlertsPanel({
             setSaved(false)
           }}
           onTargetPriceChange={(value) => {
-            setTargetPrice(value)
+            setEditedPrice(value)
             setSaved(false)
             setFieldErrors((current) => {
               const next = { ...current }
@@ -198,27 +206,37 @@ export function AlertsPanel({
           }}
           onSubmit={handleSave}
         />
+        {initialTargetPrice ? (
+          <p className="text-xs font-mono text-[#869397]">
+            Cotización actual:{' '}
+            {currency !== null && currency !== '' ? (
+              <CurrencyAmount amount={initialTargetPrice} currency={currency} />
+            ) : (
+              <span>{initialTargetPrice}</span>
+            )}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={handleCheck}
           disabled={ticker === ''}
-          className="rounded-lg border border-[#3d494c]/60 bg-[#1c2028] px-4 py-2 text-sm font-semibold text-white hover:bg-[#262a33] hover:text-[#4cd7f6] transition-all disabled:opacity-50"
+          className="w-full py-2 bg-[#1c2028] hover:bg-[#262a33] text-[#bcc9cd] hover:text-white border border-[#3d494c]/30 text-xs font-mono uppercase font-bold rounded-lg transition-all disabled:opacity-50 cursor-pointer"
         >
           Check alert
         </button>
         {saved ? <SuccessState message="Alert saved." /> : null}
         {saveError ? <ErrorState message={saveError} /> : null}
-      {observedPrice !== null ? (
-        <p>
-          Current price:{' '}
-          {currency !== null && currency !== '' ? (
-            <CurrencyAmount amount={observedPrice} currency={currency} />
-          ) : (
-            <span>{observedPrice}</span>
-          )}
-        </p>
-      ) : null}
-      <AlertStatus state={checkState} />
+        {observedPrice !== null ? (
+          <p className="text-xs font-mono text-[#869397]">
+            Current price:{' '}
+            {currency !== null && currency !== '' ? (
+              <CurrencyAmount amount={observedPrice} currency={currency} />
+            ) : (
+              <span>{observedPrice}</span>
+            )}
+          </p>
+        ) : null}
+        <AlertStatus state={checkState} />
       </section>
     </Card>
   )

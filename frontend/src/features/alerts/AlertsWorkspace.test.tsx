@@ -9,7 +9,8 @@ describe('AlertsWorkspace', () => {
   it('lists every configured alert with its scope, type and target', async () => {
     render(<AlertsWorkspace />)
 
-    const list = await screen.findByRole('list')
+    const list = (await screen.findByText('AAPL · ECO · Acciones'))
+      .closest('ul') as HTMLElement
     const rows = within(list).getAllByRole('listitem')
 
     expect(rows).toHaveLength(2)
@@ -23,9 +24,9 @@ describe('AlertsWorkspace', () => {
   it('prefills the selected target with its saved alert', async () => {
     render(<AlertsWorkspace />)
 
-    await screen.findByRole('list')
+    await screen.findByText('AAPL · ECO · Acciones')
 
-    fireEvent.change(screen.getByLabelText('Position'), {
+    fireEvent.change(screen.getByLabelText('Posición de cartera'), {
       target: { value: 'portfolio:ECO:AAPL' },
     })
 
@@ -44,11 +45,90 @@ describe('AlertsWorkspace', () => {
 
     render(<AlertsWorkspace />)
 
-    const list = await screen.findByRole('list')
+    const list = (await screen.findByText('AAPL · ECO · Acciones'))
+      .closest('ul') as HTMLElement
     fireEvent.click(within(list).getAllByRole('button', { name: /remove/i })[0])
 
     await waitFor(() => expect(requested).toHaveLength(1))
     expect(requested[0]).toContain('broker=ECO')
     expect(requested[0]).toContain('category=Acciones')
+  })
+
+  it('lists triggered events with their message and observed price', async () => {
+    render(<AlertsWorkspace />)
+
+    expect(await screen.findByText(/AAPL · Precio objetivo de compra alcanzado/)).toBeInTheDocument()
+    expect(screen.getByText(/Precio objetivo de venta alcanzado/)).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /acknowledge/i })).toHaveLength(2)
+  })
+
+  it('acknowledges a triggered event through the events route', async () => {
+    const acknowledged: number[] = []
+    server.use(
+      http.post('*/api/v1/alerts/events/:event_id/acknowledge', ({ params }) => {
+        acknowledged.push(Number(params.event_id))
+        return HttpResponse.json({ acknowledged: true })
+      }),
+    )
+
+    render(<AlertsWorkspace />)
+
+    const [acknowledge] = await screen.findAllByRole('button', { name: /acknowledge/i })
+    fireEvent.click(acknowledge)
+
+    await waitFor(() => expect(acknowledged).toEqual([1]))
+  })
+
+  it('runs a pass through Check now', async () => {
+    const evaluated: string[] = []
+    server.use(
+      http.post('*/api/v1/alerts/evaluate', () => {
+        evaluated.push('evaluate')
+        return HttpResponse.json([])
+      }),
+    )
+
+    render(<AlertsWorkspace />)
+
+    await screen.findByText(/Precio objetivo de compra alcanzado/)
+    fireEvent.click(screen.getByRole('button', { name: /check now/i }))
+
+    await waitFor(() => expect(evaluated).toEqual(['evaluate']))
+  })
+
+  it('allows configuring an alert for an asset outside portfolio and wishlist', async () => {
+    render(<AlertsWorkspace />)
+
+    await screen.findByText('AAPL · ECO · Acciones')
+
+    const scopeGroup = screen.getByRole('group', { name: 'Scope' })
+    fireEvent.click(within(scopeGroup).getByRole('button', { name: 'Otro activo' }))
+
+    const search = screen.getByLabelText('Buscar activo')
+    fireEvent.change(search, { target: { value: 'NV' } })
+
+    const suggestion = await screen.findByRole('option', { name: /NVDA/ })
+    fireEvent.click(suggestion)
+
+    expect(await screen.findByRole('heading', { name: 'Target alert' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Type')).toBeInTheDocument()
+    expect(screen.getByLabelText('Target price')).toHaveValue('120.00')
+  })
+
+  it('shows the current quote and prefills the target price for an unsaved asset', async () => {
+    render(<AlertsWorkspace />)
+
+    await screen.findByText('AAPL · ECO · Acciones')
+
+    const scopeGroup = screen.getByRole('group', { name: 'Scope' })
+    fireEvent.click(within(scopeGroup).getByRole('button', { name: 'Otro activo' }))
+
+    fireEvent.change(screen.getByLabelText('Buscar activo'), {
+      target: { value: 'TSLA' },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Target alert' })).toBeInTheDocument()
+    expect(await screen.findByText(/Cotización actual:/)).toHaveTextContent('190,00')
+    expect(await screen.findByLabelText('Target price')).toHaveValue('190.00')
   })
 })

@@ -60,6 +60,7 @@ def api_client():
         market_data_provider=market_data,
         auth_enabled=False,
         snapshot_scheduler_enabled=False,
+        alert_scheduler_enabled=False,
     )
     with TestClient(application) as client:
         yield client, market_data
@@ -602,3 +603,59 @@ def test_padded_tickers_beyond_the_raw_bound_are_rejected(api_client):
     assert path_read.status_code == 422
     assert query_read.status_code == 422
     assert client.get("/api/v1/wishlist").json() == []
+
+
+def test_alert_events_are_listed_evaluated_and_acknowledged(api_client):
+    """A pass persists the crossing, and acknowledging hides it from the list."""
+    client, market_data = api_client
+    client.post("/api/v1/transactions", json=operation("AAPL", "BUY", 2, 10, 1))
+    configured = client.put(
+        "/api/v1/portfolio/AAPL/alert",
+        json={
+            "broker": "Broker A",
+            "category": "Acciones",
+            "target_price": "10",
+            "intent": "BUY",
+        },
+    )
+    market_data.prices["AAPL"] = Decimal("11")
+    first_pass = client.post("/api/v1/alerts/evaluate")
+    market_data.prices["AAPL"] = Decimal("10")
+    second_pass = client.post("/api/v1/alerts/evaluate")
+
+    assert configured.status_code == 200
+    assert first_pass.status_code == 200
+    assert first_pass.json() == []
+    assert second_pass.status_code == 200
+    fired = second_pass.json()
+    assert len(fired) == 1
+    assert fired[0]["ticker"] == "AAPL"
+    assert fired[0]["scope"] == "portfolio"
+    assert fired[0]["target_price"] == "10"
+    assert fired[0]["observed_price"] == "10"
+    assert fired[0]["message"]
+
+    listed = client.get("/api/v1/alerts/events")
+    assert [event["id"] for event in listed.json()] == [fired[0]["id"]]
+
+    acknowledged = client.post(
+        f"/api/v1/alerts/events/{fired[0]['id']}/acknowledge"
+    )
+    assert acknowledged.status_code == 200
+    assert acknowledged.json() == {"acknowledged": True}
+    assert client.get("/api/v1/alerts/events").json() == []
+    including = client.get(
+        "/api/v1/alerts/events", params={"include_acknowledged": True}
+    )
+    assert len(including.json()) == 1
+    assert including.json()[0]["acknowledged_at"] is not None
+    assert len(client.get("/api/v1/alerts").json()) == 1
+
+
+def test_acknowledging_an_unknown_event_reports_not_found(api_client):
+    """An unknown event id answers 404 and records nothing."""
+    client, _ = api_client
+
+    response = client.post("/api/v1/alerts/events/999/acknowledge")
+
+    assert response.status_code == 404

@@ -1,6 +1,7 @@
 """Pure configurable target-alert crossing rules."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
@@ -60,6 +61,29 @@ class ConfiguredAlert:
     category: str | None = None
     currency: str | None = None
     last_observed_price: Decimal | None = None
+
+
+@dataclass(frozen=True)
+class TriggeredAlert:
+    """One detected crossing, kept so the user sees what fired while away.
+
+    A read projection of a persisted event: it copies the asset identity of the
+    alert that fired plus the price that crossed it. ``acknowledged_at`` is set
+    once the user has seen it; acknowledging never deletes the alert.
+    """
+
+    id: int
+    scope: AlertScope
+    ticker: str
+    target_price: Decimal
+    intent: AlertIntent
+    observed_price: Decimal
+    message: str
+    triggered_at: datetime
+    broker: str | None = None
+    category: str | None = None
+    currency: str | None = None
+    acknowledged_at: datetime | None = None
 
 
 _MESSAGES = {

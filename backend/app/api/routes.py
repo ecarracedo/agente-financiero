@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Path, Query, Request, status
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.api.schemas import (
+    AcknowledgedResponse,
     AlertCheckResponse,
     AlertResponse,
     BibliographyCreateRequest,
@@ -34,6 +35,7 @@ from backend.app.api.schemas import (
     TickerMatchResponse,
     TransactionRequest,
     TransactionSummaryResponse,
+    TriggeredAlertResponse,
     UpdatedResponse,
     WishlistAlertRequest,
     WishlistCreateRequest,
@@ -296,6 +298,44 @@ def analyze_ticker(
 def list_alerts(request: Request) -> tuple:
     """Return every configured portfolio and wishlist alert."""
     return _services(request).alerts.list_alerts()
+
+
+@router.get(
+    "/alerts/events",
+    response_model=list[TriggeredAlertResponse],
+    tags=["alerts"],
+)
+def list_alert_events(
+    request: Request,
+    include_acknowledged: bool = Query(default=False),
+) -> tuple:
+    """Return triggered crossings newest first, hiding acknowledged by default."""
+    return _services(request).alerts.list_events(
+        include_acknowledged=include_acknowledged
+    )
+
+
+@router.post(
+    "/alerts/events/{event_id}/acknowledge",
+    response_model=AcknowledgedResponse,
+    tags=["alerts"],
+)
+def acknowledge_alert_event(event_id: int, request: Request) -> dict[str, bool]:
+    """Mark one triggered crossing as seen without touching its alert."""
+    acknowledged = _services(request).alerts.acknowledge_event(event_id)
+    if not acknowledged:
+        raise HTTPException(status_code=404, detail="alert event not found")
+    return {"acknowledged": True}
+
+
+@router.post(
+    "/alerts/evaluate",
+    response_model=list[TriggeredAlertResponse],
+    tags=["alerts"],
+)
+def evaluate_alerts(request: Request) -> tuple:
+    """Run one evaluation pass and return the crossings it just recorded."""
+    return _services(request).monitor.evaluate_all()
 
 
 @router.put(
