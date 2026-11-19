@@ -32,6 +32,8 @@ export interface AlertsPanelProps {
   scope: 'portfolio' | 'wishlist'
   /** Alert already configured for this target, used to prefill the form. */
   alert?: { target_price: string; intent: AlertIntent } | null
+  /** Initial target price to display when no alert is configured yet. */
+  initialTargetPrice?: string
   /** Notify the host that a target was saved so the chart can overlay it. */
   onTargetConfigured?: (ticker: string, targetPrice: string) => void
 }
@@ -85,7 +87,7 @@ export function AlertsPanel({
   onTargetConfigured,
 }: AlertsPanelProps) {
   const [intent, setIntent] = useState<AlertIntent>(alert?.intent ?? 'BUY')
-  const [targetPrice, setTargetPrice] = useState(alert?.target_price ?? '')
+  const [targetPrice, setTargetPrice] = useState(props.initialTargetPrice ?? (alert?.target_price ?? ''))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)

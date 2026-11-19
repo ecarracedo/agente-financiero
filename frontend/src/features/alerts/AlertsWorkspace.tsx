@@ -23,7 +23,7 @@ import type { WishlistItem } from '../market/marketApi'
 import type { PortfolioPosition } from '../../api/client'
 import { api } from '../../api/client'
 
-type Scope = 'portfolio' | 'wishlist'
+type Scope = 'portfolio' | 'wishlist' | 'custom'
 
 /** A selectable alert target: one position or one wishlist entry. */
 interface AlertTarget {
@@ -55,9 +55,64 @@ function alertOrigin(alert: ConfiguredAlert): string {
   return [alert.broker, alert.category].filter(Boolean).join(' · ')
 }
 
+/** Describe where a configured alert came from. */
+function alertOrigin(alert: ConfiguredAlert): string {
+  if (alert.scope === 'wishlist') return 'wishlist'
+  return [alert.broker, alert.category].filter(Boolean).join(' · ')
+}
+
 /** Display label for a stored trade direction. */
 function intentLabel(intent: ConfiguredAlert['intent']): string {
   return ALERT_INTENTS.find((option) => option.value === intent)?.label ?? intent
+}
+
+/** Render the scope selector at the top of the workspace. */
+function ScopeSelector({
+  scope,
+  setScope,
+  selectedKey,
+  setSelectedKey,
+  targets,
+}: {
+  scope: Scope
+  setScope: (s: Scope) => void
+  selectedKey: string
+  setSelectedKey: (s: string) => void
+  targets: AlertTarget[]
+}) {
+  const portfolioTargets = targets.filter((t) => t.scope === 'portfolio')
+  const wishlistTargets = targets.filter((t) => t.scope === 'wishlist')
+
+  return (
+    <div className="mb-4">
+      <label htmlFor="scope-selector" className="text-xs font-mono uppercase tracking-wider text-on-surface-variant block mb-2">
+        Scope
+      </label>
+      <select id="scope-selector"
+        value={scope}
+        onChange={(e) => {
+          const newScope = e.target.value as Scope
+          setScope(newScope)
+          if (newScope === 'portfolio') {
+            setSelectedKey(
+              portfolioTargets.length > 0 ? portfolioTargets[0].key : ''
+            )
+          } else if (newScope === 'wishlist') {
+            setSelectedKey(
+              wishlistTargets.length > 0 ? wishlistTargets[0].key : ''
+            )
+          } else {
+            setSelectedKey('')
+          }
+        }}
+        className="w-full py-2.5 px-3 rounded-lg bg-surface-container text-on-surface border border-outline-variant/30 text-sm focus:outline-none focus:border-primary transition-colors cursor-pointer"
+      >
+        <option value="portfolio">Cartera</option>
+        <option value="wishlist">Wishlist</option>
+        <option value="custom">Otro activo</option>
+      </select>
+    </div>
+  )
 }
 
 export function AlertsWorkspace() {
@@ -247,6 +302,20 @@ export function AlertsWorkspace() {
       </div>
 
       {error !== null ? <ErrorState message={error} /> : null}
+      {error === null && loaded === null ? <LoadingState /> : null}
+
+      {/* Scope Selector Row */}
+      <div className="mb-4">
+        <ScopeSelector
+          scope={scope}
+          setScope={setScope}
+          selectedKey={selectedKey}
+          setSelectedKey={setSelectedKey}
+          targets={targets}
+        />
+      </div>
+
+      {/* Main 2-Column Grid: Form (col 4-5) & Table (col 7-8) */}
       {error === null && loaded === null ? <LoadingState /> : null}
 
       {/* Main 2-Column Grid: Form (col 4-5) & Table (col 7-8) */}
