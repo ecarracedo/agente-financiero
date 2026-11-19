@@ -37,7 +37,7 @@ export type Configured = components['schemas']['ConfiguredResponse']
 export type AlertRemoved = components['schemas']['MutationResponse']
 
 /** One persisted crossing, listed so the user can see what fired. */
-export type TriggeredAlertEvent = components['schemas']['TriggeredAlertEventResponse']
+export type TriggeredAlertEvent = components['schemas']['TriggeredAlertResponse']
 
 /** Response acknowledging that one triggered event was marked as seen. */
 export type AcknowledgedResponse = components['schemas']['AcknowledgedResponse']
