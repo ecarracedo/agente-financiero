@@ -82,6 +82,83 @@ def test_quote_without_a_usable_currency_still_reports_the_price():
     assert quote == QuoteSnapshot(price=Decimal("12.34"), currency=None)
 
 
+def test_quote_divides_user_flagged_percent_of_par_ticker_by_100():
+    """A user-flagged ON quoted per 100 nominales is converted even when
+    Yahoo reports it as EQUITY."""
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"regularMarketPrice": 162230.0, "quoteType": "EQUITY", "currency": "ARS"}, []
+        ),
+        percent_of_par=lambda: {"YFCOO.BA"},
+    )
+
+    quote = provider.get_quote("YFCOO.BA")
+
+    assert quote == QuoteSnapshot(price=Decimal("1622.3"), currency="ARS")
+
+
+def test_quote_keeps_unflagged_equity_raw():
+    """A plain equity without fundamental data is not rescaled."""
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"regularMarketPrice": 162230.0, "quoteType": "EQUITY", "currency": "ARS"}, []
+        ),
+        percent_of_par=lambda: {"OTHER.BA"},
+    )
+
+    quote = provider.get_quote("YFCOO.BA")
+
+    assert quote == QuoteSnapshot(price=Decimal("162230"), currency="ARS")
+
+
+def test_historical_series_divides_flagged_ticker_closes_by_100():
+    """Flagged tickers get the same ÷100 conversion in history."""
+    index = [datetime(2024, 1, 2), datetime(2024, 1, 3)]
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"quoteType": "EQUITY"}, [161930.0, 162230.0], index
+        ),
+        percent_of_par=lambda: {"YFCOO.BA"},
+    )
+
+    series = provider.get_historical_series("YFCOO.BA", "1mo")
+
+    assert series == (
+        PricePoint(date=date(2024, 1, 2), close=Decimal("1619.3")),
+        PricePoint(date=date(2024, 1, 3), close=Decimal("1622.3")),
+    )
+
+
+def test_quote_divides_bond_prices_by_100():
+    """An Argentine corporate bond is quoted per 100 nominal units."""
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"currentPrice": 96.38, "quoteType": "BOND", "currency": "USD"}, []
+        )
+    )
+
+    quote = provider.get_quote("YFC00.BA")
+
+    assert quote == QuoteSnapshot(price=Decimal("0.9638"), currency="USD")
+
+
+def test_historical_series_divides_bond_closes_by_100():
+    """BOND closes need the same per-100 nominal conversion as current quotes."""
+    index = [datetime(2024, 1, 2), datetime(2024, 1, 3)]
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"quoteType": "BOND"}, [100.0, 105.0], index
+        )
+    )
+
+    series = provider.get_historical_series("YFC00.BA", "1mo")
+
+    assert series == (
+        PricePoint(date=date(2024, 1, 2), close=Decimal("1.0")),
+        PricePoint(date=date(2024, 1, 3), close=Decimal("1.05")),
+    )
+
+
 def test_current_price_uses_available_provider_field():
     """The adapter converts a current quote to Decimal without binary floats."""
     provider = YFinanceMarketDataProvider(
