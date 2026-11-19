@@ -232,6 +232,20 @@ class TickerAliasCreateRequest(BaseModel):
     provider: str = "ppi"
 
 
+class PercentOfParTickersResponse(BaseModel):
+    """Expose the tickers flagged as quoted per 100 nominal units."""
+
+    tickers: list[str]
+
+
+class PercentOfParTickersRequest(BaseModel):
+    """Body replacing the flagged per-100-nominal ticker list."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tickers: list[str]
+
+
 class TargetAlertEventResponse(BaseModel):
     """Expose one intent-specific target crossing notification."""
 

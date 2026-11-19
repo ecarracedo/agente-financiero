@@ -16,6 +16,8 @@ from backend.app.api.schemas import (
     DollarRatesResponse,
     MarketAnalysisResponse,
     MutationResponse,
+    PercentOfParTickersRequest,
+    PercentOfParTickersResponse,
     PortfolioAlertRequest,
     PortfolioPositionResponse,
     PortfolioPositionUpdateRequest,
@@ -538,6 +540,34 @@ def delete_ticker_alias(alias_id: int, request: Request) -> dict[str, bool]:
         raise HTTPException(status_code=404, detail="ticker alias not found")
     _services(request).analytics.invalidate_ppi_cache()
     return {"deleted": True}
+
+
+@router.get(
+    "/percent-of-par-tickers",
+    response_model=PercentOfParTickersResponse,
+    tags=["market"],
+)
+def list_percent_of_par_tickers(request: Request) -> PercentOfParTickersResponse:
+    """Return the tickers the user flagged as quoted per 100 nominal units."""
+    return PercentOfParTickersResponse(
+        tickers=_services(request).percent_of_par.list_tickers()
+    )
+
+
+@router.put(
+    "/percent-of-par-tickers",
+    response_model=PercentOfParTickersResponse,
+    tags=["market"],
+)
+def set_percent_of_par_tickers(
+    payload: PercentOfParTickersRequest, request: Request
+) -> PercentOfParTickersResponse:
+    """Replace the flagged per-100-nominal ticker list after validation."""
+    try:
+        tickers = _services(request).percent_of_par.set_tickers(payload.tickers)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    return PercentOfParTickersResponse(tickers=tickers)
 
 
 @router.post(

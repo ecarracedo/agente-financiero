@@ -2315,6 +2315,114 @@
         }
       }
     },
+    "/api/v1/percent-of-par-tickers": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "List Percent Of Par Tickers",
+        "description": "Return the tickers the user flagged as quoted per 100 nominal units.",
+        "operationId": "list_percent_of_par_tickers_api_v1_percent_of_par_tickers_get",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PercentOfParTickersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Set Percent Of Par Tickers",
+        "description": "Replace the flagged per-100-nominal ticker list after validation.",
+        "operationId": "set_percent_of_par_tickers_api_v1_percent_of_par_tickers_put",
+        "parameters": [
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PercentOfParTickersRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PercentOfParTickersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/splits": {
       "post": {
         "tags": [
@@ -2987,6 +3095,41 @@
         ],
         "title": "MutationResponse",
         "description": "Acknowledge a successful delete operation."
+      },
+      "PercentOfParTickersRequest": {
+        "properties": {
+          "tickers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tickers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tickers"
+        ],
+        "title": "PercentOfParTickersRequest",
+        "description": "Body replacing the flagged per-100-nominal ticker list."
+      },
+      "PercentOfParTickersResponse": {
+        "properties": {
+          "tickers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tickers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tickers"
+        ],
+        "title": "PercentOfParTickersResponse",
+        "description": "Expose the tickers flagged as quoted per 100 nominal units."
       },
       "PortfolioAlertRequest": {
         "properties": {

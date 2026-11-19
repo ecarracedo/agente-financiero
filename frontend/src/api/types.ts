@@ -624,6 +624,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/percent-of-par-tickers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Percent Of Par Tickers
+         * @description Return the tickers the user flagged as quoted per 100 nominal units.
+         */
+        get: operations["list_percent_of_par_tickers_api_v1_percent_of_par_tickers_get"];
+        /**
+         * Set Percent Of Par Tickers
+         * @description Replace the flagged per-100-nominal ticker list after validation.
+         */
+        put: operations["set_percent_of_par_tickers_api_v1_percent_of_par_tickers_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/splits": {
         parameters: {
             query?: never;
@@ -871,6 +895,22 @@ export interface components {
         MutationResponse: {
             /** Deleted */
             deleted: boolean;
+        };
+        /**
+         * PercentOfParTickersRequest
+         * @description Body replacing the flagged per-100-nominal ticker list.
+         */
+        PercentOfParTickersRequest: {
+            /** Tickers */
+            tickers: string[];
+        };
+        /**
+         * PercentOfParTickersResponse
+         * @description Expose the tickers flagged as quoted per 100 nominal units.
+         */
+        PercentOfParTickersResponse: {
+            /** Tickers */
+            tickers: string[];
         };
         /**
          * PortfolioAlertRequest
@@ -2460,6 +2500,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MutationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_percent_of_par_tickers_api_v1_percent_of_par_tickers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PercentOfParTickersResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_percent_of_par_tickers_api_v1_percent_of_par_tickers_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PercentOfParTickersRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PercentOfParTickersResponse"];
                 };
             };
             /** @description Validation Error */

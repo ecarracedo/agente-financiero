@@ -11,9 +11,10 @@
 This project is a Financial Agent designed to help you manage your stock portfolio. It analyzes your current holdings from an Excel file, identifies buy/sell opportunities based on market data, and manages a wishlist of stocks.
 
 ### Features
-- **Portfolio Management**: Loads your transactions from an Excel file and stores them in a local SQLite database.
+- **Portfolio Management**: Tracks your positions and transactions in the backend database.
 - **Transaction Management**: Record Buy/Sell operations directly in the app.
     - *Weighted Average Logic*: Automatically calculates weighted average purchase price. Selling shares does not affect the average price of remaining shares.
+- **Per-100-Nominal Instruments**: ONs and Letras quote per 100 nominal units. Tickers that Yahoo Finance reports as equities can be flagged in Configuración so their price is divided by 100.
 - **Portfolio Visualization**: Interactive charts showing composition by category and asset allocation.
 - **Performance Tracking**: Real-time display of current prices, total value, and gain/loss metrics ($ and %).
     - *Auto-Refresh*: Automatic price updates with configurable intervals and manual refresh button.
@@ -22,21 +23,26 @@ This project is a Financial Agent designed to help you manage your stock portfol
 - **Market Analysis**: Fetches real-time data using `yfinance` to determine if stocks are cheap or expensive.
 - **Wishlist**: Tracks potential investment opportunities with market validation.
 - **Bibliography**: Manage your library of financial books and resources.
-- **Interactive UI**: A Streamlit-based web interface with tabs for Portfolio, Operations, Opportunities, Wishlist, and Bibliography.
+- **Interactive UI**: A React web interface talking to a FastAPI backend through its HTTP API.
 
 ### Setup
-1.  Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-2.  Create an empty database for the initial configuration:
-    ```bash
-    python src/scripts/create_empty_db.py
-    ```
-3.  Run the application:
-    ```bash
-    streamlit run main.py
-    ```
+The Streamlit UI and `finance.db` were removed. The single supported runtime is the containerized stack:
+
+```bash
+cp .env.example .env    # set POSTGRES_PASSWORD before the first run
+docker compose up -d --build --wait
+```
+
+The web interface answers on `http://localhost:${WEB_PORT}`. For local development without containers, run the backend directly and use the Vite dev server:
+
+```bash
+pip install -e "backend[test]"
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+
+cd frontend
+npm install
+npm run dev
+```
 
 ### Frontend (web)
 The React web interface lives in `frontend/` and talks to the backend only through its HTTP API — it needs no Streamlit process and no direct database access at runtime. Configure the API base URL with `VITE_API_BASE_URL` in `frontend/.env` (see `frontend/.env.example`). Development is single-origin like production: point it at the Vite dev server so its proxy forwards `/api` to the backend, and set `VITE_PROXY_TARGET` when the backend is not on `http://localhost:8000`.
@@ -104,10 +110,11 @@ python verify/verify_migration_rehearsal.py --source finance.db --currency-map /
 Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu portafolio de acciones. Analiza tus tenencias actuales, permite registrar operaciones de compra/venta, identifica oportunidades basadas en datos de mercado y gestiona una lista de deseos y bibliografía.
 
 ### Características
-- **Gestión de Portafolio**: Carga datos iniciales desde Excel y mantiene un registro persistente en base de datos SQLite.
+- **Gestión de Portafolio**: Registra posiciones y transacciones en la base de datos del backend.
 - **Gestión de Transacciones**: Registra operaciones de Compra y Venta directamente desde la interfaz.
     - *Lógica de Promedio Ponderado*: Calcula automáticamente el precio promedio ponderado. Las ventas no afectan el precio promedio de las acciones restantes.
     - *Soporte Multi-Activo*: Soporta Acciones, Cedears, Bonos, ONs, Cripto, FCI y Letras.
+- **Instrumentos cada 100 nominales**: Las ONs y Letras cotizan por cada 100 nominales. Los tickers que Yahoo Finance reporta como acciones se pueden marcar en Configuración para que su precio se divida por 100.
 - **Visualización de Portafolio**: Gráficos interactivos de composición por categoría y distribución por activo.
 - **Seguimiento de Rendimiento**: Muestra en tiempo real precios actuales, valor total, y métricas de ganancia/pérdida ($ y %).
     - *Auto-Actualización*: Actualización automática de precios con intervalos configurables y botón de actualización manual.
@@ -116,21 +123,26 @@ Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu por
 - **Análisis de Mercado**: Obtiene datos en tiempo real usando `yfinance` para detectar oportunidades (Máximos/Mínimos, Medias Móviles).
 - **Lista de Deseos (Wishlist)**: Rastrea acciones que te interesan con validación de mercado.
 - **Bibliografía**: Gestiona tu biblioteca de conocimientos (Libros, Artículos, Videos).
-- **Interfaz Interactiva**: Interfaz web basada en Streamlit con pestañas organizadas.
+- **Interfaz Interactiva**: Interfaz web en React comunicada con el backend FastAPI mediante su API HTTP.
 
 ### Configuración
-1.  Instalar dependencias:
-    ```bash
-    pip install -r requirements.txt
-    ```
-2.  Crear una base de datos vacía para la configuración inicial:
-    ```bash
-    python src/scripts/create_empty_db.py
-    ```
-3.  Ejecutar la aplicación:
-    ```bash
-    streamlit run main.py
-    ```
+La interfaz Streamlit y `finance.db` fueron retiradas. El único runtime soportado es el stack en contenedores:
+
+```bash
+cp .env.example .env    # definí POSTGRES_PASSWORD antes del primer arranque
+docker compose up -d --build --wait
+```
+
+La interfaz web responde en `http://localhost:${WEB_PORT}`. Para desarrollo local sin contenedores, levantá el backend directo y el servidor de Vite:
+
+```bash
+pip install -e "backend[test]"
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+
+cd frontend
+npm install
+npm run dev
+```
 
 ### Frontend (web)
 La interfaz web en React vive en `frontend/` y se comunica con el backend únicamente a través de su API HTTP — no requiere Streamlit ni acceso directo a la base de datos en tiempo de ejecución. Configurá la URL base de la API con `VITE_API_BASE_URL` en `frontend/.env` (ver `frontend/.env.example`). El desarrollo es de un solo origen, igual que producción: apuntala al servidor de desarrollo de Vite para que su proxy reenvíe `/api` al backend, y definí `VITE_PROXY_TARGET` cuando el backend no esté en `http://localhost:8000`.

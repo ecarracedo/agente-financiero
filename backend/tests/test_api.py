@@ -176,6 +176,41 @@ def test_ticker_alias_endpoints_support_create_list_delete(api_client):
     assert client.get("/api/v1/ticker-aliases").json() == []
 
 
+def test_percent_of_par_tickers_endpoint_round_trips(api_client):
+    """Flagged per-100-nominal tickers are normalized, replaced and listed."""
+    client, _ = api_client
+
+    empty = client.get("/api/v1/percent-of-par-tickers")
+    assert empty.status_code == 200
+    assert empty.json() == {"tickers": []}
+
+    saved = client.put(
+        "/api/v1/percent-of-par-tickers",
+        json={"tickers": [" yfcoo.ba ", "S13N6.BA"]},
+    )
+    assert saved.status_code == 200
+    assert saved.json() == {"tickers": ["YFCOO.BA", "S13N6.BA"]}
+    assert client.get("/api/v1/percent-of-par-tickers").json() == {
+        "tickers": ["YFCOO.BA", "S13N6.BA"]
+    }
+
+    replaced = client.put("/api/v1/percent-of-par-tickers", json={"tickers": []})
+    assert replaced.status_code == 200
+    assert replaced.json() == {"tickers": []}
+
+
+def test_percent_of_par_tickers_endpoint_rejects_invalid_values(api_client):
+    """An invalid ticker is rejected and nothing is stored."""
+    client, _ = api_client
+
+    response = client.put(
+        "/api/v1/percent-of-par-tickers", json={"tickers": ["bad ticker"]}
+    )
+
+    assert response.status_code == 422
+    assert client.get("/api/v1/percent-of-par-tickers").json() == {"tickers": []}
+
+
 def test_valuation_and_analysis_endpoints_preserve_currency(api_client):
     """Valuation and analysis routes return currency-grouped Decimal data."""
     client, market_data = api_client

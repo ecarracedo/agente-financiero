@@ -145,6 +145,16 @@ export const handlers = [
     HttpResponse.json<MutationResponse>({ deleted: true }),
   ),
 
+  // The flagged list starts empty and the PUT echoes what was sent, so a test
+  // sees exactly the tickers it saved without leaking state across cases.
+  http.get(`${BASE}/api/v1/percent-of-par-tickers`, () =>
+    HttpResponse.json({ tickers: [] }),
+  ),
+  http.put(`${BASE}/api/v1/percent-of-par-tickers`, async ({ request }) => {
+    const body = (await request.json()) as { tickers: string[] }
+    return HttpResponse.json({ tickers: body.tickers })
+  }),
+
   http.get(`${BASE}/api/v1/analysis/:ticker`, ({ params }) => {
     const ticker = String(params.ticker)
     if (ticker === 'ZZZZ') return HttpResponse.json(unknownAnalysis)
