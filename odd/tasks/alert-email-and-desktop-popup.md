@@ -19,6 +19,7 @@ Objective: notify target-alert crossings by SMTP email and by an in-app popup wi
 
 ## Risk
 Risk: items 1 and 5 — the Alembic migration adds `emailed_at` and backfills existing rows as already emailed (persisted data change), and Compose/`.env.example` gain SMTP delivery configuration (environment). No public API change: `emailed_at` is deliberately not exposed in `TriggeredAlertResponse`, so the generated frontend types do not drift. SMTP failures are isolated and retried; with `SMTP_HOST` empty the notifier is inert.
+- L4 — Native RDD assessment (2026-11-20): `gentle-ai review mode status` → on by default; `gentle-ai review assess --base-ref a6f815c --committed-only --json` → `risk: medium` (`configuration_change` on `.env.example`), `review_due: false`, `review_due_reason: under_budget`. No native review lifecycle started; the reviewed boundary stays pending at `a6f815c` for a later slice. An independent read-only verifier was still launched because the ODD risk line fires items 1 and 5.
 
 ## Log
 - L1 — User request, verbatim: "bien sigamos con alertas. hay que trabajar en el envio a un correo. como lo hacemos?" followed by "tambien un popup con sonido". Channel chosen from the offered options: "SMTP en el stack (recomendado)".
