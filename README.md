@@ -97,11 +97,24 @@ docker compose -f compose.yaml -f compose.dev.yaml up --build
 
 The agent is not deployed to AWS. `strands-agents` is a library dependency, and its model and region (`AGENT_MODEL_ID`, `AWS_REGION`) are read from the environment whenever an agent route exposes it; no Compose service consumes them yet.
 
+### Alert Notifications
+Target-price crossings reach the user through two channels. The in-app popup is global: the shell polls `GET /api/v1/alerts/events`, seeds events that already existed at load time as seen, and shows a transient toast for each new crossing on any workspace. The short sound is enabled by default and can be turned off in Configuración → "Alertas". Browsers only permit audio after a user interaction, so the first click unlocks it and a blocked audio context degrades to a silent toast. Dismissing a toast does not acknowledge the event; that stays an explicit action in the Alerts workspace.
+
+For delivery while the app is closed, set the optional SMTP variables in `.env` before starting the stack:
+
+| Variable | Meaning |
+| --- | --- |
+| `SMTP_HOST` | Mail server host. Leave empty to disable email; toasts still work. |
+| `SMTP_PORT` | Server port, default `587`. |
+| `SMTP_USER` / `SMTP_PASSWORD` | Credentials, when the server requires authentication. |
+| `SMTP_USE_TLS` | `1` uses STARTTLS (default); `0` only for a trusted local relay. |
+| `SMTP_TIMEOUT` | Connection timeout in seconds, default `10`. |
+| `ALERT_EMAIL_TO` | Optional destination; defaults to `AUTH_EMAIL`. |
+
+One email is sent per new crossing. The scheduler records the event as emailed only after a successful send, so a transient SMTP failure is retried on the next tick and never stops alert evaluation. Migration `a0009_alert_email_sent` treats crossings that predate email delivery as already sent, so enabling it never replays history. Evaluation runs inside the API process every 300 seconds, so nothing is evaluated or emailed while the stack is down.
+
 ### Data Migration
-Legacy SQLite data (`finance.db`) is migrated to the destination database using an explicit `ticker → currency` mapping that is never inferred. See the full procedure, commands, reconciliation expectations, and restore steps in [`docs/operations/migration.md`](docs/operations/migration.md). Rehearse the whole flow against a copy without touching the source:
-```bash
-python verify/verify_migration_rehearsal.py --source finance.db --currency-map /tmp/ars.json
-```
+The legacy SQLite source (`finance.db`) was migrated to PostgreSQL and then removed from the repository. The supported runtime keeps all portfolio, transaction and wishlist data in the Compose PostgreSQL volume. [`docs/operations/migration.md`](docs/operations/migration.md) records the completed procedure and its explicit `ticker → currency` mapping as a historical reference; it cannot be re-run without a legacy source copy.
 
 ---
 
@@ -199,9 +212,22 @@ docker compose -f compose.yaml -f compose.dev.yaml up --build
 
 El agente no se despliega en AWS. `strands-agents` es una dependencia de librería, y su modelo y región (`AGENT_MODEL_ID`, `AWS_REGION`) se leen del entorno cuando alguna ruta exponga el agente; ningún servicio de Compose los consume todavía.
 
+### Notificaciones de alertas
+Los cruces del precio objetivo llegan al usuario por dos canales. El popup dentro de la app es global: el shell consulta `GET /api/v1/alerts/events`, marca como vistos los eventos que ya existían al cargar y muestra un toast transitorio por cada cruce nuevo, estés en el workspace que estés. El sonido breve está habilitado por defecto y se puede desactivar en Configuración → "Alertas". El navegador solo permite audio después de una interacción del usuario: el primer clic lo habilita y un contexto de audio bloqueado degrada a un toast silencioso. Cerrar un toast no hace acknowledge del evento; esa sigue siendo una acción explícita en el workspace de Alertas.
+
+Para recibir correos mientras la app está cerrada, definí las variables SMTP opcionales en `.env` antes de levantar el stack:
+
+| Variable | Significado |
+| --- | --- |
+| `SMTP_HOST` | Servidor de correo. Vacío desactiva el correo; los toasts siguen funcionando. |
+| `SMTP_PORT` | Puerto del servidor, por defecto `587`. |
+| `SMTP_USER` / `SMTP_PASSWORD` | Credenciales, cuando el servidor las requiere. |
+| `SMTP_USE_TLS` | `1` usa STARTTLS (por defecto); `0` solo para un relay local de confianza. |
+| `SMTP_TIMEOUT` | Timeout de conexión en segundos, por defecto `10`. |
+| `ALERT_EMAIL_TO` | Destinatario opcional; por defecto `AUTH_EMAIL`. |
+
+Se envía un correo por cruce nuevo. El scheduler marca el evento como enviado solo después de un envío exitoso, así que un fallo SMTP transitorio se reintenta en el próximo tick y nunca detiene la evaluación de alertas. La migración `a0009_alert_email_sent` considera ya enviados los cruces anteriores al correo, por lo que activarlo no repite el historial. La evaluación corre dentro del proceso de la API cada 300 segundos: mientras el stack está apagado no se evalúa ni se envía nada.
+
 ### Migración de datos
-Los datos legados de SQLite (`finance.db`) se migran al destino con un mapeo explícito `ticker → moneda` que nunca se infiere. El procedimiento completo, los comandos, la expectativa de reconciliación y los pasos de restauración están en [`docs/operations/migration.md`](docs/operations/migration.md). Ensayar el flujo completo sobre una copia sin tocar la fuente:
-```bash
-python verify/verify_migration_rehearsal.py --source finance.db --currency-map /tmp/ars.json
-```
+La fuente legada de SQLite (`finance.db`) fue migrada a PostgreSQL y luego eliminada del repositorio. El runtime soportado conserva todos los datos de portafolio, transacciones y lista de deseos en el volumen de PostgreSQL de Compose. [`docs/operations/migration.md`](docs/operations/migration.md) registra el procedimiento ya ejecutado y su mapeo explícito `ticker → moneda` como referencia histórica; no se puede repetir sin una copia de la fuente legada.
 

@@ -13,6 +13,12 @@ import { api } from '../../api/client'
 import type { PortfolioPosition, TickerAliasResponse } from '../../api/client'
 import { TickerSearch } from '../../components/TickerSearch'
 import type { TickerSuggestion } from '../../components/TickerSearch'
+import {
+  DEFAULT_ALERT_SOUND,
+  readAlertSound,
+  subscribeAlertSound,
+  writeAlertSound,
+} from '../alerts/alertSoundSettings'
 import { marketApi } from '../market/marketApi'
 import { TotpSettings } from './TotpSettings'
 import {
@@ -179,6 +185,11 @@ export function SettingsPage() {
   const brokers = useSyncExternalStore(subscribeCatalog, readBrokers, readBrokers)
   const categories = useSyncExternalStore(subscribeCatalog, readCategories, readCategories)
   const tapeSymbols = useSyncExternalStore(subscribeTapeSymbols, readTapeSymbols, readTapeSymbols)
+  const alertSound = useSyncExternalStore(
+    subscribeAlertSound,
+    readAlertSound,
+    () => DEFAULT_ALERT_SOUND,
+  )
 
   const [positions, setPositions] = useState<PortfolioPosition[]>([])
   const [aliases, setAliases] = useState<TickerAliasResponse[]>([])
@@ -357,6 +368,30 @@ export function SettingsPage() {
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      <div className="bg-[#181c24]/80 backdrop-blur-md rounded-xl border border-[#3d494c]/30 overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#3d494c]/20">
+          <h2 className="text-sm font-semibold text-white">Alertas</h2>
+          <p className="text-xs text-[#869397] mt-1">
+            Sonido que acompaña al popup cuando se dispara una alerta de precio.
+          </p>
+        </div>
+        <div className="px-6 py-4 flex items-center justify-between gap-6">
+          <label htmlFor="alert-sound" className="flex flex-col">
+            <span className="text-sm text-[#dfe2ee]">Sonido de alertas</span>
+            <span className="text-xs text-[#869397]">
+              El navegador habilita el audio recién después de la primera interacción.
+            </span>
+          </label>
+          <input
+            id="alert-sound"
+            type="checkbox"
+            checked={alertSound}
+            onChange={(event) => writeAlertSound(event.target.checked)}
+            className="w-4 h-4 accent-[#06b6d4] cursor-pointer"
+          />
         </div>
       </div>
 

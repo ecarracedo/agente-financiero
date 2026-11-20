@@ -17,8 +17,8 @@ vi.mock('./marketApi', () => ({
 
 vi.mock('../alerts/alertApi', () => ({
   ALERT_INTENTS: [
-    { value: 'BUY', label: 'Buy' },
-    { value: 'SELL', label: 'Sell' },
+    { value: 'BUY', label: 'Compra' },
+    { value: 'SELL', label: 'Venta' },
   ],
   alertApi: {
     list: vi.fn(),
@@ -197,10 +197,10 @@ describe('MarketWorkspace', () => {
 
     // A ticker outside the portfolio is watched through the wishlist, so the panel
     // is offered and its save targets the wishlist endpoints.
-    expect(await screen.findByRole('heading', { name: 'Target alert' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Alerta de precio objetivo' })).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Target price'), { target: { value: '500' } })
-    fireEvent.click(screen.getByRole('button', { name: /save alert/i }))
+    fireEvent.change(screen.getByLabelText('Precio objetivo'), { target: { value: '500' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar alerta/i }))
 
     await waitFor(() =>
       expect(alertApi.configureWishlist).toHaveBeenCalledWith('NVDA', {
@@ -208,6 +208,6 @@ describe('MarketWorkspace', () => {
         intent: 'BUY',
       }),
     )
-    expect(await screen.findByText('Alert saved.')).toBeInTheDocument()
+    expect(await screen.findByText('Alerta guardada.')).toBeInTheDocument()
   })
 })

@@ -33,6 +33,15 @@ services:
       AUTH_PASSWORD: ${AUTH_PASSWORD:?Set AUTH_PASSWORD in .env}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
       COOKIE_SECURE: ${COOKIE_SECURE:-0}
+      # Optional alert email. With SMTP_HOST empty the notifier is a no-op and
+      # crossings still reach the in-app popup only.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-1}
+      SMTP_TIMEOUT: ${SMTP_TIMEOUT:-10}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -3,12 +3,12 @@
 - **Docstrings**: Todas las funciones y clases deben tener docstrings detallados en **INGLÉS**.
 - **Limpieza**: Verificar y eliminar archivos o funciones que ya no se utilicen. Mantener el código limpio.
 - **Formato moneda global**: Todo monto monetario debe mostrarse como "$ 1.000,00" (símbolo $, separador de miles con punto, separador decimal con coma, 2 decimales, espacio entre símbolo y número).
-## 2. Base de Datos (SQLite)
-- **Schema**: Actualizar los esquemas de base de datos ante cualquier cambio en los modelos.
-- **Inicialización**: Si se modifica la estructura, actualizar y ejecutar `src/create_empty_db.py` para asegurar consistencia.
+## 2. Base de Datos (PostgreSQL)
+- **Schema**: Actualizar los modelos en `backend/app/adapters/persistence/models.py` y agregar la migración Alembic correspondiente en `backend/alembic/versions/` ante cualquier cambio de estructura.
+- **Inicialización**: Aplicar `python -m alembic -c backend/alembic.ini upgrade head` para asegurar consistencia; el arranque de Compose ya lo ejecuta.
 ## 3. Testing y Verificación
-- **Tests Unitarios**: Guardar nuevos tests en la carpeta `tests/`.
-- **Scripts de Verificación**: Guardar archivos temporales o scripts de prueba manual con el prefijo `verify_` en la carpeta `verify/`.
+- **Tests Unitarios**: Guardar los tests de backend en `backend/tests/` y los de frontend junto a su componente en `frontend/src/`.
+- **Scripts de Verificación**: Guardar scripts temporales o de prueba manual con el prefijo `verify_` fuera del repositorio, en `/tmp/opencode/`. No recrear la carpeta `verify/`: fue retirada junto al flujo OpenSpec.
 ## 4. Documentación
 - **README.md**: Actualizar SIEMPRE tras cambios importantes en instalación, uso o configuración.
 - **CHANGELOG**: 

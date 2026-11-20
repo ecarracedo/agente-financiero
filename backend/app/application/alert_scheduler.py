@@ -23,10 +23,12 @@ class TargetAlertScheduler:
         self,
         monitor: AlertMonitorUseCases,
         *,
+        notifications=None,
         interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
     ) -> None:
-        """Initialize the scheduler with the monitor it drives."""
+        """Initialize the scheduler with the monitor and optional notifier."""
         self._monitor = monitor
+        self._notifications = notifications
         self._interval_seconds = interval_seconds
         self._last_error: str | None = None
 
@@ -46,6 +48,14 @@ class TargetAlertScheduler:
         self._last_error = None
         if events:
             _LOGGER.info("target alerts fired: %s", len(events))
+        if self._notifications is not None:
+            try:
+                sent = self._notifications.send_pending()
+            except Exception as error:  # noqa: BLE001 - delivery must not kill the loop
+                self._report(error)
+                return
+            if sent:
+                _LOGGER.info("alert emails sent: %s", sent)
 
     def _report(self, error: Exception) -> None:
         """Log a failure once, keeping the loop alive on repeated identical errors."""

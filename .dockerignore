@@ -18,7 +18,6 @@ finance.db-journal
 **/*.csv
 verify/
 odd/
-openspec/
 docs/
 backend/tests/
 **/node_modules/

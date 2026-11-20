@@ -1,23 +1,23 @@
 # Reglas del Agente (AI Rules)
 
 ## 1. Estructura del Código
-- **Modelos de DB**: Agregar en `src/models/`
-- **Lógica de negocio**: Agregar en `src/services/`
-- **Componentes UI**: Agregar en `src/ui/`
-- **APIs externas**: Wrappers en `src/external/`
-- **Scripts de mantenimiento**: Agregar en `src/scripts/`
+- **Modelos de DB**: `backend/app/adapters/persistence/models.py`
+- **Lógica de negocio**: Reglas puras en `backend/app/domain/` y casos de uso en `backend/app/application/`
+- **Componentes UI**: `frontend/src/features/` por dominio; compartidos en `frontend/src/components/`
+- **APIs externas**: Wrappers en `backend/app/adapters/`
+- **Scripts de mantenimiento**: Sin directorio permanente; usar `/tmp/opencode/` con prefijo `verify_`
 
 ## 2. Código y Calidad
 - **Docstrings**: Todas las funciones y clases deben tener docstrings detallados en **INGLÉS**.
 - **Limpieza**: Verificar y eliminar archivos o funciones que ya no se utilicen. Mantener el código limpio.
 
-## 3. Base de Datos (SQLite)
-- **Schema**: Actualizar los esquemas de base de datos ante cualquier cambio en los modelos.
-- **Inicialización**: Si se modifica la estructura, actualizar y ejecutar `src/scripts/create_empty_db.py` para asegurar consistencia.
+## 3. Base de Datos (PostgreSQL)
+- **Schema**: Actualizar los modelos en `backend/app/adapters/persistence/models.py` y agregar la migración Alembic correspondiente en `backend/alembic/versions/` ante cualquier cambio de estructura.
+- **Inicialización**: Aplicar `python -m alembic -c backend/alembic.ini upgrade head` para asegurar consistencia; el arranque de Compose ya lo ejecuta.
 
 ## 4. Testing y Verificación
-- **Tests Unitarios**: Guardar nuevos tests en la carpeta `tests/`.
-- **Scripts de Verificación**: Guardar archivos temporales o scripts de prueba manual con el prefijo `verify_` en la carpeta `verify/`.
+- **Tests Unitarios**: Guardar los tests de backend en `backend/tests/` y los de frontend junto a su componente en `frontend/src/`.
+- **Scripts de Verificación**: Guardar scripts temporales o de prueba manual con el prefijo `verify_` fuera del repositorio, en `/tmp/opencode/`. No recrear la carpeta `verify/`: fue retirada junto al flujo OpenSpec.
 
 ## 5. Documentación
 - **README.md**: Actualizar SIEMPRE tras cambios importantes en instalación, uso o configuración.

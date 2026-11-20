@@ -1,6 +1,5 @@
 // Tremor Card [v1.0.0]
-// Vendored into this repository from Tremor Raw. See openspec change
-// frontend-tremor-redesign, decision D1.
+// Vendored into this repository from Tremor Raw (decision D1).
 
 import React from 'react'
 import { Slot } from '@radix-ui/react-slot'

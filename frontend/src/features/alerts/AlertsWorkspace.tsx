@@ -305,7 +305,7 @@ export function AlertsWorkspace() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-semibold text-sm transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)] hover:shadow-[0_0_28px_rgba(6,182,212,0.55)] cursor-pointer disabled:opacity-50"
           >
             <span className="text-base font-bold">⚡</span>
-            <span>{eventsChecking ? 'Evaluando…' : 'Check now'}</span>
+            <span>{eventsChecking ? 'Evaluando…' : 'Evaluar ahora'}</span>
           </button>
         </div>
       </div>
@@ -314,26 +314,23 @@ export function AlertsWorkspace() {
 
       {/* Main 2-Column Grid: Form (col 4-5) & Table (col 7-8) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Creación Rápida de Alerta */}
+        {/* Left Column: Creación de alerta */}
         <div className="lg:col-span-5 xl:col-span-4 bg-[#181c24]/80 backdrop-blur-md rounded-xl p-6 shadow-md flex flex-col gap-4 border border-[#3d494c]/20 sticky top-20">
           <div className="flex items-center justify-between pb-3 border-b border-[#3d494c]/20">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[#4cd7f6] text-[20px]">notifications</span>
-              <h3 className="text-base font-semibold text-white font-headline">Creación Rápida de Alerta</h3>
+              <h3 className="text-base font-semibold text-white font-headline">Creación de alerta</h3>
             </div>
-            <span className="text-[10px] font-mono uppercase text-[#4cd7f6] font-semibold">
-              Configurador
-            </span>
           </div>
 
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-mono text-[#869397] uppercase">
-                Scope
+                Ámbito
               </span>
               <div
                 role="group"
-                aria-label="Scope"
+                aria-label="Ámbito"
                 className="flex items-center gap-1 bg-[#1c2028] p-1 rounded-lg"
               >
                 {SCOPE_OPTIONS.map((option) => (
@@ -502,7 +499,7 @@ export function AlertsWorkspace() {
           <section aria-labelledby="configured-alerts-heading" className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 id="configured-alerts-heading" className="text-base font-semibold text-on-surface">
-                Configured alerts
+                Alertas configuradas
               </h3>
               <span className="text-xs text-outline font-mono">
                 {filteredAlerts.length} de {loaded?.alerts.length ?? 0} alertas
@@ -568,7 +565,7 @@ export function AlertsWorkspace() {
                           disabled={removing === alertKey(alert)}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 border border-error/30 transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          {removing === alertKey(alert) ? 'Removing…' : 'Remove'}
+                          {removing === alertKey(alert) ? 'Eliminando…' : 'Eliminar'}
                         </button>
                       </div>
                     </li>
@@ -577,7 +574,7 @@ export function AlertsWorkspace() {
               </ul>
             ) : (
               <p className="text-sm text-on-surface-variant py-8 text-center bg-surface-container/20 rounded-lg border border-outline-variant/10">
-                No configured alerts matching this filter.
+                No hay alertas configuradas que coincidan con este filtro.
               </p>
             )}
           </section>
@@ -592,7 +589,7 @@ export function AlertsWorkspace() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-outline-variant/25">
           <div className="space-y-0.5">
             <h3 id="triggered-alerts-heading" className="text-lg font-bold text-on-surface flex items-center gap-2">
-              <span>Triggered alerts</span>
+              <span>Alertas disparadas</span>
               <span className="text-xs font-normal text-on-surface-variant font-mono">
                 / Registro Histórico de Disparos Recientes
               </span>
@@ -647,7 +644,7 @@ export function AlertsWorkspace() {
                           </span>
                         </div>
                         <span className="text-[11px] font-mono text-outline block mt-0.5">
-                          Trigger: {event.target_price}
+                          Disparo: {event.target_price}
                         </span>
                       </div>
                     </div>
@@ -678,7 +675,7 @@ export function AlertsWorkspace() {
                       disabled={acknowledging === event.id}
                       className="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary text-primary font-mono text-xs font-semibold transition-all border border-primary/25 cursor-pointer disabled:opacity-50"
                     >
-                      {acknowledging === event.id ? 'Reconociendo…' : 'Acknowledge'}
+                      {acknowledging === event.id ? 'Reconociendo…' : 'Reconocer'}
                     </button>
                   </div>
                 </li>
@@ -689,7 +686,7 @@ export function AlertsWorkspace() {
 
         {loaded !== null && loaded.events.length === 0 ? (
           <p className="text-sm text-on-surface-variant text-center py-6">
-            No triggered alerts right now.
+            No hay alertas disparadas en este momento.
           </p>
         ) : null}
       </section>

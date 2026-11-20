@@ -187,3 +187,4 @@ class AlertEventRecord(Base):
     category: Mapped[str | None] = mapped_column(String(80))
     currency: Mapped[str | None] = mapped_column(String(3))
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    emailed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

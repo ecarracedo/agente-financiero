@@ -84,6 +84,7 @@ class TriggeredAlert:
     category: str | None = None
     currency: str | None = None
     acknowledged_at: datetime | None = None
+    emailed_at: datetime | None = None
 
 
 _MESSAGES = {
