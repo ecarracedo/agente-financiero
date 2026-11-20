@@ -139,3 +139,60 @@ def test_acknowledging_an_unknown_event_reports_nothing_acknowledged(session):
         )
         is False
     )
+
+
+def _record_two_events(repository):
+    """Store two crossings at distinct times and return their projections."""
+    first = repository.record_event(
+        portfolio_alert(),
+        event(AlertIntent.BUY, "Precio objetivo de compra alcanzado."),
+        Decimal("149"),
+        datetime(2026, 11, 11, 12, 0, tzinfo=timezone.utc),
+    )
+    second = repository.record_event(
+        wishlist_alert(),
+        event(AlertIntent.SELL, "Precio objetivo de venta alcanzado."),
+        Decimal("505"),
+        datetime(2026, 11, 11, 13, 0, tzinfo=timezone.utc),
+    )
+    return first, second
+
+
+def test_unemailed_events_are_listed_oldest_first(session):
+    """Pending email events come back oldest first so retries are deterministic."""
+    repository = SqlAlchemyAlertEventRepository(session)
+    first, second = _record_two_events(repository)
+
+    pending = repository.list_unemailed_events()
+
+    assert [item.id for item in pending] == [first.id, second.id]
+    assert all(item.emailed_at is None for item in pending)
+
+
+def test_marking_an_event_emailed_removes_it_from_the_pending_list(session):
+    """A successfully sent event is marked and no longer returned as pending."""
+    repository = SqlAlchemyAlertEventRepository(session)
+    first, second = _record_two_events(repository)
+    emailed_at = datetime(2026, 11, 11, 14, 0, tzinfo=timezone.utc)
+
+    assert repository.mark_emailed(first.id, emailed_at) is True
+
+    assert [item.id for item in repository.list_unemailed_events()] == [second.id]
+    stored = repository.list_events(include_acknowledged=True)
+    marked = next(item for item in stored if item.id == first.id)
+    # SQLite in-memory drops tzinfo; compare the wall-clock value the driver keeps.
+    assert marked.emailed_at is not None
+    assert marked.emailed_at.replace(tzinfo=timezone.utc) == emailed_at
+    assert second.emailed_at is None
+
+
+def test_marking_email_for_an_unknown_event_reports_false(session):
+    """A missing event id is reported as not marked."""
+    repository = SqlAlchemyAlertEventRepository(session)
+
+    assert (
+        repository.mark_emailed(
+            404, datetime(2026, 11, 11, 14, 0, tzinfo=timezone.utc)
+        )
+        is False
+    )

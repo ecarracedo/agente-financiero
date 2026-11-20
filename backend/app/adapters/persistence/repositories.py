@@ -637,6 +637,28 @@ class SqlAlchemyAlertEventRepository:
         record.acknowledged_at = acknowledged_at
         return True
 
+    def list_unemailed_events(self) -> tuple[TriggeredAlert, ...]:
+        """Return crossings not yet emailed, oldest first for deterministic retries."""
+        statement = (
+            select(AlertEventRecord)
+            .where(AlertEventRecord.emailed_at.is_(None))
+            .order_by(AlertEventRecord.triggered_at.asc())
+        )
+        return tuple(
+            _triggered_alert(record) for record in self._session.scalars(statement)
+        )
+
+    def mark_emailed(self, event_id: int, emailed_at: datetime) -> bool:
+        """Mark one event as emailed; returns False when no such event exists."""
+        statement = select(AlertEventRecord).where(
+            AlertEventRecord.id == event_id
+        )
+        record = self._session.scalar(statement)
+        if record is None:
+            return False
+        record.emailed_at = emailed_at
+        return True
+
 
 def _triggered_alert(record: AlertEventRecord) -> TriggeredAlert:
     """Project a stored event row, or None when it cannot be evaluated."""
@@ -653,4 +675,5 @@ def _triggered_alert(record: AlertEventRecord) -> TriggeredAlert:
         category=record.category,
         currency=record.currency,
         acknowledged_at=record.acknowledged_at,
+        emailed_at=record.emailed_at,
     )

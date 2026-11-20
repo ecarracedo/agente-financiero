@@ -16,10 +16,12 @@ from backend.app.adapters.market_data import YFinanceMarketDataProvider
 from backend.app.adapters.composite_market_data import CompositeMarketDataProvider
 from backend.app.adapters.ppi_market_data import PpiMarketDataProvider
 from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
+from backend.app.adapters.notifications.smtp import build_alert_notifier
 from backend.app.api.auth import auth_router, require_user
 from backend.app.api.routes import router as api_router
 from backend.app.api.services import ApplicationServices
 from backend.app.application.alert_monitor import AlertMonitorUseCases
+from backend.app.application.alert_notifications import AlertNotificationUseCases
 from backend.app.application.alert_scheduler import TargetAlertScheduler
 from backend.app.application.alerts import TargetAlertUseCases
 from backend.app.application.analytics import PortfolioAnalyticsUseCases
@@ -113,8 +115,14 @@ def create_app(
         if snapshot_scheduler_enabled
         else None
     )
+    alert_notifier = build_alert_notifier()
+    alert_notifications = AlertNotificationUseCases(
+        unit_of_work_factory, alert_notifier
+    )
     alert_scheduler = (
-        TargetAlertScheduler(alert_monitor) if alert_scheduler_enabled else None
+        TargetAlertScheduler(alert_monitor, notifications=alert_notifications)
+        if alert_scheduler_enabled
+        else None
     )
 
     @asynccontextmanager

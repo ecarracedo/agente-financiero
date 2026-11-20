@@ -268,5 +268,9 @@ class AlertEventRepositoryPort(Protocol):
         self, event_id: int, acknowledged_at: datetime
     ) -> bool: ...
 
+    def list_unemailed_events(self) -> tuple[TriggeredAlert, ...]: ...
+
+    def mark_emailed(self, event_id: int, emailed_at: datetime) -> bool: ...
+
 
 PortfolioUnitOfWorkFactory = Callable[[], PortfolioUnitOfWorkPort]
