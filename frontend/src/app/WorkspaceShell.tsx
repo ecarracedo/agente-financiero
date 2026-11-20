@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router'
 
 import { api } from '../api/client'
 import { authApi } from '../features/auth/authApi'
+import { AlertToaster } from '../features/alerts/AlertToaster'
 import { DEFAULT_WORKSPACE, WORKSPACE_ROUTES } from './routes'
 import { TickerTape } from './TickerTape'
 
@@ -179,6 +180,7 @@ export function WorkspaceShell() {
           ))}
         </main>
       </div>
+      <AlertToaster />
     </div>
   )
 }
