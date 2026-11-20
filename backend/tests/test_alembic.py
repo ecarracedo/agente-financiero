@@ -4,7 +4,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 
 
 def test_upgrade_creates_initial_financial_schema(tmp_path):
@@ -65,3 +65,35 @@ def test_upgrade_adds_persistent_target_alert_settings(tmp_path):
 
     assert {"target_price", "alert_intent", "last_observed_price"} <= position_columns
     assert {"alert_intent", "last_observed_price"} <= wishlist_columns
+
+
+def test_email_migration_backfills_existing_crossings(tmp_path):
+    """Crossings created before email delivery are treated as already sent."""
+    project_root = Path(__file__).parents[2]
+    config = Config(str(project_root / "backend" / "alembic.ini"))
+    database_path = tmp_path / "alert-backfill.db"
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{database_path}")
+
+    command.upgrade(config, "a0008_alert_events")
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO alert_event_records "
+                "(scope, ticker, target_price, intent, observed_price, message, triggered_at) "
+                "VALUES ('portfolio', 'YPF', 150, 'SELL', 152, 'crossed', "
+                "'2026-11-20 12:00:00')"
+            )
+        )
+    engine.dispose()
+
+    command.upgrade(config, "head")
+
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        emailed_at = connection.execute(
+            text("SELECT emailed_at FROM alert_event_records WHERE ticker = 'YPF'")
+        ).scalar_one()
+    engine.dispose()
+
+    assert emailed_at is not None
