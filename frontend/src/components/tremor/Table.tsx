@@ -1,6 +1,5 @@
 // Tremor Table [v1.0.0]
-// Vendored into this repository from Tremor Raw. See openspec change
-// frontend-tremor-redesign, decision D1.
+// Vendored into this repository from Tremor Raw (decision D1).
 //
 // Only `cx` is required, so this component adds no runtime dependency beyond the
 // shared utilities already in this directory.

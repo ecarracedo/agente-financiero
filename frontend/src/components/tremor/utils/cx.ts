@@ -1,6 +1,5 @@
 // Tremor cx [v0.0.0]
-// Vendored into this repository from Tremor Raw. See openspec change
-// frontend-tremor-redesign, decision D1.
+// Vendored into this repository from Tremor Raw (decision D1).
 
 import clsx, { type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'

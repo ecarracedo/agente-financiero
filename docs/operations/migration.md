@@ -1,9 +1,16 @@
 # Migración de datos: SQLite (`finance.db`) → destino relacional
 
-Este documento describe el procedimiento para migrar los datos legados de
-`finance.db` hacia la base de datos destino (SQLite temporal en el ensayo;
-PostgreSQL en el corte real). La fuente **nunca se modifica**: todo el flujo se
-ejecuta sobre una copia de trabajo.
+> **Estado: migración completada.** La fuente legada `finance.db` fue migrada a
+> PostgreSQL y eliminada del repositorio. Este documento se conserva como
+> referencia histórica del procedimiento ejecutado; los comandos siguientes
+> requieren una copia de una fuente SQLite legada y **no** se pueden repetir con
+> el estado actual del repositorio. El runtime soportado usa el volumen de
+> PostgreSQL de Compose.
+
+Este documento describe el procedimiento utilizado para migrar los datos legados
+de `finance.db` hacia la base de datos destino (SQLite temporal en el ensayo;
+PostgreSQL en el corte real). La fuente **nunca se modificó**: todo el flujo se
+ejecutó sobre una copia de trabajo.
 
 ## 1. Requisito de mapeo de moneda (explícito, nunca inferido)
 
@@ -113,9 +120,12 @@ Además deben coincidir los saldos: suma de `quantity` (953) y de
 
 ## 6. Ensayo completo reproducible
 
-`verify/verify_migration_rehearsal.py` ejecuta todo el flujo (dry-run → import →
-reconcile → reimport idempotente → restauración) sobre una **copia** de
-`finance.db` con un destino SQLite temporal, sin tocar la fuente:
+El ensayo se ejecutó con `verify/verify_migration_rehearsal.py`, que recorría
+todo el flujo (dry-run → import → reconcile → reimport idempotente →
+restauración) sobre una **copia** de `finance.db` con un destino SQLite
+temporal, sin tocar la fuente. El directorio `verify/` y la fuente legada ya no
+están en el repositorio, así que el comando siguiente es histórico y no se
+puede repetir:
 
 ```bash
 python verify/verify_migration_rehearsal.py \
@@ -123,10 +133,10 @@ python verify/verify_migration_rehearsal.py \
   --currency-map /tmp/ars.json
 ```
 
-Bandera de éxito: `rehearsal OK` y `exit 0`. El script verifica el `sha256` de
-la fuente antes y después, y que la copia de trabajo no cambia. El destino es
-temporal por defecto (`--workdir`/`--database-url` lo parametrizan); el corte
-real puede apuntar a PostgreSQL sin cambiar el guion de importación.
+La bandera de éxito era `rehearsal OK` y `exit 0`. El script verificaba el `sha256` de
+la fuente antes y después, y que la copia de trabajo no cambiaba. El destino era
+temporal por defecto (`--workdir`/`--database-url` lo parametrizaban); el corte
+real apuntó a PostgreSQL sin cambiar el guion de importación.
 
 ## 7. Procedimiento de restauración
 

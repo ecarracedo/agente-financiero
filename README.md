@@ -98,10 +98,7 @@ docker compose -f compose.yaml -f compose.dev.yaml up --build
 The agent is not deployed to AWS. `strands-agents` is a library dependency, and its model and region (`AGENT_MODEL_ID`, `AWS_REGION`) are read from the environment whenever an agent route exposes it; no Compose service consumes them yet.
 
 ### Data Migration
-Legacy SQLite data (`finance.db`) is migrated to the destination database using an explicit `ticker → currency` mapping that is never inferred. See the full procedure, commands, reconciliation expectations, and restore steps in [`docs/operations/migration.md`](docs/operations/migration.md). Rehearse the whole flow against a copy without touching the source:
-```bash
-python verify/verify_migration_rehearsal.py --source finance.db --currency-map /tmp/ars.json
-```
+The legacy SQLite source (`finance.db`) was migrated to PostgreSQL and then removed from the repository. The supported runtime keeps all portfolio, transaction and wishlist data in the Compose PostgreSQL volume. [`docs/operations/migration.md`](docs/operations/migration.md) records the completed procedure and its explicit `ticker → currency` mapping as a historical reference; it cannot be re-run without a legacy source copy.
 
 ---
 
@@ -200,8 +197,5 @@ docker compose -f compose.yaml -f compose.dev.yaml up --build
 El agente no se despliega en AWS. `strands-agents` es una dependencia de librería, y su modelo y región (`AGENT_MODEL_ID`, `AWS_REGION`) se leen del entorno cuando alguna ruta exponga el agente; ningún servicio de Compose los consume todavía.
 
 ### Migración de datos
-Los datos legados de SQLite (`finance.db`) se migran al destino con un mapeo explícito `ticker → moneda` que nunca se infiere. El procedimiento completo, los comandos, la expectativa de reconciliación y los pasos de restauración están en [`docs/operations/migration.md`](docs/operations/migration.md). Ensayar el flujo completo sobre una copia sin tocar la fuente:
-```bash
-python verify/verify_migration_rehearsal.py --source finance.db --currency-map /tmp/ars.json
-```
+La fuente legada de SQLite (`finance.db`) fue migrada a PostgreSQL y luego eliminada del repositorio. El runtime soportado conserva todos los datos de portafolio, transacciones y lista de deseos en el volumen de PostgreSQL de Compose. [`docs/operations/migration.md`](docs/operations/migration.md) registra el procedimiento ya ejecutado y su mapeo explícito `ticker → moneda` como referencia histórica; no se puede repetir sin una copia de la fuente legada.
 

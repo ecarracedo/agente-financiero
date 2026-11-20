@@ -9,7 +9,7 @@
 
 ## 🛠 Improvements
 - [ ] **Refactor Market Data**: Optimize `yfinance` calls to reduce latency.
-- [ ] **Database Backup**: Automated backup of `finance.db`.
+- [ ] **Database Backup**: Automated backup of the Compose PostgreSQL database.
 - [ ] **Wishlist Analysis**: Show price history (3, 6, 12 months) and monthly variation.
 
 ## 🐛 Known Issues
