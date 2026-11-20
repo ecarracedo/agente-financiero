@@ -44,8 +44,8 @@ export type AcknowledgedResponse = components['schemas']['AcknowledgedResponse']
 
 /** Intent values with their display labels. */
 export const ALERT_INTENTS: { value: AlertIntent; label: string }[] = [
-  { value: 'BUY', label: 'Buy' },
-  { value: 'SELL', label: 'Sell' },
+  { value: 'BUY', label: 'Compra' },
+  { value: 'SELL', label: 'Venta' },
 ]
 
 /** Build a JSON request init for a write call. */

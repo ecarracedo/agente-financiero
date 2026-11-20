@@ -15,8 +15,6 @@ import { ErrorState, SuccessState } from '../../components/AsyncStates'
 import { Card } from '../../components/tremor/Card'
 import { CurrencyAmount } from '../../components/CurrencyAmount'
 import { AlertConfigForm } from './AlertConfigForm'
-import type { AlertCheckState } from './AlertStatus'
-import { AlertStatus } from './AlertStatus'
 import type { AlertIntent } from './alertApi'
 import { alertApi } from './alertApi'
 
@@ -93,7 +91,6 @@ export function AlertsPanel({
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [checkState, setCheckState] = useState<AlertCheckState>({ kind: 'idle' })
 
   // The live quote can arrive after this panel mounts, so the target is derived
   // rather than copied into state: a user edit wins, then a saved alert, then
@@ -106,8 +103,8 @@ export function AlertsPanel({
     setFieldErrors({})
     setSaved(false)
     if (targetPrice.trim() === '') {
-      setSaveError('Target price is required.')
-      setFieldErrors({ target_price: 'Target price is required.' })
+      setSaveError('El precio objetivo es obligatorio.')
+      setFieldErrors({ target_price: 'El precio objetivo es obligatorio.' })
       return
     }
     setSaving(true)
@@ -151,44 +148,16 @@ export function AlertsPanel({
     }
   }
 
-  async function handleCheck() {
-    setCheckState({ kind: 'loading' })
-    try {
-      const result =
-        scope === 'portfolio'
-          ? await alertApi.checkPortfolio(ticker, {
-              broker: broker ?? '',
-              category: category ?? '',
-            })
-          : await alertApi.checkWishlist(ticker)
-      setCheckState(
-        result.event
-          ? { kind: 'crossing', currentPrice: result.current_price, event: result.event }
-          : { kind: 'no-crossing', currentPrice: result.current_price },
-      )
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.status === 503) {
-        setCheckState({ kind: 'unavailable' })
-      } else {
-        setCheckState({ kind: 'error', error: caught })
-      }
-    }
-  }
-
-  const observedPrice =
-    checkState.kind === 'crossing' || checkState.kind === 'no-crossing'
-      ? checkState.currentPrice
-      : null
-
   return (
     <Card className="bg-[#181c24]/80 backdrop-blur-md rounded-xl shadow-md border-[#3d494c]/20">
       <section aria-labelledby="target-alert-heading" className="flex flex-col gap-4">
         <h3 id="target-alert-heading" className="text-base font-semibold text-white font-headline">
-          Target alert
+          Alerta de precio objetivo
         </h3>
         <AlertConfigForm
           intent={intent}
           targetPrice={targetPrice}
+          referencePrice={initialTargetPrice ?? null}
           submitting={saving}
           fieldErrors={fieldErrors}
           onIntentChange={(value) => {
@@ -216,27 +185,8 @@ export function AlertsPanel({
             )}
           </p>
         ) : null}
-        <button
-          type="button"
-          onClick={handleCheck}
-          disabled={ticker === ''}
-          className="w-full py-2 bg-[#1c2028] hover:bg-[#262a33] text-[#bcc9cd] hover:text-white border border-[#3d494c]/30 text-xs font-mono uppercase font-bold rounded-lg transition-all disabled:opacity-50 cursor-pointer"
-        >
-          Check alert
-        </button>
-        {saved ? <SuccessState message="Alert saved." /> : null}
+        {saved ? <SuccessState message="Alerta guardada." /> : null}
         {saveError ? <ErrorState message={saveError} /> : null}
-        {observedPrice !== null ? (
-          <p className="text-xs font-mono text-[#869397]">
-            Current price:{' '}
-            {currency !== null && currency !== '' ? (
-              <CurrencyAmount amount={observedPrice} currency={currency} />
-            ) : (
-              <span>{observedPrice}</span>
-            )}
-          </p>
-        ) : null}
-        <AlertStatus state={checkState} />
       </section>
     </Card>
   )
