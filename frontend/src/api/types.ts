@@ -512,6 +512,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/wishlist/{ticker}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Wishlist History
+         * @description Return dated closes and monthly/period variation for a wishlist ticker.
+         */
+        get: operations["get_wishlist_history_api_v1_wishlist__ticker__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wishlist/{ticker}/target": {
         parameters: {
             query?: never;
@@ -1334,6 +1354,22 @@ export interface components {
         WishlistCreateRequest: {
             /** Ticker */
             ticker: string;
+        };
+        /**
+         * WishlistHistoryResponse
+         * @description Expose a wishlist ticker's dated closes with canonical variation strings.
+         */
+        WishlistHistoryResponse: {
+            /** Ticker */
+            ticker: string;
+            /** Period */
+            period: string;
+            /** Points */
+            points: components["schemas"]["PricePointResponse"][];
+            /** Monthly Variation Percent */
+            monthly_variation_percent: string | null;
+            /** Period Variation Percent */
+            period_variation_percent: string | null;
         };
         /**
          * WishlistItemResponse
@@ -2325,6 +2361,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WishlistItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_wishlist_history_api_v1_wishlist__ticker__history_get: {
+        parameters: {
+            query?: {
+                period?: string;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: {
+                agente_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WishlistHistoryResponse"];
                 };
             };
             /** @description Validation Error */

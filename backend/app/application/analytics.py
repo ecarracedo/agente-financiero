@@ -1,10 +1,12 @@
 """Application use cases for portfolio valuation and market analysis."""
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 from decimal import Decimal
 
 from backend.app.application.ports import MarketDataProviderPort, PortfolioReadRepositoryPort
 from backend.app.domain.alerts import AlertIntent, TargetAlertEvent, evaluate_target_alert
-from backend.app.domain.analysis import MarketAnalysis, analyze_market
+from backend.app.domain.analysis import MarketAnalysis, PricePoint, analyze_market
 from backend.app.domain.tickers import (
     DEFAULT_SEARCH_RESULTS,
     TickerMatch,
@@ -17,6 +19,49 @@ from backend.app.domain.valuation import CurrencyValuation, value_portfolio
 # cases and the agent tools read it from here so they cannot drift apart. The
 # HTTP API declares its own default beside the pattern that validates it.
 DEFAULT_ANALYSIS_PERIOD: str = "1y"
+
+
+@dataclass(frozen=True)
+class WishlistHistory:
+    """A dated close series with its monthly and whole-period variation."""
+
+    ticker: str
+    period: str
+    points: tuple[PricePoint, ...]
+    monthly_variation_percent: Decimal | None
+    period_variation_percent: Decimal | None
+
+
+def _percent_change(start: Decimal, end: Decimal) -> Decimal | None:
+    """Return ``(end - start) / start * 100``, or None when start is zero."""
+    if start == 0:
+        return None
+    return (end - start) / start * Decimal(100)
+
+
+def monthly_variation_percent(points: Sequence[PricePoint]) -> Decimal | None:
+    """Return the change between the last closes of the two latest calendar months.
+
+    The base is the last close of the calendar month preceding the latest month
+    present in the series; fewer than two distinct months yield None.
+    """
+    last_close_by_month: dict[tuple[int, int], Decimal] = {}
+    for point in sorted(points, key=lambda item: item.date):
+        last_close_by_month[(point.date.year, point.date.month)] = point.close
+    if len(last_close_by_month) < 2:
+        return None
+    *_, previous, latest = sorted(last_close_by_month)
+    return _percent_change(
+        last_close_by_month[previous], last_close_by_month[latest]
+    )
+
+
+def period_variation_percent(points: Sequence[PricePoint]) -> Decimal | None:
+    """Return the first-to-last close change, or None with fewer than two points."""
+    if len(points) < 2:
+        return None
+    ordered = sorted(points, key=lambda item: item.date)
+    return _percent_change(ordered[0].close, ordered[-1].close)
 
 
 class PortfolioAnalyticsUseCases:
@@ -93,6 +138,19 @@ class PortfolioAnalyticsUseCases:
             None if quote is None else quote.price,
             series,
             None if quote is None else quote.currency,
+        )
+
+    def get_wishlist_history(self, ticker: str, period: str) -> WishlistHistory:
+        """Return the chronological closes for one ticker with S5 variations."""
+        normalized_ticker = normalize_ticker(ticker)
+        series = self._market_data.get_historical_series(normalized_ticker, period)
+        points = tuple(sorted(series, key=lambda item: item.date))
+        return WishlistHistory(
+            ticker=normalized_ticker,
+            period=period,
+            points=points,
+            monthly_variation_percent=monthly_variation_percent(points),
+            period_variation_percent=period_variation_percent(points),
         )
 
     def evaluate_target_crossing(

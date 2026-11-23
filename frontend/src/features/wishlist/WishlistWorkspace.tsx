@@ -13,6 +13,7 @@ import { describeApiError } from '../../api/errors'
 import { ErrorState, LoadingState, SuccessState } from '../../components/AsyncStates'
 import { TextField } from '../../components/FormControls'
 import { Card } from '../../components/tremor/Card'
+import { WishlistAnalysis } from './WishlistAnalysis'
 import { WishlistTable } from './WishlistTable'
 import { useWishlist } from './useWishlist'
 import { wishlistApi } from './wishlistApi'
@@ -25,7 +26,7 @@ export function WishlistWorkspace() {
   const [ticker, setTicker] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-
+  const [analyzed, setAnalyzed] = useState<string | null>(null)
   function handleDraftChange(target: string, value: string) {
     setDrafts((current) => ({ ...current, [target]: value }))
   }
@@ -129,8 +130,12 @@ export function WishlistWorkspace() {
             onSaveTarget={handleSaveTarget}
             onClearTarget={handleClearTarget}
             onRemove={handleRemove}
+            onAnalyze={setAnalyzed}
           />
         </Card>
+      ) : null}
+      {analyzed !== null && items.some((item) => item.ticker === analyzed) ? (
+        <WishlistAnalysis ticker={analyzed} onClose={() => setAnalyzed(null)} />
       ) : null}
     </section>
   )

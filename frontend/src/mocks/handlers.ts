@@ -9,7 +9,7 @@ import type {
 } from '../features/alerts/alertApi'
 import type { BibliographyItem } from '../features/bibliography/bibliographyApi'
 import type { SplitProjection } from '../features/tools/split/splitApi'
-import type { WishlistItem } from '../features/wishlist/wishlistApi'
+import type { WishlistHistory, WishlistItem } from '../features/wishlist/wishlistApi'
 import {
   alertCheckClear,
   alertCheckTriggered,
@@ -27,6 +27,7 @@ import {
   unknownAnalysis,
   valuations,
   wishlist,
+  wishlistHistory,
 } from './fixtures'
 
 /**
@@ -210,6 +211,14 @@ export const handlers = [
       { ticker: body.ticker, target_price: body.target_price ?? null },
       { status: 201 },
     )
+  }),
+  http.get(`${BASE}/api/v1/wishlist/:ticker/history`, ({ params, request }) => {
+    const period = new URL(request.url).searchParams.get('period') ?? '1y'
+    return HttpResponse.json<WishlistHistory>({
+      ...wishlistHistory,
+      ticker: String(params.ticker).toUpperCase(),
+      period,
+    })
   }),
   http.delete(`${BASE}/api/v1/wishlist/:ticker`, () =>
     HttpResponse.json<MutationResponse>({ deleted: true }),

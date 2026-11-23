@@ -1827,6 +1827,78 @@
         }
       }
     },
+    "/api/v1/wishlist/{ticker}/history": {
+      "get": {
+        "tags": [
+          "wishlist"
+        ],
+        "summary": "Get Wishlist History",
+        "description": "Return dated closes and monthly/period variation for a wishlist ticker.",
+        "operationId": "get_wishlist_history_api_v1_wishlist__ticker__history_get",
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "title": "Ticker"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(3mo|6mo|1y)$",
+              "default": "1y",
+              "title": "Period"
+            }
+          },
+          {
+            "name": "agente_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Agente Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/wishlist/{ticker}/target": {
       "put": {
         "tags": [
@@ -4147,6 +4219,57 @@
         ],
         "title": "WishlistCreateRequest",
         "description": "Validate a ticker added to the wishlist."
+      },
+      "WishlistHistoryResponse": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "period": {
+            "type": "string",
+            "title": "Period"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/PricePointResponse"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "monthly_variation_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Variation Percent"
+          },
+          "period_variation_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Variation Percent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "period",
+          "points",
+          "monthly_variation_percent",
+          "period_variation_percent"
+        ],
+        "title": "WishlistHistoryResponse",
+        "description": "Expose a wishlist ticker's dated closes with canonical variation strings."
       },
       "WishlistItemResponse": {
         "properties": {
