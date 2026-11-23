@@ -4,6 +4,7 @@ from collections.abc import Callable, Iterable, Sequence
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 import importlib
+import time
 from typing import Any
 
 from backend.app.domain.analysis import PricePoint, QuoteSnapshot
@@ -60,6 +61,9 @@ def _flagged_per_hundred_tickers(loader: Callable[[], Iterable[object]] | None) 
     return {str(value).strip().upper() for value in values if str(value).strip()}
 
 
+DEFAULT_CACHE_TTL_SECONDS = 15 * 60
+
+
 class CompositeMarketDataProvider(MarketDataProviderPort):
     """Market data provider that delegates to PPI for local bonds/FCI/ONs, yfinance otherwise."""
 
@@ -69,6 +73,8 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
         yfinance_factory: Callable[[str], Any] | None = None,
         search_factory: Callable[[str, int], Any] | None = None,
         percent_of_par: Callable[[], Iterable[object]] | None = None,
+        cache_ttl_seconds: float = DEFAULT_CACHE_TTL_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         """Wire providers and the optional user-flagged per-100-nominal loader.
 
@@ -76,12 +82,47 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
             percent_of_par: Loader returning tickers the user flagged as quoted
                 per 100 nominal units. It only affects the yfinance fallback,
                 because PPI already reports per-100 prices divided by 100.
+            cache_ttl_seconds: Lifetime of cached yfinance results.
+            clock: Monotonic seconds source; injectable for deterministic tests.
         """
         self._ppi = ppi_provider or PpiMarketDataProvider()
         self._yfinance_factory = yfinance_factory
         self._search_factory = search_factory
         self._percent_of_par = percent_of_par
         self._yfinance_ticker_cache: dict[str, Any] = {}
+        self._cache_ttl_seconds = cache_ttl_seconds
+        self._clock = clock
+        self._info_cache: dict[str, tuple[float, Any]] = {}
+        self._quote_cache: dict[str, tuple[float, QuoteSnapshot]] = {}
+        self._series_cache: dict[tuple[str, str], tuple[float, tuple[PricePoint, ...]]] = {}
+
+    def _cache_get(self, cache: dict[Any, tuple[float, Any]], key: Any) -> Any:
+        """Return a fresh cached value or None when absent or expired."""
+        entry = cache.get(key)
+        if entry is None:
+            return None
+        stored_at, value = entry
+        if self._clock() - stored_at >= self._cache_ttl_seconds:
+            del cache[key]
+            return None
+        return value
+
+    def _cache_put(self, cache: dict[Any, tuple[float, Any]], key: Any, value: Any) -> None:
+        """Store a successful result stamped with the current clock reading."""
+        cache[key] = (self._clock(), value)
+
+    def _get_yfinance_info(self, normalized: str) -> Any:
+        """Return yfinance ``.info`` for a ticker, cached on success only.
+
+        Lookup errors propagate and are never cached, so the next call retries.
+        """
+        cached = self._cache_get(self._info_cache, normalized)
+        if cached is not None:
+            return cached
+        info = self._create_yfinance_ticker(normalized).info
+        if info is not None:
+            self._cache_put(self._info_cache, normalized, info)
+        return info
 
     def _is_per_hundred_nominal(self, ticker: str, information: Any = None) -> bool:
         """Return True when this ticker quotes per 100 nominal units."""
@@ -122,9 +163,12 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
         if quote is not None:
             return quote
 
-        # Fall back to yfinance
+        # Fall back to yfinance, served from the short-lived cache when fresh
+        cached_quote = self._cache_get(self._quote_cache, normalized)
+        if cached_quote is not None:
+            return cached_quote
         try:
-            info = self._create_yfinance_ticker(normalized).info
+            info = self._get_yfinance_info(normalized)
             is_per_hundred = self._is_per_hundred_nominal(normalized, info)
             for field in ("currentPrice", "regularMarketPrice", "previousClose"):
                 raw_price = info.get(field)
@@ -135,10 +179,12 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
                 except InvalidOperation:
                     continue
                 if price.is_finite() and price > 0:
-                    return QuoteSnapshot(
+                    snapshot = QuoteSnapshot(
                         price=_scale_price_if_bond(price, is_per_hundred),
                         currency=_to_currency(info.get("currency")),
                     )
+                    self._cache_put(self._quote_cache, normalized, snapshot)
+                    return snapshot
         except Exception:
             pass
         return None
@@ -148,16 +194,23 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
     ) -> Sequence[PricePoint]:
         # Historical series only available via yfinance
         try:
-            ticker_obj = self._create_yfinance_ticker(normalize_ticker(ticker))
+            normalized = normalize_ticker(ticker)
+            cache_key = (normalized, period)
+            cached_series = self._cache_get(self._series_cache, cache_key)
+            if cached_series is not None:
+                return cached_series
+            ticker_obj = self._create_yfinance_ticker(normalized)
             is_per_hundred = False
+            info_ok = True
             try:
                 is_per_hundred = self._is_per_hundred_nominal(
-                    ticker, getattr(ticker_obj, "info", None)
+                    ticker, self._get_yfinance_info(normalized)
                 )
             except Exception:
                 # A failing info lookup must not lose the whole series; a
                 # non-scaled series is no worse than the previous behavior.
                 is_per_hundred = False
+                info_ok = False
             history = ticker_obj.history(period=period)
             points: list[PricePoint] = []
             for timestamp, raw_close in history["Close"].dropna().items():
@@ -175,7 +228,10 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
                 else:
                     point_date = timestamp.date()
                 points.append(PricePoint(date=point_date, close=close))
-            return tuple(points)
+            result = tuple(points)
+            if result and info_ok:
+                self._cache_put(self._series_cache, cache_key, result)
+            return result
         except Exception:
             return ()
 
