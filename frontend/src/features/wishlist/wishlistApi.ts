@@ -18,6 +18,12 @@ export type WishlistTargetUpdated = components['schemas']['UpdatedResponse']
 /** Acknowledgement returned by a removal. */
 export type WishlistRemoved = components['schemas']['MutationResponse']
 
+/** Dated closes plus monthly and period variation for one wishlist entry. */
+export type WishlistHistory = components['schemas']['WishlistHistoryResponse']
+
+/** Provider periods the analysis card can request. */
+export type WishlistHistoryPeriod = '3mo' | '6mo' | '1y'
+
 /** Build a JSON request init for a write call. */
 function jsonInit(method: string, body: unknown): RequestInit {
   return {
@@ -39,6 +45,11 @@ export const wishlistApi = {
     request<WishlistTargetUpdated>(
       `/api/v1/wishlist/${encodeURIComponent(ticker)}/target`,
       jsonInit('PUT', { target_price: targetPrice }),
+    ),
+  /** Load dated closes and variations; a ticker outside the wishlist yields 404. */
+  history: (ticker: string, period: WishlistHistoryPeriod): Promise<WishlistHistory> =>
+    request<WishlistHistory>(
+      `/api/v1/wishlist/${encodeURIComponent(ticker)}/history?period=${period}`,
     ),
   /** Remove an entry; a missing entry yields 404. */
   remove: (ticker: string): Promise<WishlistRemoved> =>

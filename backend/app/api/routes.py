@@ -39,6 +39,7 @@ from backend.app.api.schemas import (
     UpdatedResponse,
     WishlistAlertRequest,
     WishlistCreateRequest,
+    WishlistHistoryResponse,
     WishlistItemResponse,
     WishlistTargetRequest,
 )
@@ -427,6 +428,25 @@ def add_wishlist_item(
         return _services(request).resources.add_wishlist_item(ticker)
     except IntegrityError as error:
         raise HTTPException(status_code=409, detail="wishlist item already exists") from error
+
+
+@router.get(
+    "/wishlist/{ticker}/history",
+    response_model=WishlistHistoryResponse,
+    tags=["wishlist"],
+)
+def get_wishlist_history(
+    ticker: TickerPath,
+    request: Request,
+    period: str = Query(default="1y", pattern=r"^(3mo|6mo|1y)$"),
+):
+    """Return dated closes and monthly/period variation for a wishlist ticker."""
+    services = _services(request)
+    canonical_ticker = _canonical_ticker(ticker)
+    tracked = {item.ticker for item in services.resources.list_wishlist()}
+    if canonical_ticker not in tracked:
+        raise HTTPException(status_code=404, detail="wishlist item not found")
+    return services.analytics.get_wishlist_history(canonical_ticker, period)
 
 
 @router.put(

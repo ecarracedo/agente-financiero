@@ -199,6 +199,18 @@ class WishlistItemResponse(BaseModel):
     target_price: OptionalMoneyString
 
 
+class WishlistHistoryResponse(BaseModel):
+    """Expose a wishlist ticker's dated closes with canonical variation strings."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    ticker: str
+    period: str
+    points: list[PricePointResponse]
+    monthly_variation_percent: OptionalMoneyString
+    period_variation_percent: OptionalMoneyString
+
+
 class BibliographyItemResponse(BaseModel):
     """Expose a bibliography resource and its optional metadata."""
 

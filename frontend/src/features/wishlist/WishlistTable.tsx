@@ -19,6 +19,8 @@ export interface WishlistTableProps {
   onSaveTarget: (ticker: string) => void
   onClearTarget: (ticker: string) => void
   onRemove: (ticker: string) => void
+  /** Open the analysis card for a ticker. */
+  onAnalyze: (ticker: string) => void
 }
 
 /** Render one row per entry, each with its own target editor and actions. */
@@ -29,6 +31,7 @@ export function WishlistTable({
   onSaveTarget,
   onClearTarget,
   onRemove,
+  onAnalyze,
 }: WishlistTableProps) {
   const columns: Column<WishlistItem>[] = [
     { key: 'ticker', header: 'Ticker', render: (item) => item.ticker },
@@ -57,6 +60,14 @@ export function WishlistTable({
       header: 'Actions',
       render: (item) => (
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onAnalyze(item.ticker)}
+            aria-label={`Analyze ${item.ticker}`}
+            className="rounded-lg border border-[#3d494c]/60 bg-[#1c2028] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#262a33] hover:text-[#4cd7f6] transition-all"
+          >
+            Analyze
+          </button>
           <button
             type="button"
             onClick={() => onSaveTarget(item.ticker)}

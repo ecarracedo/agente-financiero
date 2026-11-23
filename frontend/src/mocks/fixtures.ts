@@ -91,6 +91,19 @@ export const wishlist = [
   },
 ]
 
+/** WishlistHistoryResponse for the first wishlist ticker. */
+export const wishlistHistory = {
+  ticker: 'NVDA',
+  period: '3mo' as const,
+  points: [
+    { date: '2024-01-15', close: '100' },
+    { date: '2024-01-31', close: '110' },
+    { date: '2024-02-29', close: '121' },
+  ],
+  monthly_variation_percent: '10',
+  period_variation_percent: '21',
+}
+
 /** MarketAnalysisResponse, with series points as PricePointResponse. */
 export const analysisAAPL = {
   ticker: 'AAPL',
