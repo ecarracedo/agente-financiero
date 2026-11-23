@@ -9,9 +9,9 @@
 - [ ] **Alerts (Telegram)**: Telegram notifications for price targets.
 
 ## 🛠 Improvements
-- [ ] **Refactor Market Data**: Optimize `yfinance` calls to reduce latency.
+- [x] **Refactor Market Data**: Optimize `yfinance` calls to reduce latency.
 - [ ] **Database Backup**: Automated backup of the Compose PostgreSQL database.
-- [ ] **Wishlist Analysis**: Show price history (3, 6, 12 months) and monthly variation.
+- [x] **Wishlist Analysis**: Show price history (3, 6, 12 months) and monthly variation.
 
 ## 🗃 Superseded
 - `feature/portfolio-historical-performance` (unmerged, 5 commits): replaced by the snapshot-based historical chart on `dev`. Its on-demand `GET /api/v1/portfolio/performance` design conflicts with the current chart and snapshot scheduler. Kept locally for reference, not merged.
