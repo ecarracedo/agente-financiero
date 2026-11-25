@@ -120,6 +120,9 @@ export function WishlistAnalysis({ ticker, onClose }: WishlistAnalysisProps) {
   const history = result?.history ?? null
   const hasPoints = history !== null && history.points.length > 0
   const lastClose = hasPoints ? history.points[history.points.length - 1].close : null
+  const lastCloseValue = lastClose === null ? null : Number(lastClose)
+  const lastClosePrice =
+    lastCloseValue !== null && Number.isFinite(lastCloseValue) ? lastCloseValue : null
 
   return (
     <div
@@ -157,7 +160,15 @@ export function WishlistAnalysis({ ticker, onClose }: WishlistAnalysisProps) {
               </span>
             </div>
           </div>
-          <MarketChart series={toChartSeries(history.points)} mode="line" />
+          <div className="w-full overflow-x-auto">
+            <MarketChart
+              series={toChartSeries(history.points)}
+              mode="line"
+              width={800}
+              lastClosePrice={lastClosePrice}
+              lastCloseLabel={lastClose === null ? null : formatClose(lastClose)}
+            />
+          </div>
         </>
       ) : null}
     </div>

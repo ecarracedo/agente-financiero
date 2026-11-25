@@ -108,7 +108,9 @@ def create_app(
     )
     portfolio_use_cases = PortfolioUseCases(unit_of_work_factory)
     snapshot_use_cases = PortfolioSnapshotUseCases(unit_of_work_factory, provider)
-    alert_use_cases = TargetAlertUseCases(unit_of_work_factory)
+    alert_use_cases = TargetAlertUseCases(
+        unit_of_work_factory, market_data_provider=provider
+    )
     alert_monitor = AlertMonitorUseCases(alert_use_cases, provider)
     snapshot_scheduler = (
         PortfolioSnapshotScheduler(snapshot_use_cases)
@@ -153,7 +155,9 @@ def create_app(
         analytics=PortfolioAnalyticsUseCases(portfolio_use_cases, provider),
         alerts=alert_use_cases,
         monitor=alert_monitor,
-        resources=ResourceUseCases(unit_of_work_factory),
+        resources=ResourceUseCases(
+            unit_of_work_factory, market_data_provider=provider
+        ),
         snapshots=snapshot_use_cases,
         percent_of_par=PercentOfParUseCases(unit_of_work_factory),
     )

@@ -43,14 +43,18 @@ def _configured_alert(
     not positive, is legacy data: it stays inactive and is never listed, the
     same way it produces no alert during a check.
     """
-    if record.target_price is None or record.alert_intent is None:
+    if record.target_price is None or record.target_price <= 0:
         return None
-    if record.target_price <= 0:
-        return None
-    try:
-        intent = AlertIntent(record.alert_intent)
-    except ValueError:
-        return None
+    if record.alert_intent is None:
+        # Legacy wishlist targets predate stored intents and meant a buy alert.
+        if scope is not AlertScope.WISHLIST:
+            return None
+        intent = AlertIntent.BUY
+    else:
+        try:
+            intent = AlertIntent(record.alert_intent)
+        except ValueError:
+            return None
     return ConfiguredAlert(
         scope=scope,
         ticker=record.ticker,
@@ -377,17 +381,24 @@ class SqlAlchemyResourceRepository:
         return True
 
     def get_wishlist_alert(self, ticker: str) -> TargetAlertSettings | None:
-        """Load configured wishlist alert settings; legacy unresolved rows stay inactive."""
+        """Load configured wishlist alert settings.
+
+        A legacy target with no stored intent is treated as a buy alert so it
+        remains evaluable after the intent field was introduced.
+        """
         statement = select(WishlistRecord).where(
             WishlistRecord.ticker == ticker.strip().upper()
         )
         record = self._session.scalar(statement)
-        if record is None or record.target_price is None or record.alert_intent is None:
+        if record is None or record.target_price is None:
             return None
-        try:
-            intent = AlertIntent(record.alert_intent)
-        except ValueError:
-            return None
+        if record.alert_intent is None:
+            intent = AlertIntent.BUY
+        else:
+            try:
+                intent = AlertIntent(record.alert_intent)
+            except ValueError:
+                return None
         return TargetAlertSettings(
             record.target_price, intent, record.last_observed_price
         )
@@ -422,10 +433,7 @@ class SqlAlchemyResourceRepository:
         """List configured wishlist alerts, skipping rows that cannot be evaluated."""
         statement = (
             select(WishlistRecord)
-            .where(
-                WishlistRecord.target_price.is_not(None),
-                WishlistRecord.alert_intent.is_not(None),
-            )
+            .where(WishlistRecord.target_price.is_not(None))
             .order_by(WishlistRecord.ticker)
         )
         projected = (

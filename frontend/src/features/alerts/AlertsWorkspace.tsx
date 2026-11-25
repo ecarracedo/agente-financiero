@@ -2,8 +2,9 @@
  * Alerts workspace in Obsidian Capital design system.
  *
  * Implements the "Centro de Alertas & Notificaciones" dashboard:
- * - Left column: "Creación Rápida de Alerta" for portfolio positions, wishlist
- *   items, or any global instrument outside the portfolio.
+ * - Left column: "Creación de alerta" for portfolio positions or any global
+ *   instrument outside the portfolio. Wishlist targets create alerts directly
+ *   from the wishlist card, so no wishlist scope is offered here.
  * - Right column: "Configured alerts" monitoring table with scope filtering and
  *   removal actions.
  * - Bottom row: "Triggered alerts" card grid showing recent crossings with
@@ -17,17 +18,18 @@ import { ErrorState } from '../../components/AsyncStates'
 import { CurrencyAmount } from '../../components/CurrencyAmount'
 import { TickerSearch } from '../../components/TickerSearch'
 import { AlertsPanel } from './AlertsPanel'
+import { ConfiguredAlertsTable } from './ConfiguredAlertsTable'
 import type { ConfiguredAlert, TriggeredAlertEvent } from './alertApi'
-import { ALERT_INTENTS, alertApi } from './alertApi'
+import { alertApi } from './alertApi'
+import { alertKey } from './alerts.utils'
 import { marketApi } from '../market/marketApi'
-import type { WishlistItem } from '../market/marketApi'
 import type { PortfolioPosition } from '../../api/client'
 import { api } from '../../api/client'
 
-type Scope = 'portfolio' | 'wishlist' | 'custom'
+type Scope = 'portfolio' | 'custom'
 
 /** Scopes the backend understands; the UI-only `custom` choice maps to `wishlist`. */
-type TargetScope = Exclude<Scope, 'custom'>
+type TargetScope = 'portfolio' | 'wishlist'
 
 /** A selectable alert target: one position or one wishlist entry. */
 interface AlertTarget {
@@ -41,33 +43,13 @@ interface AlertTarget {
 
 interface Loaded {
   portfolio: PortfolioPosition[]
-  wishlist: WishlistItem[]
   alerts: ConfiguredAlert[]
   events: TriggeredAlertEvent[]
-}
-
-type TabFilter = 'all' | 'portfolio' | 'wishlist'
-
-/** Identify one configured alert across both scopes. */
-function alertKey(alert: ConfiguredAlert): string {
-  return `${alert.scope}:${alert.ticker}:${alert.broker ?? ''}:${alert.category ?? ''}`
-}
-
-/** Describe where a configured alert came from. */
-function alertOrigin(alert: ConfiguredAlert): string {
-  if (alert.scope === 'wishlist') return 'wishlist'
-  return [alert.broker, alert.category].filter(Boolean).join(' · ')
-}
-
-/** Display label for a stored trade direction. */
-function intentLabel(intent: ConfiguredAlert['intent']): string {
-  return ALERT_INTENTS.find((option) => option.value === intent)?.label ?? intent
 }
 
 /** Compact scope choices shown inside the quick-creation card. */
 const SCOPE_OPTIONS: ReadonlyArray<{ value: Scope; label: string }> = [
   { value: 'portfolio', label: 'Cartera' },
-  { value: 'wishlist', label: 'Wishlist' },
   { value: 'custom', label: 'Otro activo' },
 ]
 
@@ -86,25 +68,21 @@ export function AlertsWorkspace() {
   const [error, setError] = useState<string | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
-  const [eventsChecking, setEventsChecking] = useState(false)
   const [scope, setScope] = useState<Scope>('portfolio')
   const [eventError, setEventError] = useState<string | null>(null)
   const [acknowledging, setAcknowledging] = useState<number | null>(null)
   const [selectedKey, setSelectedKey] = useState('')
   const [customTicker, setCustomTicker] = useState('')
   const [quote, setQuote] = useState<LiveQuote | null>(null)
-  const [tabFilter, setTabFilter] = useState<TabFilter>('all')
-  const [searchFilter, setSearchFilter] = useState('')
 
   const fetchData = useCallback(
     async (): Promise<Loaded> => {
-      const [portfolio, wishlist, alerts, events] = await Promise.all([
+      const [portfolio, alerts, events] = await Promise.all([
         api.listPortfolio(),
-        marketApi.listWishlist(),
         alertApi.list(),
         alertApi.listEvents(),
       ])
-      return { portfolio, wishlist, alerts, events }
+      return { portfolio, alerts, events }
     },
     [],
   )
@@ -127,20 +105,6 @@ export function AlertsWorkspace() {
     }
   }, [fetchData])
 
-  async function handleCheckNow() {
-    setEventError(null)
-    setEventsChecking(true)
-    try {
-      await alertApi.evaluate()
-      const events = await alertApi.listEvents()
-      setLoaded((previous) => previous && { ...previous, events })
-    } catch (cause) {
-      setEventError(describeApiError(cause))
-    } finally {
-      setEventsChecking(false)
-    }
-  }
-
   async function handleAcknowledge(event: TriggeredAlertEvent) {
     setEventError(null)
     setAcknowledging(event.id)
@@ -156,24 +120,14 @@ export function AlertsWorkspace() {
   }
 
   const targets: AlertTarget[] = loaded
-    ? [
-        ...loaded.portfolio.map((position) => ({
-          key: `portfolio:${position.broker}:${position.ticker}`,
-          ticker: position.ticker,
-          currency: position.currency,
-          broker: position.broker,
-          category: position.category,
-          scope: 'portfolio' as const,
-        })),
-        ...loaded.wishlist.map((item) => ({
-          key: `wishlist:${item.ticker}`,
-          ticker: item.ticker,
-          currency: null,
-          broker: null,
-          category: null,
-          scope: 'wishlist' as const,
-        })),
-      ]
+    ? loaded.portfolio.map((position) => ({
+        key: `portfolio:${position.broker}:${position.ticker}`,
+        ticker: position.ticker,
+        currency: position.currency,
+        broker: position.broker,
+        category: position.category,
+        scope: 'portfolio' as const,
+      }))
     : []
 
   const isCustom = selectedKey === 'custom'
@@ -267,23 +221,6 @@ export function AlertsWorkspace() {
     }
   }
 
-  const filteredAlerts = (loaded?.alerts ?? []).filter((alert) => {
-    if (tabFilter === 'portfolio' && alert.scope !== 'portfolio') return false
-    if (tabFilter === 'wishlist' && alert.scope !== 'wishlist') return false
-    if (searchFilter.trim() !== '') {
-      const q = searchFilter.toLowerCase()
-      return (
-        alert.ticker.toLowerCase().includes(q) ||
-        (alert.broker ?? '').toLowerCase().includes(q) ||
-        (alert.category ?? '').toLowerCase().includes(q)
-      )
-    }
-    return true
-  })
-
-  const portfolioCount = (loaded?.alerts ?? []).filter((a) => a.scope === 'portfolio').length
-  const wishlistCount = (loaded?.alerts ?? []).filter((a) => a.scope === 'wishlist').length
-
   return (
     <section aria-labelledby="alerts-heading" className="space-y-6">
       {/* Top Hero Header: Obsidian Capital Style */}
@@ -296,17 +233,6 @@ export function AlertsWorkspace() {
           <p className="text-sm text-on-surface-variant">
             Monitoreo de cartera, wishlist y activos globales en tiempo real.
           </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => void handleCheckNow()}
-            disabled={eventsChecking}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-semibold text-sm transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)] hover:shadow-[0_0_28px_rgba(6,182,212,0.55)] cursor-pointer disabled:opacity-50"
-          >
-            <span className="text-base font-bold">⚡</span>
-            <span>{eventsChecking ? 'Evaluando…' : 'Evaluar ahora'}</span>
-          </button>
         </div>
       </div>
 
@@ -372,27 +298,6 @@ export function AlertsWorkspace() {
                     ))}
                 </select>
               </div>
-            ) : scope === 'wishlist' ? (
-              <div className="flex flex-col gap-1">
-                <label htmlFor="alert-position" className="text-[10px] font-mono text-[#869397] uppercase">
-                  Activo de wishlist
-                </label>
-                <select
-                  id="alert-position"
-                  value={selectedKey}
-                  onChange={(event) => setSelectedKey(event.target.value)}
-                  className="bg-[#1c2028] px-2.5 py-1.5 rounded-lg border border-[#3d494c]/30 text-xs font-mono text-white focus:outline-none cursor-pointer"
-                >
-                  <option value="" className="bg-[#181c24] text-white">Seleccionar activo</option>
-                  {targets
-                    .filter((target) => target.scope === 'wishlist')
-                    .map((target) => (
-                      <option key={target.key} value={target.key} className="bg-[#181c24] text-white">
-                        {target.ticker}
-                      </option>
-                    ))}
-                </select>
-              </div>
             ) : (
               <TickerSearch
                 id="alert-ticker-search"
@@ -437,148 +342,15 @@ export function AlertsWorkspace() {
         </div>
 
         {/* Right Column: Monitoreo de Alertas Configuradas */}
-        <div className="lg:col-span-7 xl:col-span-8 bg-surface-container-low/95 backdrop-blur-md rounded-xl shadow-xl overflow-hidden border border-outline-variant/35 flex flex-col">
-          {/* Toolbar and Tabs */}
-          <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-lowest/60 border-b border-outline-variant/20">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-              <button
-                type="button"
-                onClick={() => setTabFilter('all')}
-                className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-                  tabFilter === 'all'
-                    ? 'bg-primary text-on-primary font-bold'
-                    : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
-                }`}
-              >
-                <span>Todas</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
-                  {loaded?.alerts.length ?? 0}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTabFilter('portfolio')}
-                className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-                  tabFilter === 'portfolio'
-                    ? 'bg-primary text-on-primary font-bold'
-                    : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
-                }`}
-              >
-                <span>Cartera</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
-                  {portfolioCount}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTabFilter('wishlist')}
-                className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-                  tabFilter === 'wishlist'
-                    ? 'bg-primary text-on-primary font-bold'
-                    : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
-                }`}
-              >
-                <span>Wishlist</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-black/20 text-[10px]">
-                  {wishlistCount}
-                </span>
-              </button>
-            </div>
-
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Filtrar alertas o ticker..."
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full sm:w-56 pl-3 pr-3 py-1.5 rounded-lg bg-surface-container text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:border-primary transition-colors placeholder:text-outline"
-              />
-            </div>
-          </div>
-
-          <section aria-labelledby="configured-alerts-heading" className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 id="configured-alerts-heading" className="text-base font-semibold text-on-surface">
-                Alertas configuradas
-              </h3>
-              <span className="text-xs text-outline font-mono">
-                {filteredAlerts.length} de {loaded?.alerts.length ?? 0} alertas
-              </span>
-            </div>
-
-            {removeError !== null ? <ErrorState message={removeError} /> : null}
-
-            {filteredAlerts.length > 0 ? (
-              <ul className="divide-y divide-outline-variant/20 rounded-lg overflow-hidden border border-outline-variant/20 bg-surface-container/20">
-                {filteredAlerts.map((alert) => {
-                  const isBuy = alert.intent === 'BUY'
-                  return (
-                    <li
-                      key={alertKey(alert)}
-                      className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container/60 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold font-mono text-sm border ${
-                            alert.scope === 'portfolio'
-                              ? 'bg-primary/10 text-primary border-primary/20'
-                              : 'bg-secondary/10 text-secondary border-secondary/20'
-                          }`}
-                        >
-                          {alert.ticker.slice(0, 3)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-on-surface font-mono">
-                              {alert.ticker} · {alertOrigin(alert)}
-                            </span>
-                          </div>
-                          <span
-                            className={`inline-block text-[11px] font-mono px-2 py-0.5 rounded mt-0.5 ${
-                              isBuy
-                                ? 'bg-secondary/15 text-secondary border border-secondary/25'
-                                : 'bg-primary/15 text-primary border border-primary/25'
-                            }`}
-                          >
-                            <span>{intentLabel(alert.intent)}</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-                        <div className="text-right">
-                          <span className="text-[11px] text-outline font-mono uppercase block">
-                            Objetivo
-                          </span>
-                          <span className="font-mono text-sm font-semibold text-on-surface">
-                            {alert.currency !== null ? (
-                              <CurrencyAmount amount={alert.target_price} currency={alert.currency} />
-                            ) : (
-                              alert.target_price
-                            )}
-                          </span>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => void handleRemove(alert)}
-                          disabled={removing === alertKey(alert)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 border border-error/30 transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          {removing === alertKey(alert) ? 'Eliminando…' : 'Eliminar'}
-                        </button>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : (
-              <p className="text-sm text-on-surface-variant py-8 text-center bg-surface-container/20 rounded-lg border border-outline-variant/10">
-                No hay alertas configuradas que coincidan con este filtro.
-              </p>
-            )}
-          </section>
+        <div className="lg:col-span-7 xl:col-span-8">
+          <ConfiguredAlertsTable
+            alerts={loaded?.alerts ?? []}
+            removing={removing}
+            error={removeError}
+            onRemove={(alert) => void handleRemove(alert)}
+          />
         </div>
+
       </div>
 
       {/* Bottom Full-Width Section: Registro Histórico de Disparos Recientes */}

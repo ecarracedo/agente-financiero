@@ -22,6 +22,7 @@ This project is a Financial Agent designed to help you manage your stock portfol
 - **Advanced Stock Charts**: Interactive Plotly charts with Candlestick/Area modes, smart axis scaling for highs, and visual price alerts.
 - **Market Analysis**: Fetches real-time data using `yfinance` to determine if stocks are cheap or expensive.
 - **Wishlist**: Tracks potential investment opportunities with market validation.
+- **Wishlist Alerts**: Setting a target in the wishlist configures a monitored alert immediately; clearing it removes the alert. New targets default to a buy intent, while changing an existing target keeps its direction. Configured alerts show Origen = wishlist.
 - **Bibliography**: Manage your library of financial books and resources.
 - **Interactive UI**: A React web interface talking to a FastAPI backend through its HTTP API.
 
@@ -137,6 +138,7 @@ Este proyecto es un Agente Financiero diseñado para ayudarte a gestionar tu por
 - **Gráficos Avanzados**: Gráficos interactivos (Velas/Área) con escalado inteligente y visualización de alertas de precio objetivo.
 - **Análisis de Mercado**: Obtiene datos en tiempo real usando `yfinance` para detectar oportunidades (Máximos/Mínimos, Medias Móviles).
 - **Lista de Deseos (Wishlist)**: Rastrea acciones que te interesan con validación de mercado.
+- **Alertas de Wishlist**: Guardar un objetivo en la wishlist configura de inmediato una alerta monitoreada; limpiarlo quita la alerta. Los objetivos nuevos usan por defecto el tipo Compra, y cambiar uno existente conserva su dirección. Las alertas configuradas muestran Origen = wishlist.
 - **Bibliografía**: Gestiona tu biblioteca de conocimientos (Libros, Artículos, Videos).
 - **Interfaz Interactiva**: Interfaz web en React comunicada con el backend FastAPI mediante su API HTTP.
 

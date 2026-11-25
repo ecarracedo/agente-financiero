@@ -9,6 +9,11 @@ const points: PricePoint[] = [
   { date: '2024-02-01', close: '175.50' },
 ]
 
+const pointsWithRange: PricePoint[] = [
+  { date: '2024-01-01', close: '160.00', high: '165.00', low: '155.00' },
+  { date: '2024-02-01', close: '175.50', high: null, low: null },
+]
+
 const transactions: TransactionSummary[] = [
   {
     id: 7,
@@ -32,6 +37,13 @@ describe('series helpers', () => {
     expect(chart[0].close).toBe(160)
     expect(chart[1].closeLabel).toBe('175.50')
     expect(chart[0].timestamp).toBe(Date.parse('2024-01-01'))
+  })
+
+  it('maps high and low into a range only when both are present', () => {
+    const chart = toChartSeries(pointsWithRange)
+
+    expect(chart[0].range).toEqual([155, 165])
+    expect(chart[1].range).toBeUndefined()
   })
 
   it('parses a target price for geometry and yields null when unset', () => {
@@ -65,5 +77,12 @@ describe('series helpers', () => {
 
     expect(min).toBeLessThan(100)
     expect(max).toBeGreaterThan(100)
+  })
+
+  it('includes daily ranges in the domain so the band is never clipped', () => {
+    const [min, max] = toValueDomain([160, 175.5], null, [[155, 190]])
+
+    expect(min).toBeLessThanOrEqual(155)
+    expect(max).toBeGreaterThanOrEqual(190)
   })
 })

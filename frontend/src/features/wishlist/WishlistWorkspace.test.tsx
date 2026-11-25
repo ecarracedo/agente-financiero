@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '../../api/http'
@@ -19,6 +19,16 @@ describe('WishlistWorkspace', () => {
     vi.resetAllMocks()
   })
 
+  it('uses the alert-center layout with a search-backed add card and an entries card', async () => {
+    vi.mocked(wishlistApi.list).mockResolvedValue([])
+
+    render(<WishlistWorkspace />)
+
+    expect(screen.getByRole('heading', { name: 'Centro de Wishlist' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Buscar activo')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Activos en Wishlist' })).toBeInTheDocument()
+  })
+
   it('lists entries with their canonical target price or a no-target label', async () => {
     vi.mocked(wishlistApi.list).mockResolvedValue([
       { ticker: 'AAPL', target_price: '140.00' },
@@ -29,8 +39,24 @@ describe('WishlistWorkspace', () => {
 
     expect(await screen.findByText('AAPL')).toBeInTheDocument()
     expect(screen.getByText('MSFT')).toBeInTheDocument()
-    expect(screen.getByText('140.00')).toBeInTheDocument()
+    expect(screen.getByText('$ 140,00')).toBeInTheDocument()
     expect(screen.getByText('No target')).toBeInTheDocument()
+  })
+
+  it('uses the configured-alerts table layout with an explicit wishlist origin', async () => {
+    vi.mocked(wishlistApi.list).mockResolvedValue([
+      { ticker: 'AAPL', target_price: '140.00', alert_intent: 'BUY', currency: 'USD' },
+    ])
+
+    render(<WishlistWorkspace />)
+
+    const table = await screen.findByRole('table', { name: 'Wishlist entries' })
+    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent)).toEqual(
+      ['Ticker', 'Origen', 'Tipo', 'Objetivo', 'Acción'],
+    )
+    expect(within(table).getByText('Wishlist')).toBeInTheDocument()
+    expect(within(table).getByText('$ 140,00 USD')).toBeInTheDocument()
+    expect(within(table).getByText('Compra')).toBeInTheDocument()
   })
 
   it('adds a ticker and refreshes the list', async () => {
@@ -41,7 +67,7 @@ describe('WishlistWorkspace', () => {
 
     render(<WishlistWorkspace />)
 
-    fireEvent.change(screen.getByLabelText('Ticker'), { target: { value: 'NVDA' } })
+    fireEvent.change(screen.getByLabelText('Buscar activo'), { target: { value: 'NVDA' } })
     fireEvent.click(screen.getByRole('button', { name: /add ticker/i }))
 
     await waitFor(() => expect(wishlistApi.add).toHaveBeenCalledWith('NVDA'))
@@ -64,7 +90,7 @@ describe('WishlistWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: /save target for aapl/i }))
 
     await waitFor(() => expect(wishlistApi.setTarget).toHaveBeenCalledWith('AAPL', '150.00'))
-    expect(await screen.findByText('150.00')).toBeInTheDocument()
+    expect(await screen.findByText('$ 150,00')).toBeInTheDocument()
   })
 
   it('clears a target price by sending null', async () => {
@@ -75,7 +101,7 @@ describe('WishlistWorkspace', () => {
 
     render(<WishlistWorkspace />)
 
-    await screen.findByText('140.00')
+    await screen.findByText('$ 140,00')
     fireEvent.click(screen.getByRole('button', { name: /clear target for aapl/i }))
 
     await waitFor(() => expect(wishlistApi.setTarget).toHaveBeenCalledWith('AAPL', null))
@@ -103,7 +129,7 @@ describe('WishlistWorkspace', () => {
 
     render(<WishlistWorkspace />)
 
-    fireEvent.change(screen.getByLabelText('Ticker'), { target: { value: 'AAPL' } })
+    fireEvent.change(screen.getByLabelText('Buscar activo'), { target: { value: 'AAPL' } })
     fireEvent.click(screen.getByRole('button', { name: /add ticker/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/409/)

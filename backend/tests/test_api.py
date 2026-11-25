@@ -269,9 +269,9 @@ def test_analysis_endpoint_exposes_a_chronological_canonical_series(api_client):
 
     assert response.status_code == 200
     assert response.json()["series"] == [
-        {"date": "2024-01-01", "close": "10"},
-        {"date": "2024-01-02", "close": "11.5"},
-        {"date": "2024-01-03", "close": "20"},
+        {"date": "2024-01-01", "close": "10", "high": None, "low": None},
+        {"date": "2024-01-02", "close": "11.5", "high": None, "low": None},
+        {"date": "2024-01-03", "close": "20", "high": None, "low": None},
     ]
     assert market_data.requested_periods == ["3mo"]
 

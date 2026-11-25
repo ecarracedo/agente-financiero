@@ -6,25 +6,40 @@ import { server } from '../../../tests/setup'
 import { AlertsWorkspace } from './AlertsWorkspace'
 
 describe('AlertsWorkspace', () => {
-  it('lists every configured alert with its scope, type and target', async () => {
+  it('shows configured alerts in the portfolio holdings table style', async () => {
     render(<AlertsWorkspace />)
 
-    const list = (await screen.findByText('AAPL · ECO · Acciones'))
-      .closest('ul') as HTMLElement
-    const rows = within(list).getAllByRole('listitem')
+    const table = await screen.findByRole('table', { name: 'Alertas configuradas' })
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent)
+    const rows = within(table).getAllByRole('row').slice(1)
 
+    expect(headers).toEqual(['Ticker', 'Origen', 'Tipo', 'Objetivo', 'Acción'])
     expect(rows).toHaveLength(2)
-    expect(rows[0]).toHaveTextContent('AAPL · ECO · Acciones')
+    expect(rows[0]).toHaveTextContent('AAPL')
+    expect(rows[0]).toHaveTextContent('ECO · Acciones')
     expect(rows[0]).toHaveTextContent('Compra')
     expect(rows[0]).toHaveTextContent('190,00 USD')
-    expect(rows[1]).toHaveTextContent('NVDA · wishlist')
+    expect(rows[1]).toHaveTextContent('NVDA')
+    expect(rows[1]).toHaveTextContent('Wishlist')
+    expect(rows[1]).toHaveTextContent('$ 120,00 USD')
     expect(rows[1]).toHaveTextContent('Venta')
+  })
+
+  it('does not offer the wishlist scope when creating an alert', async () => {
+    render(<AlertsWorkspace />)
+
+    const scopeGroup = await screen.findByRole('group', { name: 'Ámbito' })
+    expect(within(scopeGroup).queryByRole('button', { name: 'Wishlist' })).not.toBeInTheDocument()
+    expect(within(scopeGroup).getByRole('button', { name: 'Cartera' })).toBeInTheDocument()
+    expect(within(scopeGroup).getByRole('button', { name: 'Otro activo' })).toBeInTheDocument()
   })
 
   it('prefills the selected target with its saved alert', async () => {
     render(<AlertsWorkspace />)
 
-    await screen.findByText('AAPL · ECO · Acciones')
+    await screen.findByRole('table', { name: 'Alertas configuradas' })
 
     fireEvent.change(screen.getByLabelText('Posición de cartera'), {
       target: { value: 'portfolio:ECO:AAPL' },
@@ -45,9 +60,8 @@ describe('AlertsWorkspace', () => {
 
     render(<AlertsWorkspace />)
 
-    const list = (await screen.findByText('AAPL · ECO · Acciones'))
-      .closest('ul') as HTMLElement
-    fireEvent.click(within(list).getAllByRole('button', { name: /eliminar/i })[0])
+    const table = await screen.findByRole('table', { name: 'Alertas configuradas' })
+    fireEvent.click(within(table).getAllByRole('button', { name: /eliminar/i })[0])
 
     await waitFor(() => expect(requested).toHaveLength(1))
     expect(requested[0]).toContain('broker=ECO')
@@ -79,27 +93,20 @@ describe('AlertsWorkspace', () => {
     await waitFor(() => expect(acknowledged).toEqual([1]))
   })
 
-  it('runs a pass through Check now', async () => {
-    const evaluated: string[] = []
-    server.use(
-      http.post('*/api/v1/alerts/evaluate', () => {
-        evaluated.push('evaluate')
-        return HttpResponse.json([])
-      }),
-    )
-
+  it('does not expose an Evaluate now action in the alert center', async () => {
     render(<AlertsWorkspace />)
 
-    await screen.findByText(/Precio objetivo de compra alcanzado/)
-    fireEvent.click(screen.getByRole('button', { name: /evaluar ahora/i }))
+    await screen.findByRole('table', { name: 'Alertas configuradas' })
 
-    await waitFor(() => expect(evaluated).toEqual(['evaluate']))
+    expect(
+      screen.queryByRole('button', { name: /evaluar ahora|check now/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('allows configuring an alert for an asset outside portfolio and wishlist', async () => {
     render(<AlertsWorkspace />)
 
-    await screen.findByText('AAPL · ECO · Acciones')
+    await screen.findByRole('table', { name: 'Alertas configuradas' })
 
     const scopeGroup = screen.getByRole('group', { name: 'Ámbito' })
     fireEvent.click(within(scopeGroup).getByRole('button', { name: 'Otro activo' }))
@@ -118,7 +125,7 @@ describe('AlertsWorkspace', () => {
   it('shows the current quote and prefills the target price for an unsaved asset', async () => {
     render(<AlertsWorkspace />)
 
-    await screen.findByText('AAPL · ECO · Acciones')
+    await screen.findByRole('table', { name: 'Alertas configuradas' })
 
     const scopeGroup = screen.getByRole('group', { name: 'Ámbito' })
     fireEvent.click(within(scopeGroup).getByRole('button', { name: 'Otro activo' }))
@@ -143,7 +150,7 @@ describe('AlertsWorkspace', () => {
   it('applies percentage increases to the live quote in the creation card', async () => {
     render(<AlertsWorkspace />)
 
-    await screen.findByText('AAPL · ECO · Acciones')
+    await screen.findByRole('table', { name: 'Alertas configuradas' })
     const scopeGroup = screen.getByRole('group', { name: 'Ámbito' })
     fireEvent.click(within(scopeGroup).getByRole('button', { name: 'Otro activo' }))
     fireEvent.change(screen.getByLabelText('Buscar activo'), { target: { value: 'TSLA' } })

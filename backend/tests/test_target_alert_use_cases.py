@@ -3,13 +3,15 @@
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.orm import sessionmaker
 
-from backend.app.adapters.persistence.models import PortfolioPositionRecord
+from backend.app.adapters.persistence.models import PortfolioPositionRecord, WishlistRecord
 from backend.app.adapters.persistence.unit_of_work import SqlAlchemyPortfolioUnitOfWork
 from backend.app.application.alerts import TargetAlertUseCases
-from backend.app.domain.alerts import AlertIntent
+from backend.app.domain.analysis import QuoteSnapshot
+from backend.app.application.resources import ResourceUseCases
+from backend.app.domain.alerts import AlertIntent, AlertScope
 from backend.app.domain.portfolio import PortfolioPosition
 
 
@@ -19,6 +21,12 @@ def alert_use_cases(session):
     return TargetAlertUseCases(
         lambda: SqlAlchemyPortfolioUnitOfWork(session_factory)
     )
+
+
+def resource_use_cases(session):
+    """Create resource use cases backed by the isolated test database."""
+    session_factory = sessionmaker(bind=session.get_bind())
+    return ResourceUseCases(lambda: SqlAlchemyPortfolioUnitOfWork(session_factory))
 
 
 def seed_position(session):
@@ -276,3 +284,115 @@ def test_wishlist_alert_rejects_an_invalid_ticker_without_persisting(
 
     with SqlAlchemyPortfolioUnitOfWork(session_factory) as unit_of_work:
         assert unit_of_work.resources.list_wishlist() == []
+
+
+def test_wishlist_target_configures_a_default_buy_alert(session):
+    """Saving a wishlist target registers it as a monitored buy alert."""
+    resources = resource_use_cases(session)
+    resources.add_wishlist_item("AAPL")
+
+    assert resources.update_wishlist_target("AAPL", Decimal("150")) is True
+
+    alerts = alert_use_cases(session).list_alerts()
+    assert [
+        (alert.scope, alert.ticker, alert.target_price, alert.intent) for alert in alerts
+    ] == [(AlertScope.WISHLIST, "AAPL", Decimal("150"), AlertIntent.BUY)]
+
+
+def test_wishlist_target_update_preserves_the_existing_intent(session):
+    """Changing a target keeps the direction configured on that wishlist alert."""
+    alerts = alert_use_cases(session)
+    alerts.configure_wishlist_alert("AAPL", Decimal("100"), AlertIntent.SELL)
+
+    assert resource_use_cases(session).update_wishlist_target("AAPL", Decimal("200")) is True
+
+    configured = alerts.list_alerts()
+    assert len(configured) == 1
+    assert configured[0].target_price == Decimal("200")
+    assert configured[0].intent == AlertIntent.SELL
+
+
+def test_clearing_a_wishlist_target_removes_its_alert(session):
+    """Clearing a target unregisters the alert while keeping the wishlist entry."""
+    resources = resource_use_cases(session)
+    resources.add_wishlist_item("AAPL")
+    resources.update_wishlist_target("AAPL", Decimal("150"))
+
+    assert resources.update_wishlist_target("AAPL", None) is True
+
+    assert alert_use_cases(session).list_alerts() == ()
+    assert [item.ticker for item in resources.list_wishlist()] == ["AAPL"]
+    assert session.scalar(
+        select(WishlistRecord).where(WishlistRecord.ticker == "AAPL")
+    ).alert_intent is None
+
+
+def test_legacy_wishlist_target_is_listed_as_a_buy_alert(session):
+    """A target saved before intents existed is shown as a buy alert."""
+    resources = resource_use_cases(session)
+    resources.add_wishlist_item("AAPL")
+    session.execute(
+        update(WishlistRecord)
+        .where(WishlistRecord.ticker == "AAPL")
+        .values(target_price=Decimal("150"), alert_intent=None)
+    )
+    session.commit()
+
+    alerts = alert_use_cases(session)
+    configured = alerts.list_alerts()
+    assert [
+        (alert.scope, alert.ticker, alert.target_price, alert.intent)
+        for alert in configured
+    ] == [(AlertScope.WISHLIST, "AAPL", Decimal("150"), AlertIntent.BUY)]
+
+    assert alerts.evaluate_wishlist_alert("AAPL", Decimal("160")) is None
+    crossing = alerts.evaluate_wishlist_alert("AAPL", Decimal("140"))
+    assert crossing is not None
+    assert crossing.intent is AlertIntent.BUY
+
+
+class StubCurrencyProvider:
+    """Return a fixed quote currency for every ticker lookup."""
+
+    def __init__(self, currency):
+        self.currency = currency
+        self.requested = []
+
+    def get_quote(self, ticker):
+        """Record the lookup and return a deterministic quote snapshot."""
+        self.requested.append(ticker)
+        return QuoteSnapshot(Decimal("10"), self.currency)
+
+
+def test_wishlist_alert_carries_the_quote_currency(session):
+    """A configured wishlist target reports the provider's currency."""
+    resources = resource_use_cases(session)
+    resources.add_wishlist_item("MSFT.BA")
+    resources.update_wishlist_target("MSFT.BA", Decimal("30900"))
+    provider = StubCurrencyProvider("ARS")
+    session_factory = sessionmaker(bind=session.get_bind())
+    alerts = TargetAlertUseCases(
+        lambda: SqlAlchemyPortfolioUnitOfWork(session_factory),
+        market_data_provider=provider,
+    )
+
+    configured = alerts.list_alerts()
+    assert len(configured) == 1
+    assert configured[0].currency == "ARS"
+    assert provider.requested == ["MSFT.BA"]
+
+
+def test_list_wishlist_exposes_the_quote_currency(session):
+    """Every wishlist entry reports its currency for the canonical money format."""
+    resources = resource_use_cases(session)
+    resources.add_wishlist_item("AAPL")
+    provider = StubCurrencyProvider("USD")
+    session_factory = sessionmaker(bind=session.get_bind())
+    with_currency = ResourceUseCases(
+        lambda: SqlAlchemyPortfolioUnitOfWork(session_factory),
+        market_data_provider=provider,
+    )
+
+    assert [(item.ticker, item.currency) for item in with_currency.list_wishlist()] == [
+        ("AAPL", "USD")
+    ]

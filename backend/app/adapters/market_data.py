@@ -14,6 +14,36 @@ from backend.app.domain.tickers import (
 )
 
 
+def read_optional_price_column(history: Any, column: str) -> dict[Any, Decimal]:
+    """Read an optional OHLC column into a timestamp-keyed price mapping.
+
+    Providers may omit ``High``/``Low`` entirely or expose NaN values. Missing
+    columns and invalid prices are dropped, so callers never invent extremes and
+    a provider without OHLC data keeps its close-only behaviour.
+
+    Args:
+        history: Provider history frame exposing pandas-like ``__getitem__``.
+        column: Name of the optional price column to read.
+
+    Returns:
+        A mapping of provider timestamps to positive finite prices.
+    """
+    try:
+        series = history[column]
+        items = series.items()
+    except (KeyError, TypeError, AttributeError):
+        return {}
+    prices: dict[Any, Decimal] = {}
+    for timestamp, raw_price in items:
+        try:
+            price = Decimal(str(raw_price))
+        except (InvalidOperation, TypeError, ValueError):
+            continue
+        if price.is_finite() and price > 0:
+            prices[timestamp] = price
+    return prices
+
+
 def _to_currency(value: Any) -> str | None:
     """Normalize a provider currency field into a three-letter ISO code.
 
@@ -223,6 +253,8 @@ class YFinanceMarketDataProvider:
                 is_per_hundred = False
             history = ticker_obj.history(period=period)
             dated_closes = history["Close"].dropna()
+            highs = read_optional_price_column(history, "High")
+            lows = read_optional_price_column(history, "Low")
             points: list[PricePoint] = []
             for timestamp, raw_close in dated_closes.items():
                 try:
@@ -235,7 +267,16 @@ class YFinanceMarketDataProvider:
                 point_date = _to_date(timestamp)
                 if point_date is None:
                     continue
-                points.append(PricePoint(date=point_date, close=close))
+                high = highs.get(timestamp)
+                low = lows.get(timestamp)
+                points.append(
+                    PricePoint(
+                        date=point_date,
+                        close=close,
+                        high=None if high is None else _scale_price_if_bond(high, is_per_hundred),
+                        low=None if low is None else _scale_price_if_bond(low, is_per_hundred),
+                    )
+                )
             return tuple(points)
         except Exception:
             return ()

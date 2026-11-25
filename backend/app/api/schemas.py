@@ -153,12 +153,18 @@ class DollarRatesResponse(BaseModel):
 
 
 class PricePointResponse(BaseModel):
-    """Expose one dated close with a canonical money string."""
+    """Expose one dated price bar with canonical money strings.
+
+    ``high`` and ``low`` are optional so close-only providers and existing
+    callers stay valid; both default to ``None`` when the source has no extremes.
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
     date: date
     close: MoneyString
+    high: OptionalMoneyString = None
+    low: OptionalMoneyString = None
 
 
 class TickerMatchResponse(BaseModel):
@@ -191,12 +197,14 @@ class MarketAnalysisResponse(BaseModel):
 
 
 class WishlistItemResponse(BaseModel):
-    """Expose a wishlist entry with an optional canonical target price."""
+    """Expose a wishlist entry with its target and stored alert direction."""
 
     model_config = ConfigDict(from_attributes=True)
 
     ticker: str
     target_price: OptionalMoneyString
+    alert_intent: str | None = None
+    currency: str | None = None
 
 
 class WishlistHistoryResponse(BaseModel):

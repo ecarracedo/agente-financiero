@@ -84,10 +84,14 @@ export const wishlist = [
   {
     ticker: 'NVDA',
     target_price: '120.00',
+    alert_intent: 'BUY',
+    currency: 'USD',
   },
   {
     ticker: 'TSLA',
     target_price: '250.00',
+    alert_intent: 'BUY',
+    currency: 'USD',
   },
 ]
 
@@ -96,9 +100,9 @@ export const wishlistHistory = {
   ticker: 'NVDA',
   period: '3mo' as const,
   points: [
-    { date: '2024-01-15', close: '100' },
-    { date: '2024-01-31', close: '110' },
-    { date: '2024-02-29', close: '121' },
+    { date: '2024-01-15', close: '100', high: '104', low: '97' },
+    { date: '2024-01-31', close: '110', high: '113', low: '106' },
+    { date: '2024-02-29', close: '121', high: '125', low: '118' },
   ],
   monthly_variation_percent: '10',
   period_variation_percent: '21',
@@ -117,9 +121,9 @@ export const analysisAAPL = {
   moving_average_200: null,
   signals: ['NEAR_52_WEEK_HIGH'],
   series: [
-    { date: '2024-01-01', close: '160.00' },
-    { date: '2024-02-01', close: '175.00' },
-    { date: '2024-03-01', close: '190.00' },
+    { date: '2024-01-01', close: '160.00', high: '164.00', low: '157.00' },
+    { date: '2024-02-01', close: '175.00', high: '178.00', low: '171.00' },
+    { date: '2024-03-01', close: '190.00', high: '194.00', low: '186.00' },
   ],
 }
 
@@ -219,7 +223,7 @@ export const configuredAlerts = [
     ticker: 'NVDA',
     broker: null,
     category: null,
-    currency: null,
+    currency: 'USD',
     target_price: '120.00',
     intent: 'SELL' as const,
     last_observed_price: null,
@@ -273,7 +277,7 @@ export const triggeredAlertEvents = [
     ticker: 'NVDA',
     broker: null,
     category: null,
-    currency: null,
+    currency: 'USD',
     target_price: '120.00',
     intent: 'SELL' as const,
     observed_price: '127.00',

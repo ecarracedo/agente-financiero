@@ -1,10 +1,13 @@
 """Application use cases for persistent portfolio and wishlist alerts."""
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 
+from backend.app.application.currency import resolve_currency
 from backend.app.application.ports import (
+    MarketDataProviderPort,
     PortfolioUnitOfWorkFactory,
     PortfolioUnitOfWorkPort,
 )
@@ -36,10 +39,16 @@ class TargetAlertUseCases:
         unit_of_work_factory: PortfolioUnitOfWorkFactory,
         *,
         now: Callable[[], datetime] | None = None,
+        market_data_provider: MarketDataProviderPort | None = None,
     ) -> None:
-        """Initialize alert use cases with a caller-supplied unit of work."""
+        """Initialize alert use cases with a caller-supplied unit of work.
+
+        The optional market data provider resolves the quote currency of
+        wishlist alerts, which carry no currency of their own.
+        """
         self._unit_of_work_factory = unit_of_work_factory
         self._now = now or (lambda: datetime.now(timezone.utc))
+        self._market_data_provider = market_data_provider
 
     def configure_portfolio_alert(
         self,
@@ -181,13 +190,23 @@ class TargetAlertUseCases:
             return acknowledged
 
     def list_alerts(self) -> tuple[ConfiguredAlert, ...]:
-        """List every configured alert, portfolio first and ticker A to Z."""
+        """List every configured alert, portfolio first and ticker A to Z.
+
+        Wishlist rows carry no stored currency, so their currency is read from
+        the market provider and attached to the read projection only.
+        """
         with self._unit_of_work_factory() as unit_of_work:
             alerts = (
                 *unit_of_work.portfolio.list_position_alerts(),
                 *unit_of_work.resources.list_wishlist_alerts(),
             )
-        return tuple(sorted(alerts, key=_alert_order))
+        resolved = tuple(
+            replace(alert, currency=resolve_currency(self._market_data_provider, alert.ticker))
+            if alert.scope is AlertScope.WISHLIST and alert.currency is None
+            else alert
+            for alert in alerts
+        )
+        return tuple(sorted(resolved, key=_alert_order))
 
     def delete_portfolio_alert(
         self, ticker: str, broker: str, category: str

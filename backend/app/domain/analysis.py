@@ -10,10 +10,17 @@ from backend.app.domain.tickers import normalize_ticker
 
 @dataclass(frozen=True)
 class PricePoint:
-    """A dated closing price used to build the historical price series."""
+    """One dated price bar for the historical price series.
+
+    ``close`` is always present; ``high`` and ``low`` are optional because not
+    every market-data provider exposes intraday extremes. Optional fields with
+    defaults keep every close-only caller valid.
+    """
 
     date: date
     close: Decimal
+    high: Decimal | None = None
+    low: Decimal | None = None
 
 
 @dataclass(frozen=True)

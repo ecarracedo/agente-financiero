@@ -1,20 +1,20 @@
 /**
- * Wishlist workspace: add, retarget, and remove wishlist entries.
+ * Wishlist workspace in Obsidian Capital design system.
  *
- * Every mutation refreshes the list from the backend so the rendered state is
- * always the persisted state. Backend failures (duplicate 409, missing 404) are
- * surfaced through {@link describeApiError} and never shown as success.
+ * Mirrors the Alert Center layout: a sticky add card on the left and the
+ * configured entries table on the right. Every mutation refreshes the list
+ * from the backend so the rendered state is always the persisted state.
+ * Backend failures (duplicate 409, missing 404) are surfaced through
+ * {@link describeApiError} and never shown as success.
  */
 
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { describeApiError } from '../../api/errors'
-import { ErrorState, LoadingState, SuccessState } from '../../components/AsyncStates'
-import { TextField } from '../../components/FormControls'
-import { Card } from '../../components/tremor/Card'
+import { WishlistAddCard } from './WishlistAddCard'
 import { WishlistAnalysis } from './WishlistAnalysis'
-import { WishlistTable } from './WishlistTable'
+import { WishlistEntriesCard } from './WishlistEntriesCard'
 import { useWishlist } from './useWishlist'
 import { wishlistApi } from './wishlistApi'
 
@@ -27,6 +27,7 @@ export function WishlistWorkspace() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [analyzed, setAnalyzed] = useState<string | null>(null)
+
   function handleDraftChange(target: string, value: string) {
     setDrafts((current) => ({ ...current, [target]: value }))
   }
@@ -96,44 +97,50 @@ export function WishlistWorkspace() {
     })
   }
 
+  const loadErrorMessage = status === 'error' ? describeApiError(error) : null
+
   return (
-    <section aria-labelledby="wishlist-heading" className="space-y-4">
-      <h2 id="wishlist-heading" className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-        Wishlist
-      </h2>
+    <section aria-labelledby="wishlist-heading" className="space-y-6">
+      {/* Top Hero Header: Obsidian Capital Style */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-container-low/70 backdrop-blur-md p-6 rounded-xl border border-outline-variant/30 shadow-lg relative overflow-hidden">
+        <div className="absolute -right-20 -top-24 w-80 h-80 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+        <div className="space-y-1">
+          <h2 id="wishlist-heading" className="text-2xl font-bold tracking-tight text-on-surface">
+            Centro de Wishlist
+          </h2>
+          <p className="text-sm text-on-surface-variant">
+            Seguimiento de activos, precios objetivo y análisis en tiempo real.
+          </p>
+        </div>
+      </div>
 
-      <Card>
-        <form onSubmit={handleAdd} noValidate className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[200px] flex-1">
-            <TextField id="wishlist-ticker" label="Ticker" value={ticker} onChange={setTicker} />
-          </div>
-          <button
-            type="submit"
-            className="rounded-lg bg-[#06b6d4] px-4 py-2 text-sm font-semibold text-[#003640] hover:bg-[#4cd7f6] transition-all shadow-md"
-          >
-            Add ticker
-          </button>
-        </form>
-      </Card>
+      {/* Main 2-Column Grid: Add card (col 4-5) & Entries card (col 7-8) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-5 xl:col-span-4">
+          <WishlistAddCard
+            ticker={ticker}
+            error={actionError}
+            message={message}
+            onTickerChange={setTicker}
+            onSubmit={(event) => void handleAdd(event)}
+          />
+        </div>
 
-      {actionError ? <ErrorState message={actionError} /> : null}
-      {message ? <SuccessState message={message} /> : null}
-
-      {status === 'loading' ? <LoadingState label="Loading wishlist…" /> : null}
-      {status === 'error' ? <ErrorState message={describeApiError(error)} /> : null}
-      {status === 'ready' ? (
-        <Card>
-          <WishlistTable
+        <div className="lg:col-span-7 xl:col-span-8">
+          <WishlistEntriesCard
             items={items}
             drafts={drafts}
+            loading={status === 'loading'}
+            errorMessage={loadErrorMessage}
             onDraftChange={handleDraftChange}
-            onSaveTarget={handleSaveTarget}
-            onClearTarget={handleClearTarget}
-            onRemove={handleRemove}
+            onSaveTarget={(target) => void handleSaveTarget(target)}
+            onClearTarget={(target) => void handleClearTarget(target)}
+            onRemove={(target) => void handleRemove(target)}
             onAnalyze={setAnalyzed}
           />
-        </Card>
-      ) : null}
+        </div>
+      </div>
+
       {analyzed !== null && items.some((item) => item.ticker === analyzed) ? (
         <WishlistAnalysis ticker={analyzed} onClose={() => setAnalyzed(null)} />
       ) : null}
