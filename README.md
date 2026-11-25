@@ -112,6 +112,8 @@ For delivery while the app is closed, set the optional SMTP variables in `.env` 
 | `SMTP_TIMEOUT` | Connection timeout in seconds, default `10`. |
 | `ALERT_EMAIL_TO` | Optional destination; defaults to `AUTH_EMAIL`. |
 
+The sender is `AUTH_EMAIL`, so it must be a domain verified with the provider (for example `alertas@yourdomain.com` in Resend). A Gmail `AUTH_EMAIL` is rejected; set `ALERT_EMAIL_TO` to your real inbox if you want to keep receiving there. See the [Coolify deployment guide](docs/operations/deploy.md) for the full variable list.
+
 One email is sent per new crossing. The scheduler records the event as emailed only after a successful send, so a transient SMTP failure is retried on the next tick and never stops alert evaluation. Migration `a0009_alert_email_sent` treats crossings that predate email delivery as already sent, so enabling it never replays history. Evaluation runs inside the API process every 300 seconds, so nothing is evaluated or emailed while the stack is down.
 
 ### Data Migration
@@ -227,6 +229,8 @@ Para recibir correos mientras la app está cerrada, definí las variables SMTP o
 | `SMTP_USE_TLS` | `1` usa STARTTLS (por defecto); `0` solo para un relay local de confianza. |
 | `SMTP_TIMEOUT` | Timeout de conexión en segundos, por defecto `10`. |
 | `ALERT_EMAIL_TO` | Destinatario opcional; por defecto `AUTH_EMAIL`. |
+
+El remitente es `AUTH_EMAIL`, así que debe ser un dominio verificado en el proveedor (por ejemplo `alertas@tudominio.com` en Resend). Un `AUTH_EMAIL` de Gmail es rechazado; configurá `ALERT_EMAIL_TO` con tu bandeja real si querés seguir recibiendo ahí. La [guía de despliegue en Coolify](docs/operations/deploy.md) lista todas las variables.
 
 Se envía un correo por cruce nuevo. El scheduler marca el evento como enviado solo después de un envío exitoso, así que un fallo SMTP transitorio se reintenta en el próximo tick y nunca detiene la evaluación de alertas. La migración `a0009_alert_email_sent` considera ya enviados los cruces anteriores al correo, por lo que activarlo no repite el historial. La evaluación corre dentro del proceso de la API cada 300 segundos: mientras el stack está apagado no se evalúa ni se envía nada.
 

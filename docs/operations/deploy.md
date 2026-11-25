@@ -36,9 +36,24 @@ Configurá estas variables en el servicio correspondiente **antes** de desplegar
 | `POSTGRES_*` | — | `backend` / `postgres` | Credenciales obligatorias; Compose aborta si falta una. |
 | `AUTH_*` | — | `backend` | Usuario, email, contraseña, `AUTH_SECRET`. |
 | `WEB_PORT` | puerto libre del host | `frontend` | Solo influye en el mapeo `ports` local; en Coolify el proxy no lo usa. |
+| `SMTP_HOST` | `smtp.resend.com` | `backend` | Habilita el correo de alertas. Vacío desactiva el envío; los toasts siguen funcionando. |
+| `SMTP_PORT` | `587` | `backend` | Puerto SMTP; con `SMTP_USE_TLS=1` usa STARTTLS. |
+| `SMTP_USER` / `SMTP_PASSWORD` | — | `backend` | Credenciales del proveedor (en Resend, usuario `resend` y la API key como password). |
+| `SMTP_USE_TLS` / `SMTP_TIMEOUT` | `1` / `10` | `backend` | STARTTLS y timeout de conexión en segundos. |
+| `ALERT_EMAIL_TO` | `tu@gmail.com` | `backend` | Destinatario; si falta, se usa `AUTH_EMAIL`. |
+
+El correo se envía con `AUTH_EMAIL` como remitente, así que ese valor debe ser un
+dominio verificado en el proveedor (por ejemplo `alertas@tudominio.com.ar`). Un
+`AUTH_EMAIL` de Gmail es rechazado por Resend aunque el password sea correcto:
+los cruces quedan encolados y se reintentan cada 300 s hasta que el envío
+funciona. Si querés seguir recibiendo en Gmail, configurá `ALERT_EMAIL_TO` con
+esa dirección. `AUTH_EMAIL` también siembra el email de la única cuenta cuando
+se crea; el login es por `AUTH_USERNAME`.
 
 `VITE_API_BASE_URL` es la única que exige **rebuild**. El valor queda grabado en
-el JavaScript compilado: un simple restart no alcanza.
+el JavaScript compilado: un simple restart no alcanza. Las variables SMTP se
+leen al iniciar el backend, así que después de cambiarlas alcanza con un
+redeploy.
 
 Si la variable falta, `frontend/src/api/http.ts` cae al valor por defecto
 `http://localhost:8000` y la aplicación queda inutilizable en producción.
