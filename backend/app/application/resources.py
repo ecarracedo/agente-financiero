@@ -3,7 +3,12 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-from backend.app.application.ports import PortfolioUnitOfWorkFactory
+from backend.app.application.currency import resolve_currency
+from backend.app.application.ports import (
+    MarketDataProviderPort,
+    PortfolioUnitOfWorkFactory,
+)
+from backend.app.domain.alerts import AlertIntent, TargetAlertSettings
 from backend.app.domain.calculations import calculate_split_projection
 
 
@@ -13,6 +18,8 @@ class WishlistItemSummary:
 
     ticker: str
     target_price: Decimal | None
+    alert_intent: str | None = None
+    currency: str | None = None
 
 
 @dataclass(frozen=True)
@@ -31,25 +38,52 @@ class BibliographyItemSummary:
 class ResourceUseCases:
     """Coordinate resource CRUD and pure split calculations."""
 
-    def __init__(self, unit_of_work_factory: PortfolioUnitOfWorkFactory) -> None:
-        """Initialize resource use cases with a caller-supplied unit of work."""
+    def __init__(
+        self,
+        unit_of_work_factory: PortfolioUnitOfWorkFactory,
+        *,
+        market_data_provider: MarketDataProviderPort | None = None,
+    ) -> None:
+        """Initialize resource use cases with a caller-supplied unit of work.
+
+        The optional market data provider resolves each entry's quote currency
+        for the canonical money format; an unknown currency stays unset.
+        """
         self._unit_of_work_factory = unit_of_work_factory
+        self._market_data_provider = market_data_provider
 
     def add_wishlist_item(self, ticker: str) -> WishlistItemSummary:
         """Add a normalized ticker to the persisted wishlist."""
         with self._unit_of_work_factory() as unit_of_work:
             record = unit_of_work.resources.add_wishlist_item(ticker)
             unit_of_work.commit()
-            return WishlistItemSummary(record.ticker, record.target_price)
+            return WishlistItemSummary(
+                record.ticker,
+                record.target_price,
+                record.alert_intent,
+                resolve_currency(self._market_data_provider, record.ticker),
+            )
 
     def update_wishlist_target(
         self, ticker: str, target_price: Decimal | None
     ) -> bool:
-        """Set or clear a wishlist target price."""
+        """Set or clear a wishlist target and keep its configured alert in sync.
+
+        A saved target is monitored immediately: a new one gets a buy intent,
+        while an existing alert keeps its direction and only changes price.
+        Clearing the target also unregisters the alert, leaving the entry itself.
+        """
         with self._unit_of_work_factory() as unit_of_work:
-            updated = unit_of_work.resources.update_wishlist_target(
-                ticker, target_price
-            )
+            if target_price is None:
+                updated = unit_of_work.resources.update_wishlist_target(ticker, None)
+                if updated:
+                    unit_of_work.resources.clear_wishlist_alert(ticker)
+            else:
+                existing = unit_of_work.resources.get_wishlist_alert(ticker)
+                intent = existing.intent if existing is not None else AlertIntent.BUY
+                updated = unit_of_work.resources.set_wishlist_alert(
+                    ticker, TargetAlertSettings(target_price, intent)
+                )
             if updated:
                 unit_of_work.commit()
             return updated
@@ -59,7 +93,12 @@ class ResourceUseCases:
         with self._unit_of_work_factory() as unit_of_work:
             records = unit_of_work.resources.list_wishlist()
             return [
-                WishlistItemSummary(record.ticker, record.target_price)
+                WishlistItemSummary(
+                    record.ticker,
+                    record.target_price,
+                    record.alert_intent,
+                    resolve_currency(self._market_data_provider, record.ticker),
+                )
                 for record in records
             ]
 

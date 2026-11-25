@@ -12,7 +12,7 @@ import type { components } from '../../api/types'
 /** One dated close as serialized by `GET /api/v1/analysis/{ticker}`. */
 export type PricePoint = components['schemas']['PricePointResponse']
 
-/** A single plottable close point with both geometry and display values. */
+/** A single plottable price point with geometry, display values and daily range. */
 export interface ChartPoint {
   /** ISO date exactly as sent by the backend. */
   date: string
@@ -22,6 +22,8 @@ export interface ChartPoint {
   close: number
   /** Canonical close string kept for display. */
   closeLabel: string
+  /** `[low, high]` for Recharts range areas, or `undefined` when unavailable. */
+  range?: [number, number]
 }
 
 /** A transaction marker placed on the price chart for the selected position. */
@@ -37,12 +39,21 @@ export interface TransactionMarker {
 
 /** Map chronological price points to chart geometry. */
 export function toChartSeries(points: PricePoint[]): ChartPoint[] {
-  return points.map((point) => ({
-    date: point.date,
-    timestamp: Date.parse(point.date),
-    close: Number(point.close),
-    closeLabel: point.close,
-  }))
+  return points.map((point) => {
+    const high = Number(point.high)
+    const low = Number(point.low)
+    const hasRange =
+      point.high !== null && point.high !== undefined && point.high.trim() !== '' &&
+      point.low !== null && point.low !== undefined && point.low.trim() !== '' &&
+      Number.isFinite(high) && Number.isFinite(low) && low <= high
+    return {
+      date: point.date,
+      timestamp: Date.parse(point.date),
+      close: Number(point.close),
+      closeLabel: point.close,
+      ...(hasRange ? { range: [low, high] as [number, number] } : {}),
+    }
+  })
 }
 
 /** Parse a canonical target string for the overlay, or `null` when unset. */
@@ -61,8 +72,16 @@ export function toTargetValue(targetPrice: string | null | undefined): number | 
  * price range, so it is folded into the domain instead of relying on the
  * chart's auto domain.
  */
-export function toValueDomain(closes: number[], target: number | null): [number, number] {
-  const values = target !== null ? [...closes, target] : closes
+export function toValueDomain(
+  closes: number[],
+  target: number | null,
+  ranges: Array<[number, number]> = [],
+): [number, number] {
+  const rangeValues = ranges.flatMap(([low, high]) => [low, high])
+  const values = [...closes, ...rangeValues]
+  if (target !== null) {
+    values.push(target)
+  }
   if (values.length === 0) {
     return [0, 1]
   }

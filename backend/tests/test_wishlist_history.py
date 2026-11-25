@@ -75,15 +75,36 @@ def test_history_returns_chronological_points_and_variations(history_client):
         "ticker": "AAPL",
         "period": "3mo",
         "points": [
-            {"date": "2024-01-02", "close": "100"},
-            {"date": "2024-01-30", "close": "110"},
-            {"date": "2024-02-15", "close": "120"},
-            {"date": "2024-02-28", "close": "132"},
+            {"date": "2024-01-02", "close": "100", "high": None, "low": None},
+            {"date": "2024-01-30", "close": "110", "high": None, "low": None},
+            {"date": "2024-02-15", "close": "120", "high": None, "low": None},
+            {"date": "2024-02-28", "close": "132", "high": None, "low": None},
         ],
         "monthly_variation_percent": "20",
         "period_variation_percent": "32",
     }
     assert market_data.requested == [("AAPL", "3mo")]
+
+
+def test_history_serializes_high_and_low_as_canonical_money(history_client):
+    """Provider extremes reach the API as canonical strings, not raw floats."""
+    client, market_data = history_client
+    client.post("/api/v1/wishlist", json={"ticker": "AAPL"})
+    market_data.series["AAPL"] = [
+        PricePoint(
+            date=date(2024, 2, 1),
+            close=Decimal("10"),
+            high=Decimal("10.5"),
+            low=Decimal("9.25"),
+        )
+    ]
+
+    response = client.get("/api/v1/wishlist/AAPL/history?period=3mo")
+
+    assert response.status_code == 200
+    assert response.json()["points"] == [
+        {"date": "2024-02-01", "close": "10", "high": "10.5", "low": "9.25"}
+    ]
 
 
 def test_history_variations_are_null_with_too_little_data(history_client):
@@ -133,6 +154,27 @@ def test_existing_wishlist_crud_is_unchanged(history_client):
     assert created.status_code == 201
     assert duplicate.status_code == 409
     assert target.status_code == 200
-    assert listed == [{"ticker": "AAPL", "target_price": "150"}]
+    assert listed == [
+        {"ticker": "AAPL", "target_price": "150", "alert_intent": "BUY", "currency": None}
+    ]
     assert removed.status_code == 200
     assert missing.status_code == 404
+
+
+def test_wishlist_target_endpoint_configures_and_clears_an_alert(history_client):
+    """A target saved in the wishlist appears in configured alerts until cleared."""
+    client, _ = history_client
+    client.post("/api/v1/wishlist", json={"ticker": "AAPL"})
+
+    assert client.put("/api/v1/wishlist/AAPL/target", json={"target_price": "150"}).status_code == 200
+    alerts = client.get("/api/v1/alerts").json()
+    assert [
+        (alert["scope"], alert["ticker"], alert["intent"])
+        for alert in alerts
+        if alert["ticker"] == "AAPL"
+    ] == [("wishlist", "AAPL", "BUY")]
+
+    assert client.put("/api/v1/wishlist/AAPL/target", json={"target_price": None}).status_code == 200
+    assert [
+        alert for alert in client.get("/api/v1/alerts").json() if alert["ticker"] == "AAPL"
+    ] == []

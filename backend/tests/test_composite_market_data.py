@@ -27,9 +27,14 @@ class StubPpiProvider:
 class FakeTicker:
     """Expose controlled price information and dated historical closes."""
 
-    def __init__(self, info, closes=(), index=()):
+    def __init__(self, info, closes=(), index=(), highs=(), lows=()):
         self.info = info
-        self._history = FakeHistory(list(index), list(closes))
+        self._history = FakeHistory(
+            list(index),
+            list(closes),
+            highs=list(highs) or None,
+            lows=list(lows) or None,
+        )
 
     def history(self, period):
         """Return dated close history for the requested period."""
@@ -82,6 +87,32 @@ def test_yfinance_fallback_divides_flagged_historical_closes_by_100():
     assert series == (
         PricePoint(date=date(2024, 1, 2), close=Decimal("1619.3")),
         PricePoint(date=date(2024, 1, 3), close=Decimal("1622.3")),
+    )
+
+
+def test_yfinance_fallback_carries_high_and_low():
+    """The composite fallback preserves the full OHLC bar from yfinance."""
+    index = [datetime(2024, 1, 2)]
+    provider = CompositeMarketDataProvider(
+        ppi_provider=StubPpiProvider(),
+        yfinance_factory=lambda ticker: FakeTicker(
+            {"quoteType": "EQUITY"},
+            [10.0],
+            index,
+            highs=[10.5],
+            lows=[9.5],
+        ),
+    )
+
+    series = provider.get_historical_series("AAPL", "1mo")
+
+    assert series == (
+        PricePoint(
+            date=date(2024, 1, 2),
+            close=Decimal("10"),
+            high=Decimal("10.5"),
+            low=Decimal("9.5"),
+        ),
     )
 
 

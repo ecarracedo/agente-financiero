@@ -1065,7 +1065,10 @@ export interface components {
         };
         /**
          * PricePointResponse
-         * @description Expose one dated close with a canonical money string.
+         * @description Expose one dated price bar with canonical money strings.
+         *
+         *     ``high`` and ``low`` are optional so close-only providers and existing
+         *     callers stay valid; both default to ``None`` when the source has no extremes.
          */
         PricePointResponse: {
             /**
@@ -1075,6 +1078,10 @@ export interface components {
             date: string;
             /** Close */
             close: string;
+            /** High */
+            high?: string | null;
+            /** Low */
+            low?: string | null;
         };
         /**
          * SnapshotEstimateRequest
@@ -1373,13 +1380,17 @@ export interface components {
         };
         /**
          * WishlistItemResponse
-         * @description Expose a wishlist entry with an optional canonical target price.
+         * @description Expose a wishlist entry with its target and stored alert direction.
          */
         WishlistItemResponse: {
             /** Ticker */
             ticker: string;
             /** Target Price */
             target_price: string | null;
+            /** Alert Intent */
+            alert_intent?: string | null;
+            /** Currency */
+            currency?: string | null;
         };
         /**
          * WishlistTargetRequest

@@ -3561,6 +3561,28 @@
           "close": {
             "type": "string",
             "title": "Close"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
           }
         },
         "type": "object",
@@ -3569,7 +3591,7 @@
           "close"
         ],
         "title": "PricePointResponse",
-        "description": "Expose one dated close with a canonical money string."
+        "description": "Expose one dated price bar with canonical money strings.\n\n``high`` and ``low`` are optional so close-only providers and existing\ncallers stay valid; both default to ``None`` when the source has no extremes."
       },
       "SnapshotEstimateRequest": {
         "properties": {
@@ -4287,6 +4309,28 @@
               }
             ],
             "title": "Target Price"
+          },
+          "alert_intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Intent"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
           }
         },
         "type": "object",
@@ -4295,7 +4339,7 @@
           "target_price"
         ],
         "title": "WishlistItemResponse",
-        "description": "Expose a wishlist entry with an optional canonical target price."
+        "description": "Expose a wishlist entry with its target and stored alert direction."
       },
       "WishlistTargetRequest": {
         "properties": {

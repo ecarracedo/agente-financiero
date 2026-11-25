@@ -14,6 +14,7 @@ from backend.app.domain.tickers import (
     normalize_ticker,
 )
 from backend.app.adapters.ppi_market_data import PpiMarketDataProvider
+from backend.app.adapters.market_data import read_optional_price_column
 from backend.app.application.ports import MarketDataProviderPort
 
 
@@ -212,6 +213,8 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
                 is_per_hundred = False
                 info_ok = False
             history = ticker_obj.history(period=period)
+            highs = read_optional_price_column(history, "High")
+            lows = read_optional_price_column(history, "Low")
             points: list[PricePoint] = []
             for timestamp, raw_close in history["Close"].dropna().items():
                 try:
@@ -227,7 +230,16 @@ class CompositeMarketDataProvider(MarketDataProviderPort):
                     point_date = timestamp
                 else:
                     point_date = timestamp.date()
-                points.append(PricePoint(date=point_date, close=close))
+                high = highs.get(timestamp)
+                low = lows.get(timestamp)
+                points.append(
+                    PricePoint(
+                        date=point_date,
+                        close=close,
+                        high=None if high is None else _scale_price_if_bond(high, is_per_hundred),
+                        low=None if low is None else _scale_price_if_bond(low, is_per_hundred),
+                    )
+                )
             result = tuple(points)
             if result and info_ok:
                 self._cache_put(self._series_cache, cache_key, result)

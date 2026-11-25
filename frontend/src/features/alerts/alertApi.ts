@@ -107,6 +107,4 @@ export const alertApi = {
     ),
   acknowledgeEvent: (eventId: number): Promise<AcknowledgedResponse> =>
     request(`/api/v1/alerts/events/${eventId}/acknowledge`, { method: 'POST' }),
-  evaluate: (): Promise<TriggeredAlertEvent[]> =>
-    request('/api/v1/alerts/evaluate', { method: 'POST' }),
 }

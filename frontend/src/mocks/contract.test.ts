@@ -184,7 +184,10 @@ describe('MSW harness matches the OpenAPI contract', () => {
 
       expect(required.filter((field) => !(field in fixtures.analysisAAPL))).toEqual([])
       for (const point of fixtures.analysisAAPL.series) {
-        expect(Object.keys(point).sort()).toEqual(['close', 'date'])
+        expect(Object.keys(point).filter((key) => !['high', 'low'].includes(key)).sort()).toEqual([
+          'close',
+          'date',
+        ])
       }
     })
   })

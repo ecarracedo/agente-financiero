@@ -12,6 +12,8 @@
  * and is present in the markup for a test to assert.
  */
 
+import { formatCurrencyAmount } from '../lib/money'
+
 /** Label shown when a monetary value is explicitly unavailable. */
 export const NOT_AVAILABLE = 'Not available'
 
@@ -51,15 +53,7 @@ export function CurrencyAmount({ amount, currency, variant = 'plain' }: Currency
   }
 
   if (variant === 'plain') {
-    const num = Number(amount);
-    const fmt = Number.isFinite(num)
-      ? num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : amount;
-    return (
-      <span>
-        $ {fmt} {currency}
-      </span>
-    )
+    return <span>{formatCurrencyAmount(amount, currency)}</span>
   }
 
   const fmtAmount = (val: string) => {

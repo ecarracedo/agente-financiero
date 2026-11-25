@@ -31,29 +31,35 @@ class FakeCloseSeries:
 
 
 class FakeHistory:
-    """Provide the close column expected from a yfinance history frame."""
+    """Provide the OHLC columns expected from a yfinance history frame."""
 
-    def __init__(self, index, closes):
+    def __init__(self, index, closes, highs=None, lows=None):
         self._closes = FakeCloseSeries(index, closes)
+        self._highs = None if highs is None else FakeCloseSeries(index, highs)
+        self._lows = None if lows is None else FakeCloseSeries(index, lows)
 
     def __getitem__(self, column):
-        """Return closes for the expected market-data column."""
-        if column != "Close":
+        """Return the requested price column, or raise like pandas would."""
+        columns = {"Close": self._closes, "High": self._highs, "Low": self._lows}
+        series = columns.get(column)
+        if series is None:
             raise KeyError(column)
-        return self._closes
+        return series
 
 
 class FakeTicker:
-    """Expose controlled price information and dated historical closes."""
+    """Expose controlled price information and dated historical bars."""
 
-    def __init__(self, info, closes, index=None):
+    def __init__(self, info, closes, index=None, highs=None, lows=None):
         self.info = info
         self._closes = closes
+        self._highs = highs
+        self._lows = lows
         self._index = [] if index is None else index
 
     def history(self, period):
-        """Return dated close history for the requested period."""
-        return FakeHistory(self._index, self._closes)
+        """Return dated OHLC history for the requested period."""
+        return FakeHistory(self._index, self._closes, self._highs, self._lows)
 
 
 def test_quote_carries_the_provider_currency():
@@ -126,6 +132,72 @@ def test_historical_series_divides_flagged_ticker_closes_by_100():
     assert series == (
         PricePoint(date=date(2024, 1, 2), close=Decimal("1619.3")),
         PricePoint(date=date(2024, 1, 3), close=Decimal("1622.3")),
+    )
+
+
+def test_historical_series_carries_high_and_low_from_provider():
+    """Daily highs and lows are preserved alongside the canonical close."""
+    index = [datetime(2024, 1, 2), datetime(2024, 1, 3)]
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"quoteType": "EQUITY"},
+            [10.0, 11.0],
+            index,
+            highs=[10.5, 11.8],
+            lows=[9.5, 10.2],
+        )
+    )
+
+    series = provider.get_historical_series("AAPL", "1mo")
+
+    assert series == (
+        PricePoint(
+            date=date(2024, 1, 2),
+            close=Decimal("10"),
+            high=Decimal("10.5"),
+            low=Decimal("9.5"),
+        ),
+        PricePoint(
+            date=date(2024, 1, 3),
+            close=Decimal("11"),
+            high=Decimal("11.8"),
+            low=Decimal("10.2"),
+        ),
+    )
+
+
+def test_historical_series_scales_high_and_low_like_close_for_bonds():
+    """The per-100 nominal conversion applies to the whole OHLC bar."""
+    index = [datetime(2024, 1, 2)]
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker(
+            {"quoteType": "BOND"}, [100.0], index, highs=[105.0], lows=[98.0]
+        )
+    )
+
+    series = provider.get_historical_series("YFC00.BA", "1mo")
+
+    assert series == (
+        PricePoint(
+            date=date(2024, 1, 2),
+            close=Decimal("1.0"),
+            high=Decimal("1.05"),
+            low=Decimal("0.98"),
+        ),
+    )
+
+
+def test_historical_series_without_high_low_columns_stays_close_only():
+    """A provider without OHLC columns still yields valid close-only points."""
+    index = [datetime(2024, 1, 2)]
+    provider = YFinanceMarketDataProvider(
+        ticker_factory=lambda ticker: FakeTicker({"quoteType": "EQUITY"}, [10.0], index)
+    )
+
+    series = provider.get_historical_series("AAPL", "1mo")
+
+    assert series == (
+        PricePoint(date=date(2024, 1, 2), close=Decimal("10"), high=None, low=None),
     )
 
 
